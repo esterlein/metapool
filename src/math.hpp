@@ -39,5 +39,5 @@ namespace math {
 	{
 		static_assert(exp >= 0, "negative exponents are not allowed for unsigned types");
 	}
-} // math
+} // hpr::math
 } // hpr
