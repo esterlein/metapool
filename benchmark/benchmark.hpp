@@ -1,5 +1,6 @@
 #include <vector>
 #include <utility>
+#include <iostream>
 #include <memory_resource>
 
 #include "memory_model.hpp"
@@ -75,10 +76,18 @@ public:
 
 	inline void basic_tests()
 	{
+		std::cout << "testing basic allocation... "
 		test_basic_allocation();
+		std::cout << "OK\n"
+		std::cout << "testing alignment... "
 		test_alignment();
+		std::cout << "OK\n"
+		std::cout << "testing multiple allocations... "
 		test_multiple_allocations();
+		std::cout << "OK\n"
+		std::cout << "testing with containers... "
 		test_with_containers();
+		std::cout << "OK\n"
 	}
 
 	virtual void setup() = 0;

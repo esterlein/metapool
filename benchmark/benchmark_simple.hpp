@@ -8,13 +8,17 @@ class BenchmarkSimple : public Benchmark
 {
 public:
 
-	void setup() override
+	inline void setup() override
 	{
-
+		Benchmark::basic_tests();
 	}
 
-	void run() override
+	inline void run() override
 	{
+		hpr::MemoryModel memory_model;
+		auto& allocator = memory_model.get_memory_resource();
+
+		std::cout << "starting simple benchmark...\n"
 		auto start = std::chrono::high_resolution_clock::now();
 
 		// alloc / dealloc
@@ -24,11 +28,10 @@ public:
 		(std::cout)
 			<< "simple benchmark time: "
 			<< std::chrono::duration<double, std::milli>(end - start).count()
-			<< " ms"
-			<< std::endl;
+			<< " ms\n"
 	}
 
-	void teardown() override
+	inline void teardown() override
 	{
 
 	}
