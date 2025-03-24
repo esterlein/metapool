@@ -19,7 +19,7 @@ if [[ "$1" == "run" ]]; then
 	shift
 	CMAKE_ARGS=""
 	if [[ $# -gt 0 ]]; then
-		CMAKE_ARGS="-DARGS=\"$*\""
+		CMAKE_ARGS="-DARGS=$*"
 	fi
 
 	cmake -B $BUILD_DIR -S . \

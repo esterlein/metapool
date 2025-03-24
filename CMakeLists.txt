@@ -21,9 +21,17 @@ add_compile_options(
 )
 
 set(SRC_DIR "${CMAKE_SOURCE_DIR}/src")
+set(BENCHMARK_DIR "${CMAKE_SOURCE_DIR}/benchmark")
 file(GLOB_RECURSE SOURCES ${SRC_DIR}/*.cpp ${SRC_DIR}/*.tpp)
+
+list(APPEND SOURCES "${CMAKE_SOURCE_DIR}/main.cpp")
+
 add_executable(metapool ${SOURCES})
-target_include_directories(metapool PRIVATE ${SRC_DIR})
+target_include_directories(metapool PRIVATE
+	${SRC_DIR}
+	${BENCHMARK_DIR}
+	${CMAKE_SOURCE_DIR}
+)
 
 add_custom_target(run
 	COMMAND $<TARGET_FILE:metapool> ${ARGS}

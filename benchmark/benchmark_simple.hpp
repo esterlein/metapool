@@ -1,3 +1,5 @@
+#pragma once
+
 #include <chrono>
 #include <iostream>
 
@@ -18,17 +20,20 @@ public:
 		hpr::MemoryModel memory_model;
 		auto& allocator = memory_model.get_memory_resource();
 
-		std::cout << "starting simple benchmark...\n"
+		std::cout << "starting simple benchmark...\n";
 		auto start = std::chrono::high_resolution_clock::now();
 
-		// alloc / dealloc
+		for (int i = 0; i < 1000000; ++i) {
+			void* ptr = allocator.allocate(256, 64);
+			allocator.deallocate(ptr, 256, 64);
+		}
 
 		auto end = std::chrono::high_resolution_clock::now();
 
 		(std::cout)
 			<< "simple benchmark time: "
 			<< std::chrono::duration<double, std::milli>(end - start).count()
-			<< " ms\n"
+			<< " ms\n";
 	}
 
 	inline void teardown() override
@@ -36,3 +41,9 @@ public:
 
 	}
 };
+
+
+std::unique_ptr<Benchmark> create_benchmark_simple()
+{
+	return std::make_unique<BenchmarkSimple>();
+}

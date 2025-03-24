@@ -3,12 +3,17 @@
 #include <memory>
 #include <iostream>
 
-#include "benchmark.h"
+#include "benchmark.hpp"
+#include "benchmark_simple.hpp"
+#include "benchmark_intermediate.hpp"
+#include "benchmark_complex.hpp"
 
 
-std::unique_ptr<benchmark> create_benchmark_simple();
-std::unique_ptr<benchmark> create_benchmark_intermediate();
-std::unique_ptr<benchmark> create_benchmark_complex();
+
+
+std::unique_ptr<Benchmark> create_benchmark_simple();
+std::unique_ptr<Benchmark> create_benchmark_intermediate();
+std::unique_ptr<Benchmark> create_benchmark_complex();
 
 
 int main(int argc, char* argv[])
@@ -18,7 +23,7 @@ int main(int argc, char* argv[])
 		return 1;
 	}
 
-	const std::map<std::string, std::unique_ptr<benchmark>(*)()> benchmark_factories = {
+	const std::map<std::string, std::unique_ptr<Benchmark>(*)()> benchmark_factories = {
 		{"simple", create_benchmark_simple},
 		{"intermediate", create_benchmark_intermediate},
 		{"complex", create_benchmark_complex}
@@ -34,7 +39,7 @@ int main(int argc, char* argv[])
 	}
 
 	try {
-		std::unique_ptr<benchmark> bench = factory_it->second();
+		std::unique_ptr<Benchmark> bench = factory_it->second();
 
 		bench->setup();
 		bench->run();
