@@ -4,7 +4,7 @@
 #include "benchmark.hpp"
 
 
-class SimpleBenchmark : public Benchmark
+class BenchmarkSimple : public Benchmark
 {
 public:
 
