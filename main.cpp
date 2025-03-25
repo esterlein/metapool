@@ -9,8 +9,6 @@
 #include "benchmark_complex.hpp"
 
 
-
-
 std::unique_ptr<Benchmark> create_benchmark_simple();
 std::unique_ptr<Benchmark> create_benchmark_intermediate();
 std::unique_ptr<Benchmark> create_benchmark_complex();
