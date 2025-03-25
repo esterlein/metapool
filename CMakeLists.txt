@@ -7,7 +7,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
 if(NOT CMAKE_BUILD_TYPE)
-	set(CMAKE_BUILD_TYPE Debug)
+	set(CMAKE_BUILD_TYPE RelWithDebInfo)
 endif()
 
 add_compile_options(
@@ -17,8 +17,15 @@ add_compile_options(
 	-Wshadow
 	-Wconversion
 	-Wsign-conversion
+	-g
 #	-Werror
 )
+
+find_library(PROFILER_LIBRARY profiler PATHS /usr/local/lib /usr/local/opt/gperftools/lib)
+if(NOT PROFILER_LIBRARY)
+	message(FATAL_ERROR "could not find libprofiler from gperftools")
+endif()
+message(STATUS "found profiler library: ${PROFILER_LIBRARY}")
 
 set(SRC_DIR "${CMAKE_SOURCE_DIR}/src")
 set(BENCHMARK_DIR "${CMAKE_SOURCE_DIR}/benchmark")
@@ -33,10 +40,36 @@ target_include_directories(metapool PRIVATE
 	${CMAKE_SOURCE_DIR}
 )
 
+target_link_libraries(metapool ${PROFILER_LIBRARY})
+
 add_custom_target(run
 	COMMAND $<TARGET_FILE:metapool> ${ARGS}
 	DEPENDS metapool
 	WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
 	COMMENT "running metapool..."
+	VERBATIM
+)
+
+add_custom_target(profile
+	COMMAND ${CMAKE_COMMAND} -E env CPUPROFILE=metapool.prof $<TARGET_FILE:metapool> ${ARGS}
+	DEPENDS metapool
+	WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+	COMMENT "profiling metapool..."
+	VERBATIM
+)
+
+add_custom_target(analyze
+	COMMAND pprof --text $<TARGET_FILE:metapool> ${CMAKE_CURRENT_BINARY_DIR}/metapool.prof
+	DEPENDS profile
+	WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+	COMMENT "analyzing metapool profile..."
+	VERBATIM
+)
+
+add_custom_target(analyze-web
+	COMMAND pprof --web $<TARGET_FILE:metapool> ${CMAKE_CURRENT_BINARY_DIR}/metapool.prof
+	DEPENDS profile
+	WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+	COMMENT "web visualization of metapool profile..."
 	VERBATIM
 )
