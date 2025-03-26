@@ -16,8 +16,8 @@ void Freelist<Stride, BlockCount>::initialize(std::byte* memory) noexcept
 
 	for (std::size_t i = 1; i < BlockCount; ++i) {
 		Block* next = reinterpret_cast<Block*>(memory + i * Stride);
-		current->next = current + 1;
-		current = current->next;
+		current->next = next;
+		current = next;
 	}
 	current->next = nullptr;
 }

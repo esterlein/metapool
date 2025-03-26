@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstddef>
+#include <type_traits>
 
 
 namespace hpr {
@@ -9,6 +10,8 @@ namespace hpr {
 template <std::size_t Stride, std::size_t BlockCount>
 class Freelist final
 {
+
+	static_assert(Stride >= sizeof(void*), "stride is smaller than a pointer");
 
 public:
 
@@ -38,6 +41,8 @@ private:
 		inline std::byte* get_memory() noexcept { return data; }
 		inline const std::byte* get_memory() const noexcept { return data; }
 	};
+
+	static_assert(sizeof(Block) <= Stride, "block is larger than stride");
 
 	Block* m_head = nullptr;
 
