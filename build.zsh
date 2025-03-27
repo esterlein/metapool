@@ -31,6 +31,9 @@ if [[ "$1" == "run" ]]; then
 		$CMAKE_ARGS
 	export VERBOSE=1
 	cmake --build $BUILD_DIR -j$(sysctl -n hw.logicalcpu)
+	if [ -f $BUILD_DIR/compile_commands.json ]; then
+		ln -sf $BUILD_DIR/compile_commands.json .
+	fi
 	cmake --build $BUILD_DIR --target run
 	exit 0
 fi
@@ -52,6 +55,9 @@ if [[ "$1" == "profile" ]]; then
 	
 	export VERBOSE=1
 	cmake --build $BUILD_DIR -j$(sysctl -n hw.logicalcpu)
+	if [ -f $BUILD_DIR/compile_commands.json ]; then
+		ln -sf $BUILD_DIR/compile_commands.json .
+	fi
 	cmake --build $BUILD_DIR --target profile
 	
 	if [[ "$1" == "analyze" ]]; then
@@ -83,3 +89,6 @@ cmake -B $BUILD_DIR -S . \
 	-DCMAKE_EXE_LINKER_FLAGS="-nostdlib++ -L/usr/local/opt/llvm/lib/c++ -lc++ -L$LLVM_PATH/lib -L$LLVM_PATH/lib/unwind -lunwind -Wl,-rpath,$LLVM_PATH/lib"
 export VERBOSE=1
 cmake --build $BUILD_DIR -j$(sysctl -n hw.logicalcpu)
+if [ -f $BUILD_DIR/compile_commands.json ]; then
+	ln -sf $BUILD_DIR/compile_commands.json .
+fi

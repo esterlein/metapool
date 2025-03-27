@@ -12,7 +12,7 @@ public:
 
 	inline void setup() override
 	{
-		std::cout << "\nrun basic metapool tests...\n";
+		std::cout << "\nrunning basic metapool tests...\n";
 		Benchmark::basic_tests();
 	}
 
