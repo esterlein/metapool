@@ -67,7 +67,7 @@ private:
 	static constexpr auto& compute_number_of_pools()
 	{
 		constexpr std::array<std::size_t, sizeof...(StridePivots)> pivots = {StridePivots...};
-		static constexpr auto num_pools = (pivots[pivots.size() - 2] - pivots[0]) / 8;
+		static constexpr auto num_pools = (pivots[pivots.size() - 1] - pivots[0]) / 8;
 		return num_pools;
 	}
 
