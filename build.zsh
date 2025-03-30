@@ -92,3 +92,18 @@ cmake --build $BUILD_DIR -j$(sysctl -n hw.logicalcpu)
 if [ -f $BUILD_DIR/compile_commands.json ]; then
 	ln -sf $BUILD_DIR/compile_commands.json .
 fi
+
+
+# possible commands:
+# clean - clean the build directory
+# (default) - default build (no arguments passed to program)
+# run simple - build and run with "simple" argument
+# run intermediate - build and run with "intermediate" argument
+# run complex - build and run with "complex" argument
+# profile simple - profile run with "simple" argument
+# profile intermediate - profile run with "intermediate" argument
+# profile complex - profile run with "complex" argument
+# profile analyze - analyze profile data
+# profile analyze-web - analyze profile data with web interface
+# analyze - analyze existing profile data
+# analyze-web - analyze existing profile data with web interface
