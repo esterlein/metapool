@@ -48,10 +48,15 @@ private:
 
 private:
 
+	// debugging
+	std::size_t m_block_count = BlockCount;
+	const std::size_t m_total_block_count = BlockCount;
+
 	inline std::byte* pop() noexcept
 	{
 		Block* block = m_head;
 		m_head = m_head->next;
+		--m_block_count;
 		return block->get_memory();
 	}
 
@@ -60,9 +65,10 @@ private:
 		auto* block = reinterpret_cast<Block*>(location);
 		block->next = m_head;
 		m_head = block;
+		++m_block_count;
 	}
 };
 
 } // hpr
 
-#include "freelist.tpp"
+#include "ufreelist.tpp"
