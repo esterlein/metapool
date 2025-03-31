@@ -44,7 +44,7 @@ private:
 		std::cout << "starting metapool benchmark...\n";
 
 		auto start = std::chrono::high_resolution_clock::now();
-		for (int i = 0; i < 1000000; ++i) {
+		for (int i = 0; i < 1000000000; ++i) {
 			void* ptr = allocator.allocate(256, 64);
 			allocator.deallocate(ptr, 256, 64);
 		}
@@ -62,7 +62,7 @@ private:
 		std::cout << "starting default pmr benchmark...\n";
 
 		auto start = std::chrono::high_resolution_clock::now();
-		for (int i = 0; i < 1000000; ++i) {
+		for (int i = 0; i < 1000000000; ++i) {
 			void* ptr = allocator.resource()->allocate(256, 64);
 			allocator.resource()->deallocate(ptr, 256, 64);
 		}
@@ -79,7 +79,7 @@ private:
 		std::cout << "starting standard allocator benchmark...\n";
 
 		auto start = std::chrono::high_resolution_clock::now();
-		for (int i = 0; i < 1000000; ++i) {
+		for (int i = 0; i < 1000000000; ++i) {
 			char* ptr = allocator.allocate(256);
 			allocator.deallocate(ptr, 256);
 		}
