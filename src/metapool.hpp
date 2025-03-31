@@ -126,6 +126,17 @@ private:
 		return pools;
 	}
 
+	static constexpr auto& compute_lookup_table()
+	{
+		constexpr size_t num_pools = compute_number_of_pools();
+		
+		std::array<Pool, num_pools> table{};
+		
+		// fill lookup table
+		
+		return table;
+	}
+
 private:
 
 	template <auto& Strides, auto& BlockCount, typename IndexSequence>
@@ -144,11 +155,20 @@ private:
 			std::make_index_sequence<compute_number_of_pools()>
 		>::type;
 
+	struct AllocationHeader
+	{
+		uint16_t pool_index;
+		uint16_t magic = 0xABCD;
+	};
+
+	using FreelistFetch = std::byte* (*)(void* freelist);
+	using FreelistRelease = void (*)(void* freelist, std::byte* block);
+
 	struct Pool
 	{
-		std::size_t stride;
-		std::size_t block_count;
-		FreelistVariant freelist;
+		size_t pool_index;
+		FreelistFetch fetch;
+		FreelistRelease release;
 	};
 
 public:

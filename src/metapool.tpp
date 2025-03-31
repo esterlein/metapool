@@ -91,8 +91,8 @@ Metapool<BasePoolBlockCount, StridePivots...>&
 Metapool<BasePoolBlockCount, StridePivots...>::operator=(Metapool&& other) noexcept
 {
 	if (this != &other) {
-			m_upstream = std::exchange(other.m_upstream, nullptr);
-			m_pools = std::move(other.m_pools);
+		m_upstream = std::exchange(other.m_upstream, nullptr);
+		m_pools = std::move(other.m_pools);
 	}
 	return *this;
 }
@@ -102,42 +102,44 @@ template <auto BasePoolBlockCount, auto... StridePivots>
 requires mem::valid_metapool_sequence<BasePoolBlockCount, StridePivots...>
 std::optional<std::size_t> Metapool<BasePoolBlockCount, StridePivots...>::get_pool_index(std::size_t stride)
 {
-	if (stride < m_pools.front().stride || stride > m_pools.back().stride)
-		return std::nullopt;
-
-	return (stride - m_pools.front().stride) / mem::stride_multiple;
+	return std::nullopt;
 }
 
 template <auto BasePoolBlockCount, auto... StridePivots>
 requires mem::valid_metapool_sequence<BasePoolBlockCount, StridePivots...>
 std::byte* Metapool<BasePoolBlockCount, StridePivots...>::fetch(std::size_t stride)
 {
-	if (stride < m_pools.front().stride || stride > m_pools.back().stride)
+	if (stride == 0 || stride > 2048 || stride % 8 != 0)
 		throw std::bad_alloc{};
 
-	auto& freelist_variant = m_pools[(stride - m_pools.front().stride) / 8].freelist;
+	const auto table_index = stride / 8;
 
-	return std::visit([](auto&& freelist) -> std::byte* {
-		auto* location = freelist.fetch();
-		if (!location) {
-			throw std::bad_alloc{};
-		}
-		return reinterpret_cast<std::byte*>(location);
+	const auto& table_entry = lookup_table[table_index];
+	auto* block = table_entry.fetch(&m_pools[table_entry.pool_index].freelist);
+	if (!block)
+		throw std::bad_alloc{};
 
-	}, freelist_variant);
+	auto* header = reinterpret_cast<AllocationHeader*>(block);
+	header->pool_index = table_entry.pool_index;
+
+	return block + sizeof(AllocationHeader);
 }
 
 template <auto BasePoolBlockCount, auto... StridePivots>
 requires mem::valid_metapool_sequence<BasePoolBlockCount, StridePivots...>
 void Metapool<BasePoolBlockCount, StridePivots...>::release(std::size_t stride, std::byte* location)
 {
-	if (stride < m_pools.front().stride || stride > m_pools.back().stride)
-		throw std::runtime_error("no suitable pool found for release");
+	if (!location) return;
 
-	auto& freelist_variant = m_pools[(stride - m_pools.front().stride) / 8].freelist;
+	std::byte* block = location - sizeof(AllocationHeader);
+	auto* header = reinterpret_cast<AllocationHeader*>(block);
 
-	std::visit([location](auto&& freelist) {
-		freelist.release(location);
-	}, freelist_variant);
+	if (header->magic != 0xABCD)
+		throw std::runtime_error("memory corruption detected");
+
+	const auto pool_index = header->pool_index;
+
+	const auto& pool = m_pools[pool_index];
+	lookup_table[pool_index].release(&pool.freelist, block);
 }
 } // hpr
