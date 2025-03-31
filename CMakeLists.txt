@@ -62,7 +62,7 @@ add_custom_target(profile
 )
 
 add_custom_target(analyze
-	COMMAND pprof --text $<TARGET_FILE:metapool> ${CMAKE_CURRENT_BINARY_DIR}/metapool.prof
+	COMMAND ${CMAKE_SOURCE_DIR}/perft_setup.zsh $<TARGET_FILE:metapool> ${CMAKE_CURRENT_BINARY_DIR}/metapool.prof
 	DEPENDS profile
 	WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
 	COMMENT "analyzing metapool profile..."
@@ -70,7 +70,7 @@ add_custom_target(analyze
 )
 
 add_custom_target(analyze-web
-	COMMAND pprof --web $<TARGET_FILE:metapool> ${CMAKE_CURRENT_BINARY_DIR}/metapool.prof
+	COMMAND ${CMAKE_COMMAND} -E env DYLD_LIBRARY_PATH=/usr/local/opt/llvm/lib:/usr/local/opt/llvm/lib/c++ pprof --web $<TARGET_FILE:metapool> ${CMAKE_CURRENT_BINARY_DIR}/metapool.prof
 	DEPENDS profile
 	WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
 	COMMENT "web visualization of metapool profile..."
