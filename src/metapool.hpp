@@ -188,6 +188,13 @@ private:
 
 	struct Pool
 	{
+		std::size_t stride;
+		std::size_t block_count;
+		FreelistVariant freelist;
+	};
+
+	struct FreelistEntry
+	{
 		size_t pool_index;
 		FreelistFetch fetch;
 		FreelistRelease release;
@@ -201,66 +208,54 @@ public:
 	void release(std::byte* location);
 
 	template <typename T, typename... Types>
-	T* construct(Types&&... args)
+	T* construct(std::size_t stride, Types&&... args)
 	{
-		std::size_t stride = get_type_stride<T>();
-		// assert metapool bounds
-		return construct_impl(stride, std::forward<Types>(args)...);
+		if (stride < m_pools.front().stride || stride > m_pools.back().stride)
+			throw std::bad_alloc{};
+
+		const auto pool_index = (stride - m_pools.front().stride) / 8;
+		const auto& [_, functions] = m_lookup_table[pool_index];
+		const auto& [fetch_func, _] = functions;
+
+		std::byte* block = fetch_func(&m_pools[pool_index].freelist);
+		if (!block)
+			throw std::bad_alloc{};
+
+		auto* header = reinterpret_cast<AllocationHeader*>(block);
+		header->pool_index = pool_index;
+		header->magic = 0xABCD;
+
+		std::byte* object_location = block + sizeof(AllocationHeader);
+		T* object = std::launder(new (object_location) T(std::forward<Types>(args)...));
+
+		return object;
 	}
 
 	template <typename T>
 	void destruct(T* object)
 	{
-		std::size_t stride = get_type_stride<T>();
-		// assert metapool bounds
-		destruct_impl(stride, object);
+		if (!object) return;
+
+		object->~T();
+
+		std::byte* object_location = reinterpret_cast<std::byte*>(object);
+		std::byte* block = object_location - sizeof(AllocationHeader);
+
+		auto* header = reinterpret_cast<AllocationHeader*>(block);
+
+		if (header->magic != 0xABCD)
+			throw std::runtime_error("memory corruption detected");
+
+		const auto pool_index = header->pool_index;
+		const auto& [_, functions] = m_lookup_table[pool_index];
+		const auto& [_, release_func] = functions;
+
+		release_func(&m_pools[pool_index].freelist, block);
 	}
 
 	inline constexpr auto get_bounds()
 	{
 		return std::pair{m_pools.front().stride, m_pools.back().stride};
-	}
-
-protected:
-
-	template <typename T, typename... Types>
-	T* construct_impl(std::size_t stride, Types&&... args)
-	{
-		try {
-			auto& freelist_variant = m_pools[(stride - m_pools.front().stride) / 8].freelist;
-
-			return std::visit([&args...](auto&& freelist) -> T* {
-				auto* location = freelist.fetch();
-				if (!location) {
-					throw std::bad_alloc{};
-				}
-				return std::launder(new (location) T(std::forward<Types>(args)...));
-
-			}, freelist_variant);
-
-			// throw std::runtime_error("no suitable pool found for object construction");
-		}
-		catch (const std::exception& e) {
-			throw;
-		}
-	}
-
-	template <typename T>
-	void destruct_impl(std::size_t stride, T* object)
-	{
-		if (!object) return;
-
-		auto& freelist_variant = m_pools[(stride - m_pools.front().stride) / 8].freelist;
-
-		object->~T();
-
-		std::visit([location = reinterpret_cast<std::byte*>(object)](auto&& freelist) {
-			freelist.release(location);
-		}, freelist_variant);
-
-		return;
-
-		// throw std::runtime_error("no suitable pool found for object destruction");
 	}
 
 private:
