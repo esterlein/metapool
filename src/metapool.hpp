@@ -126,15 +126,25 @@ private:
 		return pools;
 	}
 
-	static constexpr auto& compute_lookup_table()
+	static constexpr auto generate_lookup_table()
 	{
-		constexpr size_t num_pools = compute_number_of_pools();
-		
-		std::array<Pool, num_pools> table{};
-		
-		// fill lookup table
-		
-		return table;
+		constexpr std::size_t num_pools = compute_number_of_pools();
+		constexpr auto& pool_strides = compute_pool_strides();
+		constexpr auto& block_count = compute_block_count();
+
+		return []<std::size_t... I>(std::index_sequence<I...>, const auto& strides, const auto& counts) {
+			std::array<std::pair<std::size_t, std::pair<FreelistFetch, FreelistRelease>>, sizeof...(I)> table{};
+
+			((table[I] = {
+				I,
+				{
+					&freelist_typed_fetch<strides[I], counts[I]>,
+					&freelist_typed_release<strides[I], counts[I]>
+				}
+			}), ...);
+
+			return table;
+		}(std::make_index_sequence<num_pools>{}, pool_strides, block_count);
 	}
 
 private:
@@ -164,6 +174,18 @@ private:
 	using FreelistFetch = std::byte* (*)(void* freelist);
 	using FreelistRelease = void (*)(void* freelist, std::byte* block);
 
+	template <std::size_t Stride, std::size_t BlockCount>
+	static std::byte* freelist_typed_fetch(void* freelist_ptr) {
+		auto& freelist = *static_cast<Freelist<Stride, BlockCount>*>(freelist_ptr);
+		return freelist.fetch();
+	}
+
+	template <std::size_t Stride, std::size_t BlockCount>
+	static void freelist_typed_release(void* freelist_ptr, std::byte* block) {
+		auto& freelist = *static_cast<Freelist<Stride, BlockCount>*>(freelist_ptr);
+		freelist.release(block);
+	}
+
 	struct Pool
 	{
 		size_t pool_index;
@@ -176,7 +198,7 @@ public:
 	using PoolVariant = FreelistVariant;
 
 	std::byte* fetch(std::size_t stride);
-	void release(std::size_t stride, std::byte* location);
+	void release(std::byte* location);
 
 	template <typename T, typename... Types>
 	T* construct(Types&&... args)
