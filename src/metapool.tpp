@@ -109,25 +109,26 @@ template <auto BasePoolBlockCount, auto... StridePivots>
 requires mem::valid_metapool_sequence<BasePoolBlockCount, StridePivots...>
 std::byte* Metapool<BasePoolBlockCount, StridePivots...>::fetch(std::size_t stride)
 {
-	if (stride == 0 || stride > 2048 || stride % 8 != 0)
+	if (stride < m_pools.front().stride || stride > m_pools.back().stride)
 		throw std::bad_alloc{};
 
-	const auto table_index = stride / 8;
+	const auto pool_index = (stride - m_pools.front().stride) / 8;
+	const auto& [_, functions] = lookup_table[pool_index];
+	const auto& [fetch_func, _] = functions;
 
-	const auto& table_entry = lookup_table[table_index];
-	auto* block = table_entry.fetch(&m_pools[table_entry.pool_index].freelist);
+	std::byte* block = fetch_func(&m_pools[pool_index].freelist);
 	if (!block)
 		throw std::bad_alloc{};
 
 	auto* header = reinterpret_cast<AllocationHeader*>(block);
-	header->pool_index = table_entry.pool_index;
+	header->pool_index = pool_index;
 
 	return block + sizeof(AllocationHeader);
 }
 
 template <auto BasePoolBlockCount, auto... StridePivots>
 requires mem::valid_metapool_sequence<BasePoolBlockCount, StridePivots...>
-void Metapool<BasePoolBlockCount, StridePivots...>::release(std::size_t stride, std::byte* location)
+void Metapool<BasePoolBlockCount, StridePivots...>::release(std::byte* location)
 {
 	if (!location) return;
 
@@ -139,7 +140,8 @@ void Metapool<BasePoolBlockCount, StridePivots...>::release(std::size_t stride, 
 
 	const auto pool_index = header->pool_index;
 
-	const auto& pool = m_pools[pool_index];
-	lookup_table[pool_index].release(&pool.freelist, block);
+	const auto& [_, functions] = lookup_table[pool_index];
+	const auto& [_, release_func] = functions;
+	release_func(&m_pools[pool_index].freelist, block);
 }
 } // hpr
