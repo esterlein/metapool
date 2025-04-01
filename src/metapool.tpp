@@ -16,7 +16,6 @@ template <auto BasePoolBlockCount, auto... StridePivots>
 requires mem::valid_metapool_sequence<BasePoolBlockCount, StridePivots...>
 Metapool<BasePoolBlockCount, StridePivots...>::Metapool(std::pmr::memory_resource* upstream)
 	: m_upstream{ upstream }
-	, m_pools   { compute_pools() }
 {
 	assert(upstream != nullptr);
 
@@ -43,7 +42,7 @@ Metapool<BasePoolBlockCount, StridePivots...>::Metapool(std::pmr::memory_resourc
 		);
 	}
 
-	std::byte* base_memory = static_cast<std::byte*>(m_upstream->allocate(total_size, mem::cacheline));
+	std::byte* base_memory = static_cast<std::byte*>(m_upstream->allocate_aligned(total_size, mem::cacheline, alloc_header_size));
 	std::byte* current_memory = base_memory;
 
 	std::visit(
@@ -56,9 +55,9 @@ Metapool<BasePoolBlockCount, StridePivots...>::Metapool(std::pmr::memory_resourc
 	for (std::size_t i = 1; i < m_pools.size(); ++i) {
 		uintptr_t current_addr = reinterpret_cast<uintptr_t>(current_memory);
 
-		if (current_addr % mem::cacheline != 0) {
-			uintptr_t aligned_addr = (current_addr + mem::cacheline - 1) & ~(mem::cacheline - 1);
-			current_memory = reinterpret_cast<std::byte*>(aligned_addr);
+		if ((current_addr + alloc_header_size) % mem::cacheline != 0) {
+			uintptr_t shift_aligned_addr = (current_addr + alloc_header_size + mem::cacheline - 1) & ~(mem::cacheline - 1);
+			current_memory = reinterpret_cast<std::byte*>(shift_aligned_addr - alloc_header_size);
 		}
 
 		std::visit(
@@ -80,8 +79,9 @@ Metapool<BasePoolBlockCount, StridePivots...>::~Metapool()
 template <auto BasePoolBlockCount, auto... StridePivots>
 requires mem::valid_metapool_sequence<BasePoolBlockCount, StridePivots...>
 Metapool<BasePoolBlockCount, StridePivots...>::Metapool(Metapool&& other) noexcept
-	: m_upstream{std::exchange(other.m_upstream, nullptr)}
-	, m_pools   {std::move(other.m_pools)}
+	: m_upstream    {std::exchange(other.m_upstream, nullptr)}
+	, m_pools       {std::move(other.m_pools)}
+	, m_lookup_table{std::move(other.m_lookup_table)}
 {}
 
 
@@ -93,6 +93,7 @@ Metapool<BasePoolBlockCount, StridePivots...>::operator=(Metapool&& other) noexc
 	if (this != &other) {
 		m_upstream = std::exchange(other.m_upstream, nullptr);
 		m_pools = std::move(other.m_pools);
+		m_lookup_table = std::move(other.m_lookup_table);
 	}
 	return *this;
 }
@@ -122,8 +123,12 @@ std::byte* Metapool<BasePoolBlockCount, StridePivots...>::fetch(std::size_t stri
 
 	auto* header = reinterpret_cast<AllocationHeader*>(block);
 	header->pool_index = pool_index;
+	header->magic = 0xABCD;
 
-	return block + sizeof(AllocationHeader);
+	std::byte* object_location = block + sizeof(AllocationHeader);
+
+	T* object = std::launder(new (object_location) T(std::forward<Types>(args)...));
+	return object;
 }
 
 template <auto BasePoolBlockCount, auto... StridePivots>
