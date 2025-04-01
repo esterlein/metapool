@@ -1,5 +1,6 @@
 #pragma once
 
+#include "metapool.tpp"
 #include <cstdlib>
 #include <cstddef>
 #include <cstdint>
@@ -13,7 +14,7 @@ class MonotonicArena : public std::pmr::memory_resource
 {
 public:
 
-	explicit MonotonicArena(std::size_t size, std::size_t alignment = 64);
+	explicit MonotonicArena(std::size_t size, std::size_t alignment = hpr::mem::cacheline, std::size_t shift = 0);
 	virtual ~MonotonicArena() override;
 
 	MonotonicArena(const MonotonicArena&) = delete;
@@ -44,11 +45,12 @@ protected:
 
 private:
 
-	std::byte* allocate_aligned(std::size_t size, std::size_t alignment = 64);
+	std::byte* allocate_aligned(std::size_t size, std::size_t alignment = 64, std::size_t shift = 0);
 	void free_aligned(std::byte* aligned_ptr);
 
-	std::byte*  m_aligned_arena;
+	std::byte*  m_arena;
 	std::size_t m_size;
 	std::size_t m_offset;
+	std::size_t m_shift;
 };
 } // hpr
