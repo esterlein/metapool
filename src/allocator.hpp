@@ -77,7 +77,7 @@ protected:
 private:
 
 	template <typename T>
-	static constexpr std::size_t get_type_stride()
+	static inline constexpr std::size_t get_type_stride()
 	{
 		constexpr std::size_t alignment = ((alignof(T) + 7UL) & ~7UL);
 		return (sizeof(T) + alignment - 1) & ~(alignment - 1);
