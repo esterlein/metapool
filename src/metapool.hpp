@@ -165,7 +165,7 @@ private:
 			std::make_index_sequence<compute_number_of_pools()>
 		>::type;
 
-	struct AllocationHeader
+	struct AllocHeader
 	{
 		uint16_t pool_index;
 		uint16_t magic = 0xABCD;
@@ -204,6 +204,8 @@ public:
 
 	using PoolVariant = FreelistVariant;
 
+	static inline constexpr std::size_t alloc_header_size = sizeof(AllocHeader);
+
 	std::byte* fetch(std::size_t stride);
 	void release(std::byte* location);
 
@@ -221,11 +223,11 @@ public:
 		if (!block)
 			throw std::bad_alloc{};
 
-		auto* header = reinterpret_cast<AllocationHeader*>(block);
+		auto* header = reinterpret_cast<AllocHeader*>(block);
 		header->pool_index = pool_index;
 		header->magic = 0xABCD;
 
-		std::byte* object_location = block + sizeof(AllocationHeader);
+		std::byte* object_location = block + sizeof(AllocHeader);
 		T* object = std::launder(new (object_location) T(std::forward<Types>(args)...));
 
 		return object;
@@ -239,9 +241,9 @@ public:
 		object->~T();
 
 		std::byte* object_location = reinterpret_cast<std::byte*>(object);
-		std::byte* block = object_location - sizeof(AllocationHeader);
+		std::byte* block = object_location - sizeof(AllocHeader);
 
-		auto* header = reinterpret_cast<AllocationHeader*>(block);
+		auto* header = reinterpret_cast<AllocHeader*>(block);
 
 		if (header->magic != 0xABCD)
 			throw std::runtime_error("memory corruption detected");
@@ -263,7 +265,7 @@ private:
 	template <typename T>
 	static inline constexpr std::size_t get_type_stride()
 	{
-		constexpr std::size_t alignment = ((alignof(T) + 7UL) & ~7UL);
+		constexpr std::size_t alignment = ((alignof(T) + alloc_header_size + 7UL) & ~7UL);
 		return (sizeof(T) + alignment - 1) & ~(alignment - 1);
 	}
 
@@ -274,7 +276,8 @@ private:
 
 	std::pmr::memory_resource* m_upstream = nullptr;
 
-	std::array<Pool, compute_number_of_pools()> m_pools;
+	std::array<Pool, compute_number_of_pools()> m_pools = compute_pools();
+	const std::array<FreelistEntry, compute_number_of_pools()> m_lookup_table = generate_lookup_table();
 };
 
 } // hpr
