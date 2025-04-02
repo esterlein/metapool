@@ -38,10 +38,30 @@ private:
 	template <typename T>
 	using MetapoolDestruct = void (*)(void* metapool, T* object);
 
-	struct MetapoolEntry
+	struct MetapoolDescriptor
 	{
-		void* metapool;
+		std::size_t lower_bound;
+		std::size_t upper_bound;
+
+		MetapoolAllocate allocate_func;
+		MetapoolDeallocate deallocate_func;
+
+		template <typename T, typename... Args>
+		T* construct(Args&&... args) const
+		{
+			std::size_t stride = compute_stride<T>() + Metapool::allocation_header_size;
+			auto construct_fn = get_construct_func<T, Args...>();
+			return construct_func(stride, std::forward<Args>(args)...);
+		}
+
+		template <typename T>
+		void destruct(T* object) const {
+			auto destruct_fn = get_destruct_func<T>();
+			destruct_func(object);
+		}
 	};
+
+public:
 
 	template <typename T, typename... Types>
 	T* construct(Types&&... args)
