@@ -1,47 +1,37 @@
 #pragma once
 
-#include <variant>
 
 
 namespace hpr {
-
-// remove visit, add alloc_header_size to alloc size
 
 template <std::size_t MetapoolCount>
 void* Allocator<MetapoolCount>::do_allocate(std::size_t bytes, std::size_t alignment)
 {
 	auto alignment_mpool = (alignment + 7UL) & ~7UL;
-	auto stride = (bytes + alignment_mpool - 1) & ~(alignment_mpool - 1);
+	auto stride = (bytes + MetapoolBase::alloc_header_size + alignment_mpool - 1) & ~(alignment_mpool - 1);
 
-	for (auto& descriptor : m_descriptors) {
-		if (stride >= descriptor.lower_bound && stride <= descriptor.upper_bound) {
-
-			return std::visit([stride](auto* pool) -> void* {
-				return pool->fetch(stride);
-			}, descriptor.metapool);
-		}
+	const std::size_t table_index = stride / 8 - 1;
+	if (table_index >= m_stride_table.size() || !m_stride_table[table_index]) {
+		throw std::bad_alloc{};
 	}
 
-	return std::pmr::get_default_resource()->allocate(bytes, alignment);
+	return m_stride_table[table_index]->fetch_func(stride);
 }
 
 
 template <std::size_t MetapoolCount>
 void Allocator<MetapoolCount>::do_deallocate(void* location, std::size_t bytes, std::size_t alignment)
 {
+	if (!location) return;
+
 	auto alignment_mpool = (alignment + 7UL) & ~7UL;
-	auto stride = (bytes + alignment_mpool - 1) & ~(alignment_mpool - 1);
+	auto stride = (bytes + MetapoolBase::alloc_header_size + alignment_mpool - 1) & ~(alignment_mpool - 1);
 
-	for (auto& descriptor : m_descriptors) {
-		if (stride >= descriptor.lower_bound && stride <= descriptor.upper_bound) {
-
-			std::visit([stride, location](auto* pool) {
-				pool->release(stride, static_cast<std::byte*>(location));
-			}, descriptor.metapool);
-			return;
-		}
+	const std::size_t table_index = stride / 8;
+	if (table_index >= m_stride_table.size() || !m_stride_table[table_index]) {
+		throw std::runtime_error("no suitable metapool found for deallocation");
 	}
 
-	std::pmr::get_default_resource()->deallocate(location, bytes, alignment);
+	m_stride_table[table_index]->release_func(static_cast<std::byte*>(location));
 }
 } // hpr
