@@ -46,9 +46,26 @@ namespace mem {
 } // hpr::mem
 
 
+class MetapoolBase
+{
+protected:
+
+	struct AllocHeader
+	{
+		uint16_t pool_index;
+		uint16_t magic = 0xABCD;
+	};
+
+public:
+
+	static inline constexpr std::size_t alloc_header_size = sizeof(AllocHeader);
+	virtual ~MetapoolBase() = default;
+};
+
+
 template <auto BasePoolBlockCount, auto... StridePivots>
 requires mem::valid_metapool_sequence <BasePoolBlockCount, StridePivots...>
-class Metapool final
+class Metapool final : public MetapoolBase
 {
 public:
 
@@ -165,12 +182,6 @@ private:
 			std::make_index_sequence<compute_number_of_pools()>
 		>::type;
 
-	struct AllocHeader
-	{
-		uint16_t pool_index;
-		uint16_t magic = 0xABCD;
-	};
-
 	using FreelistFetch = std::byte* (*)(void* freelist);
 	using FreelistRelease = void (*)(void* freelist, std::byte* block);
 
@@ -265,8 +276,8 @@ private:
 	template <typename T>
 	static inline constexpr std::size_t get_type_stride()
 	{
-		constexpr std::size_t alignment = ((alignof(T) + alloc_header_size + 7UL) & ~7UL);
-		return (sizeof(T) + alignment - 1) & ~(alignment - 1);
+		constexpr std::size_t alignment = ((alignof(T) + 7UL) & ~7UL);
+		return (sizeof(T) + MetapoolBase::alloc_header_size + alignment - 1) & ~(alignment - 1);
 	}
 
 	void upstream_allocate(std::size_t size);
