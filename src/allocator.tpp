@@ -5,6 +5,7 @@
 
 namespace hpr {
 
+// remove visit, add alloc_header_size to alloc size
 
 template <std::size_t MetapoolCount>
 void* Allocator<MetapoolCount>::do_allocate(std::size_t bytes, std::size_t alignment)

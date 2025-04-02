@@ -29,6 +29,20 @@ public:
 	Allocator& operator=(const Allocator&) = default;
 	Allocator& operator=(Allocator&&) = default;
 
+private:
+
+	using MetapoolAllocate = void* (*)(void* metapool, std::size_t stride);
+	using MetapoolDeallocate = void (*)(void* metapool, std::byte* block);
+	template <typename T, typename... Args>
+	using MetapoolConstruct = T* (*)(void* metapool, std::size_t stride, Args&&...);
+	template <typename T>
+	using MetapoolDestruct = void (*)(void* metapool, T* object);
+
+	struct MetapoolEntry
+	{
+		void* metapool;
+	};
+
 	template <typename T, typename... Types>
 	T* construct(Types&&... args)
 	{
