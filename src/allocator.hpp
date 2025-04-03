@@ -29,9 +29,6 @@ public:
 	Allocator& operator=(const Allocator&) = default;
 	Allocator& operator=(Allocator&&) = default;
 
-private:
-
-
 protected:
 
 	void* do_allocate(std::size_t bytes, std::size_t alignment) override;
@@ -44,6 +41,17 @@ protected:
 	}
 
 private:
+
+	static constexpr auto compute_lookup_table_size(const auto& descriptors)
+	{
+		std::size_t lookup_table_size = 0;
+		for (const auto& desc : descriptors) {
+
+			std::size_t strides_count = (desc.upper_bound - desc.lower_bound) / desc.
+
+		}
+		return max_bound / MetapoolInterface::stride_multiple + 1;
+	}
 
 	template <typename T>
 	static inline constexpr std::size_t get_type_stride()
@@ -61,6 +69,7 @@ private:
 private:
 
 	std::array<MetapoolDescriptor, MetapoolCount> m_descriptors;
+	std::array<std::size_t, compute_lookup_table_size()> m_strides;
 
 };
 
