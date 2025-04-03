@@ -52,7 +52,7 @@ protected:
 
 	struct AllocHeader
 	{
-		uint16_t pool_index;
+		uint32_t pool_index;
 		uint16_t magic = 0xABCD;
 	};
 
@@ -199,7 +199,7 @@ private:
 
 	struct Pool
 	{
-		std::size_t stride;
+		size_t stride;
 		std::size_t block_count;
 		FreelistVariant freelist;
 	};

@@ -4,7 +4,7 @@
 
 #include "allocator.hpp"
 #include "monotonic_arena.hpp"
-#include "metapool_interface.hpp"
+#include "metapool_descriptor.hpp"
 
 
 namespace hpr {
@@ -13,6 +13,30 @@ namespace mem {
 	static inline constexpr std::size_t arena_size = 268435456; // 256 MB
 
 }
+
+template <typename... Metapools>
+struct MetapoolList
+{
+	using tuple_type = std::tuple<Metapools...>;
+	using ptr_variant = std::variant<Metapools*...>;
+	static inline constexpr std::size_t count = sizeof...(Metapools);
+};
+
+
+template <typename T>
+struct MetapoolCounter;
+
+template <typename... Metapools>
+struct MetapoolCounter<MetapoolList<Metapools...>>
+{
+	static constexpr std::size_t value = sizeof...(Metapools);
+};
+
+
+using DefaultMetapoolList =
+	MetapoolList<
+		Metapool<1024, 8, 32, 64, 128, 256, 264>
+	>;
 
 
 class MemoryModel final

@@ -5,7 +5,7 @@
 #include <memory_resource>
 
 #include "metapool.hpp"
-#include "metapool_interface.hpp"
+#include "metapool_descriptor.hpp"
 
 
 namespace hpr {
@@ -69,7 +69,7 @@ private:
 private:
 
 	std::array<MetapoolDescriptor, MetapoolCount> m_descriptors;
-	std::array<std::size_t, compute_lookup_table_size()> m_strides;
+	std::array<uint32_t, compute_lookup_table_size()> m_strides;
 
 };
 
