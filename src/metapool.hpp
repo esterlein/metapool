@@ -3,6 +3,7 @@
 #include <cstddef>
 
 #include <array>
+#include <cstdint>
 #include <utility>
 #include <variant>
 #include <optional>
@@ -88,18 +89,18 @@ private:
 
 	static constexpr auto& compute_number_of_pools()
 	{
-		constexpr std::array<std::size_t, sizeof...(StridePivots)> pivots = {StridePivots...};
-		static constexpr auto num_pools = (pivots[pivots.size() - 1] - pivots[0]) / 8;
+		constexpr std::array<uint32_t, sizeof...(StridePivots)> pivots = {StridePivots...};
+		static constexpr auto num_pools = (pivots[pivots.size() - 1] - pivots[0]) / 8U;
 		return num_pools;
 	}
 
 	static constexpr auto& compute_pool_strides()
 	{
-		constexpr std::array<std::size_t, sizeof...(StridePivots)> pivots = {StridePivots...};
-		constexpr std::size_t num_pools = compute_number_of_pools();
+		constexpr std::array<uint32_t, sizeof...(StridePivots)> pivots = {StridePivots...};
+		constexpr uint32_t num_pools = compute_number_of_pools();
 
-		static constexpr auto strides = [&pivots]<std::size_t... I>(std::index_sequence<I...>) {
-			return std::array<std::size_t, num_pools>{ (static_cast<std::size_t>(pivots[0] + I * 8))... };
+		static constexpr auto strides = [&pivots]<uint32_t... I>(std::index_sequence<I...>) {
+			return std::array<uint32_t, num_pools>{ (static_cast<uint32_t>(pivots[0] + I * 8U))... };
 		}(std::make_index_sequence<num_pools>{});
 
 		return strides;
@@ -107,13 +108,13 @@ private:
 
 	static constexpr auto& compute_block_count()
 	{
-		constexpr std::array<std::size_t, sizeof...(StridePivots)> pivots = {StridePivots...};
-		constexpr std::size_t num_pools = compute_number_of_pools();
+		constexpr std::array<uint32_t, sizeof...(StridePivots)> pivots = {StridePivots...};
+		constexpr uint32_t num_pools = compute_number_of_pools();
 		constexpr auto pool_strides = compute_pool_strides();
 	
-		static constexpr std::array<std::size_t, num_pools> block_counts = [&pivots, &pool_strides, &num_pools]() constexpr {
-			std::array<std::size_t, num_pools> counts{};
-			std::size_t curr_count = BasePoolBlockCount;
+		static constexpr std::array<uint32_t, num_pools> block_counts = [&pivots, &pool_strides, &num_pools]() constexpr {
+			std::array<uint32_t, num_pools> counts{};
+			uint32_t curr_count = BasePoolBlockCount;
 	
 			for (std::size_t i = 0; i < num_pools; ++i) {
 				bool is_pivot = false;
@@ -134,12 +135,12 @@ private:
 
 	static constexpr auto& compute_pools()
 	{
-		constexpr std::size_t num_pools = compute_number_of_pools();
+		constexpr uint32_t num_pools = compute_number_of_pools();
 		constexpr auto& pool_strides = compute_pool_strides();
 		constexpr auto& block_count = compute_block_count();
 
 		static constexpr std::array<Pool, num_pools> pools =
-			[&pool_strides, &block_count]<std::size_t... I>(std::index_sequence<I...>){
+			[&pool_strides, &block_count]<uint32_t... I>(std::index_sequence<I...>){
 				return std::array<Pool, num_pools>{
 					Pool{ pool_strides[I], block_count[I], Freelist<pool_strides[I], block_count[I]>{} }...
 				};
@@ -148,33 +149,12 @@ private:
 		return pools;
 	}
 
-	static constexpr auto generate_lookup_table()
-	{
-		constexpr std::size_t num_pools = compute_number_of_pools();
-		constexpr auto& pool_strides = compute_pool_strides();
-		constexpr auto& block_count = compute_block_count();
-
-		return []<std::size_t... I>(std::index_sequence<I...>, const auto& strides, const auto& counts) {
-			std::array<std::pair<std::size_t, std::pair<FreelistFetch, FreelistRelease>>, sizeof...(I)> table{};
-
-			((table[I] = {
-				I,
-				{
-					&freelist_typed_fetch<strides[I], counts[I]>,
-					&freelist_typed_release<strides[I], counts[I]>
-				}
-			}), ...);
-
-			return table;
-		}(std::make_index_sequence<num_pools>{}, pool_strides, block_count);
-	}
-
 private:
 
 	template <auto& Strides, auto& BlockCount, typename IndexSequence>
 	struct FreelistGenerator;
 
-	template <auto& Strides, auto& BlockCount, std::size_t... I>
+	template <auto& Strides, auto& BlockCount, uint32_t... I>
 	struct FreelistGenerator<Strides, BlockCount, std::index_sequence<I...>>
 	{
 		using type = std::variant<Freelist<Strides[I], BlockCount[I]>...>;
@@ -191,39 +171,38 @@ private:
 	using FreelistRelease = void (*)(void* freelist, std::byte* block);
 
 	template <std::size_t Stride, std::size_t BlockCount>
-	static std::byte* freelist_typed_fetch(void* freelist_ptr) {
+	[[nodiscard]] inline std::byte* freelist_typed_fetch(void* freelist_ptr)
+	{
+		assert(freelist_ptr != nullptr);
 		auto& freelist = *static_cast<Freelist<Stride, BlockCount>*>(freelist_ptr);
 		return freelist.fetch();
 	}
 
 	template <std::size_t Stride, std::size_t BlockCount>
-	static void freelist_typed_release(void* freelist_ptr, std::byte* block) {
+	inline void freelist_typed_release(void* freelist_ptr, std::byte* block)
+	{
+		assert(freelist_ptr != nullptr);
 		auto& freelist = *static_cast<Freelist<Stride, BlockCount>*>(freelist_ptr);
 		freelist.release(block);
 	}
 
 	struct Pool
 	{
-		size_t stride;
+		std::size_t stride;
 		std::size_t block_count;
-		FreelistVariant freelist;
-	};
 
-	struct FreelistEntry
-	{
-		size_t pool_index;
-		FreelistFetch fetch;
-		FreelistRelease release;
+		FreelistFetch fl_fetch;
+		FreelistRelease fl_release;
+
+		FreelistVariant freelist;
 	};
 
 public:
 
 	using PoolVariant = FreelistVariant;
 
-	static inline constexpr std::size_t alloc_header_size = sizeof(AllocHeader);
-
 	std::byte* fetch(std::size_t stride);
-	void release(std::byte* location);
+	void release(std::byte* block);
 
 	template <typename T, typename... Types>
 	T* construct(std::size_t stride, Types&&... args)
@@ -232,10 +211,7 @@ public:
 			throw std::bad_alloc{};
 
 		const auto pool_index = (stride - m_pools.front().stride) / 8;
-		const auto& [_, functions] = m_lookup_table[pool_index];
-		const auto& [fetch_func, _] = functions;
-
-		std::byte* block = fetch_func(&m_pools[pool_index].freelist);
+		std::byte* block = m_pools[pool_index].fl_fetch(&m_pools[pool_index].freelist);
 		if (!block)
 			throw std::bad_alloc{};
 
@@ -252,7 +228,8 @@ public:
 	template <typename T>
 	void destruct(T* object)
 	{
-		if (!object) return;
+		if (!object)
+			return;
 
 		object->~T();
 
@@ -265,10 +242,7 @@ public:
 			throw std::runtime_error("memory corruption detected");
 
 		const auto pool_index = header->pool_index;
-		const auto& [_, functions] = m_lookup_table[pool_index];
-		const auto& [_, release_func] = functions;
-
-		release_func(&m_pools[pool_index].freelist, block);
+		m_pools[pool_index].fl_release(&m_pools[pool_index].freelist, block);
 	}
 
 	inline constexpr auto get_bounds()
@@ -293,7 +267,6 @@ private:
 	std::pmr::memory_resource* m_upstream = nullptr;
 
 	std::array<Pool, compute_number_of_pools()> m_pools = compute_pools();
-	const std::array<FreelistEntry, compute_number_of_pools()> m_lookup_table = generate_lookup_table();
 };
 
 } // hpr
