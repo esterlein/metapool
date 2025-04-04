@@ -18,17 +18,20 @@
 namespace hpr {
 namespace mem {
 
+	// create structs for metapool template instantiation
+	// and change consts and concept
+
 	static inline constexpr uint32_t min_base_block_count = 64;
 	static inline constexpr uint32_t min_last_block_count = 32;
-	static inline constexpr uint32_t block_count_multiple = 8;
-	static inline constexpr uint32_t stride_multiple = 8;
+	static inline constexpr uint32_t block_count_mult = 16;
+	static inline constexpr uint32_t min_stride_mult = 16;
 
 	template <auto BasePoolBlockCount, auto... StridePivots>
 	concept valid_metapool_sequence =
 		BasePoolBlockCount >= min_base_block_count &&
-		BasePoolBlockCount % block_count_multiple == 0 &&
+		BasePoolBlockCount % block_count_mult == 0 &&
 		sizeof...(StridePivots) >= 1 &&
-		((StridePivots % stride_multiple == 0) && ...) &&
+		((StridePivots % min_stride_mult == 0) && ...) &&
 		((sizeof...(StridePivots) > 1)
 			? (BasePoolBlockCount * math::int_pow<int32_t>(2, static_cast<int32_t>(-(sizeof...(StridePivots) - 2))) >= min_last_block_count)
 			: true
@@ -59,6 +62,8 @@ protected:
 public:
 
 	static inline constexpr std::size_t alloc_header_size = sizeof(AllocHeader);
+
+	MetapoolBase() = delete;
 	virtual ~MetapoolBase() = default;
 };
 
