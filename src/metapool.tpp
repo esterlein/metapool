@@ -106,6 +106,7 @@ std::optional<std::size_t> Metapool<BasePoolBlockCount, StridePivots...>::get_po
 	return std::nullopt;
 }
 
+
 template <auto BasePoolBlockCount, auto... StridePivots>
 requires mem::valid_metapool_sequence<BasePoolBlockCount, StridePivots...>
 std::byte* Metapool<BasePoolBlockCount, StridePivots...>::fetch(std::size_t stride)
@@ -113,15 +114,12 @@ std::byte* Metapool<BasePoolBlockCount, StridePivots...>::fetch(std::size_t stri
 	if (stride < m_pools.front().stride || stride > m_pools.back().stride)
 		throw std::bad_alloc{};
 
-	const auto pool_index = (stride - m_pools.front().stride) / 8;
-	const auto& [_, functions] = lookup_table[pool_index];
-	const auto& [fetch_func, _] = functions;
-
-	std::byte* block = fetch_func(&m_pools[pool_index].freelist);
+	const auto pool_index = (stride - m_pools.front().stride) / 8U;
+	std::byte* block = m_pools[pool_index].fl_fetch(&m_pools[pool_index].freelist);
 	if (!block)
 		throw std::bad_alloc{};
 
-	auto* header = reinterpret_cast<AllocationHeader*>(block);
+	auto* header = reinterpret_cast<AllocHeader*>(block);
 	header->pool_index = pool_index;
 	header->magic = 0xABCD;
 
@@ -135,18 +133,17 @@ template <auto BasePoolBlockCount, auto... StridePivots>
 requires mem::valid_metapool_sequence<BasePoolBlockCount, StridePivots...>
 void Metapool<BasePoolBlockCount, StridePivots...>::release(std::byte* location)
 {
-	if (!location) return;
+	if (!location)
+		return;
 
 	std::byte* block = location - sizeof(AllocationHeader);
-	auto* header = reinterpret_cast<AllocationHeader*>(block);
+	auto* header = reinterpret_cast<AllocHeader*>(block);
 
 	if (header->magic != 0xABCD)
 		throw std::runtime_error("memory corruption detected");
 
 	const auto pool_index = header->pool_index;
-
-	const auto& [_, functions] = lookup_table[pool_index];
-	const auto& [_, release_func] = functions;
-	release_func(&m_pools[pool_index].freelist, block);
+	m_pools[pool_index].fl_release(&m_pools[pool_index].freelist, block);
 }
+
 } // hpr
