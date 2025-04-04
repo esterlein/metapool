@@ -13,54 +13,51 @@ class MetapoolDescriptor
 {
 public:
 
-	using MetapoolAllocate = void* (*)(void* metapool, std::size_t stride);
-	using MetapoolDeallocate = void (*)(void* metapool, std::byte* block);
-
-	using MetapoolFetch = void* (*)(void* metapool, std::size_t stride);
-	using MetapoolRelease = void (*)(void* metapool, std::byte* location);
-
-	template <typename T, typename... Args>
-	using MetapoolConstruct = T* (*)(void* metapool, std::size_t stride, Args&&...);
-	template <typename T>
-	using MetapoolDestruct = void (*)(void* metapool, T* object);
-
 	std::size_t lower_bound;
 	std::size_t upper_bound;
 
-	MetapoolAllocate allocate_func = fetch_func;
-	MetapoolDeallocate deallocate_func = release_func;
+	using FetchFunc = std::byte* (*)(void*, std::size_t);
+	using ReleaseFunc = void (*)(void*, std::byte*);
+	using ConstructFunc = void* (*)(void*, std::size_t, void*);
+	using DestructFunc = void (*)(void*, void*);
 
-	MetapoolFetch fetch_func;
-	MetapoolRelease release_func;
-
-	template <typename T, typename... Args>
-	T* construct(Args&&... args) const
+	template <typename MetapoolType>
+	static MetapoolDescriptor make_descriptor(MetapoolType* pool)
 	{
-		std::size_t stride = compute_stride<T>();
-		auto construct_fn = get_construct_func<T, Args...>();
-		return construct_func(stride, std::forward<Args>(args)...);
+		return {
+			pool->lower_bound,
+			pool->upper_bound,
+			pool,
+			[](void* p, std::size_t stride) -> std::byte* {
+				return static_cast<MetapoolType*>(p)->fetch(stride);
+			},
+			[](void* p, std::byte* location) {
+				static_cast<MetapoolType*>(p)->release(location);
+			},
+			[](void* p, std::size_t stride, void* obj) -> void* {
+				return static_cast<MetapoolType*>(p)->construct<void>(stride, obj);
+			},
+			[](void* p, void* obj) {
+				static_cast<MetapoolType*>(p)->destruct(obj);
+			}
+		};
 	}
 
-	template <typename T>
-	void destruct(T* object) const
-	{
-		auto destruct_fn = get_destruct_func<T>();
-		destruct_func(object);
-	}
+	std::byte* fetch(std::size_t stride) const { return m_fetch(m_metapool_ptr, stride); }
+	void release(std::byte* location) const { m_release(m_metapool_ptr, location); }
+	void* construct(std::size_t stride, void* obj) const { return m_construct(m_metapool_ptr, stride, obj); }
+	void destruct(void* obj) const { m_destruct(m_metapool_ptr, obj); }
 
 private:
 
-	template <typename T, typename... Types>
-	MetapoolConstruct<T, Types...> get_construct_func() const
-	{
+	void* m_metapool_ptr = nullptr;
+	FetchFunc m_fetch;
+	ReleaseFunc m_release;
+	ConstructFunc m_construct;
+	DestructFunc m_destruct;
 
-	}
-
-	template <typename T>
-	MetapoolDestruct<T> get_destruct_func() const
-	{
-
-	}
+	MetapoolDescriptor(std::size_t lb, std::size_t ub, void* pool, FetchFunc f, ReleaseFunc r, ConstructFunc c, DestructFunc d)
+		: lower_bound(lb), upper_bound(ub), m_metapool_ptr(pool), m_fetch(f), m_release(r), m_construct(c), m_destruct(d) {}
 };
 
 
