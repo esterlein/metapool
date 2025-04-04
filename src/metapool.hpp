@@ -205,12 +205,14 @@ public:
 	void release(std::byte* block);
 
 	template <typename T, typename... Types>
-	T* construct(std::size_t stride, Types&&... args)
+	T* construct(std::size_t stride_ul, Types&&... args)
 	{
+		const uint32_t stride = static_cast<uint32_t>(stride_ul);
+
 		if (stride < m_pools.front().stride || stride > m_pools.back().stride)
 			throw std::bad_alloc{};
 
-		const auto pool_index = (stride - m_pools.front().stride) / 8;
+		const auto pool_index = (stride - m_pools.front().stride) / 8U;
 		std::byte* block = m_pools[pool_index].fl_fetch(&m_pools[pool_index].freelist);
 		if (!block)
 			throw std::bad_alloc{};
@@ -253,10 +255,10 @@ public:
 private:
 
 	template <typename T>
-	static inline constexpr std::size_t get_type_stride()
+	static inline constexpr uint32_t get_type_stride()
 	{
-		constexpr std::size_t alignment = ((alignof(T) + 7UL) & ~7UL);
-		return (sizeof(T) + MetapoolBase::alloc_header_size + alignment - 1) & ~(alignment - 1);
+		constexpr uint32_t alignment = ((alignof(T) + 7U) & ~7U);
+		return (sizeof(T) + MetapoolBase::alloc_header_size + alignment - 1U) & ~(alignment - 1U);
 	}
 
 	void upstream_allocate(std::size_t size);

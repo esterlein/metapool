@@ -109,8 +109,10 @@ std::optional<std::size_t> Metapool<BasePoolBlockCount, StridePivots...>::get_po
 
 template <auto BasePoolBlockCount, auto... StridePivots>
 requires mem::valid_metapool_sequence<BasePoolBlockCount, StridePivots...>
-std::byte* Metapool<BasePoolBlockCount, StridePivots...>::fetch(std::size_t stride)
+std::byte* Metapool<BasePoolBlockCount, StridePivots...>::fetch(std::size_t stride_ul)
 {
+	const uint32_t stride = static_cast<uint32_t>(stride_ul);
+
 	if (stride < m_pools.front().stride || stride > m_pools.back().stride)
 		throw std::bad_alloc{};
 
