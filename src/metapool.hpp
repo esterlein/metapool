@@ -188,8 +188,8 @@ private:
 
 	struct Pool
 	{
-		std::size_t stride;
-		std::size_t block_count;
+		uint32_t stride;
+		uint32_t block_count;
 
 		FreelistFetch fl_fetch;
 		FreelistRelease fl_release;

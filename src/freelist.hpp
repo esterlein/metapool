@@ -1,13 +1,14 @@
 #pragma once
 
 #include <cstddef>
+#include <cstdint>
 #include <type_traits>
 
 
 namespace hpr {
 
 
-template <std::size_t Stride, std::size_t BlockCount>
+template <uint32_t Stride, uint32_t BlockCount>
 class Freelist final
 {
 
@@ -24,9 +25,9 @@ public:
 	inline void reset() noexcept { m_head = nullptr; }
 	[[nodiscard]] inline bool empty() const noexcept
 	{ return m_head == nullptr; }
-	[[nodiscard]] inline constexpr std::size_t stride() const noexcept
+	[[nodiscard]] inline constexpr uint32_t stride() const noexcept
 	{ return Stride; }
-	[[nodiscard]] inline constexpr std::size_t block_count() const noexcept
+	[[nodiscard]] inline constexpr uint32_t block_count() const noexcept
 	{ return BlockCount; }
 
 private:
@@ -49,8 +50,8 @@ private:
 private:
 
 	// debugging
-	std::size_t m_block_count = BlockCount;
-	const std::size_t m_total_block_count = BlockCount;
+	uint32_t m_block_count = BlockCount;
+	const uint32_t m_total_block_count = BlockCount;
 
 	inline std::byte* pop() noexcept
 	{

@@ -1,12 +1,13 @@
 #pragma once
 
 #include <cassert>
+#include <cstdint>
 
 
 namespace hpr {
 
 
-template <std::size_t Stride, std::size_t BlockCount>
+template <uint32_t Stride, uint32_t BlockCount>
 void Freelist<Stride, BlockCount>::initialize(std::byte* memory) noexcept
 {
 	assert(memory != nullptr && BlockCount > 0);
@@ -23,7 +24,7 @@ void Freelist<Stride, BlockCount>::initialize(std::byte* memory) noexcept
 }
 
 
-template <std::size_t Stride, std::size_t BlockCount>
+template <uint32_t Stride, uint32_t BlockCount>
 std::byte* Freelist<Stride, BlockCount>::fetch() noexcept
 {
 	if (!m_head) return nullptr;
