@@ -1,10 +1,12 @@
 #pragma once
 
 #include <array>
+#include <cstdint>
 #include <tuple>
 #include <variant>
 
 #include "metapool.hpp"
+#include "ranges"
 
 
 namespace hpr {
@@ -13,8 +15,10 @@ class MetapoolDescriptor
 {
 public:
 
-	std::size_t lower_bound;
-	std::size_t upper_bound;
+	uint32_t lower_bound;
+	uint32_t upper_bound;
+
+	uint32_t stride_mult;
 
 	using FetchFunc = std::byte* (*)(void*, std::size_t);
 	using ReleaseFunc = void (*)(void*, std::byte*);
@@ -22,12 +26,13 @@ public:
 	using DestructFunc = void (*)(void*, void*);
 
 	template <typename MetapoolType>
-	static MetapoolDescriptor make_descriptor(MetapoolType* pool)
+	static MetapoolDescriptor make_descriptor(MetapoolType* mpool)
 	{
 		return {
-			pool->lower_bound,
-			pool->upper_bound,
-			pool,
+			mpool->lower_bound,
+			mpool->upper_bound,
+			mpool->stride_mult,
+			mpool,
 			[](void* p, std::size_t stride) -> std::byte* {
 				return static_cast<MetapoolType*>(p)->fetch(stride);
 			},
@@ -51,13 +56,15 @@ public:
 private:
 
 	void* m_metapool_ptr = nullptr;
+
 	FetchFunc m_fetch;
 	ReleaseFunc m_release;
 	ConstructFunc m_construct;
 	DestructFunc m_destruct;
 
-	MetapoolDescriptor(std::size_t lb, std::size_t ub, void* pool, FetchFunc f, ReleaseFunc r, ConstructFunc c, DestructFunc d)
-		: lower_bound(lb), upper_bound(ub), m_metapool_ptr(pool), m_fetch(f), m_release(r), m_construct(c), m_destruct(d) {}
+	MetapoolDescriptor(uint32_t lb, uint32_t ub, uint32_t sm, void* mpool, FetchFunc ff, ReleaseFunc rf, ConstructFunc cf, DestructFunc df)
+		: lower_bound{lb}, upper_bound{ub}, stride_mult{sm}, m_metapool_ptr{mpool}, m_fetch{ff}, m_release{rf}, m_construct{cf}, m_destruct{df}
+	{}
 };
 
 
