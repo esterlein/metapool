@@ -268,6 +268,11 @@ private:
 		return (sizeof(T) + MetapoolBase::alloc_header_size + alignment - 1U) & ~(alignment - 1U);
 	}
 
+	inline constexpr MetapoolDescriptor get_descriptor() noexcept
+	{
+		return MetapoolDescriptor::make_descriptor(this);
+	}
+
 	void upstream_allocate(std::size_t size);
 	std::optional<std::size_t> get_pool_index(std::size_t stride);
 
