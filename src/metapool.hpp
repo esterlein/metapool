@@ -133,28 +133,28 @@ private:
 		return block_counts;
 	}
 
-static constexpr auto& compute_pools()
-{
-	constexpr uint32_t num_pools = compute_number_of_pools();
-	constexpr auto& pool_strides = compute_pool_strides();
-	constexpr auto& block_count = compute_block_count();
-
-	static constexpr std::array<Pool, num_pools> pools =
-		[&pool_strides, &block_count]<uint32_t... I>(std::index_sequence<I...>)
-		{
-			return std::array<Pool, num_pools>{
-				Pool{
-					pool_strides[I],
-					block_count[I],
-					&freelist_typed_fetch<pool_strides[I], block_count[I]>,
-					&freelist_typed_release<pool_strides[I], block_count[I]>,
-					Freelist<pool_strides[I], block_count[I]>{}
-				}...
-			};
-		}(std::make_index_sequence<num_pools>{});
-
-	return pools;
-}
+	static constexpr auto& compute_pools()
+	{
+		constexpr uint32_t num_pools = compute_number_of_pools();
+		constexpr auto& pool_strides = compute_pool_strides();
+		constexpr auto& block_count = compute_block_count();
+	
+		static constexpr std::array<Pool, num_pools> pools =
+			[&pool_strides, &block_count]<uint32_t... I>(std::index_sequence<I...>)
+			{
+				return std::array<Pool, num_pools>{
+					Pool{
+						pool_strides[I],
+						block_count[I],
+						&freelist_typed_fetch<pool_strides[I], block_count[I]>,
+						&freelist_typed_release<pool_strides[I], block_count[I]>,
+						Freelist<pool_strides[I], block_count[I]>{}
+					}...
+				};
+			}(std::make_index_sequence<num_pools>{});
+	
+		return pools;
+	}
 
 private:
 

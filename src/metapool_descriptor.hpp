@@ -15,66 +15,61 @@ namespace hpr {
 class MetapoolDescriptor
 {
 public:
-	struct Range { uint32_t low, high; } range;
+
+	struct Range
+	{
+		uint32_t low, high;
+	} range;
+
 	uint32_t stride_mult;
 
-	using FetchFunc   = std::byte* (*)(void*, std::size_t);
+	using FetchFunc = std::byte* (*)(void*, std::size_t);
 	using ReleaseFunc = void (*)(void*, std::byte*);
 
-	template <typename MetapoolType>
-	inline static MetapoolDescriptor make_descriptor(
-		MetapoolType* mpool,
-		uint32_t low_stride,
-		uint32_t high_stride,
-		uint32_t stride_mult)
+	std::byte* fetch(std::size_t stride) const
 	{
-		return {
-			mpool->m_pools.front().stride,
-			mpool->m_pools.back().stride,
-			mpool->stride_mult,
-			reinterpret_cast<void*>(mpool),
-			[](void* p, std::size_t s) -> std::byte* {
-				return static_cast<MetapoolType*>(p)->fetch(s);
-			},
-			[](void* p, std::byte* b) {
-				static_cast<MetapoolType*>(p)->release(b);
-			}
-		};
+		return m_fetch(m_metapool_ptr, stride);
 	}
 
-	std::byte* fetch(std::size_t stride) const   { return m_fetch(m_pool, stride); }
-	void       release(std::byte* block) const   {        m_release(m_pool, block); }
+	void release(std::byte* location) const
+	{
+		m_release(m_metapool_ptr, location);
+	}
 
 	template <typename T, typename... Args>
 	T* construct(std::size_t stride, Args&&... args) const
 	{
-		return static_cast<MetapoolType*>(m_pool)
-			->template construct<T, Args...>(stride, std::forward<Args>(args)...);
+		return static_cast<MetapoolBase*>(m_metapool_ptr)->template construct<T>(
+			stride, std::forward<Args>(args)...
+		);
 	}
 
 	template <typename T>
-	void destruct(T* obj) const
+	void destruct(T* object) const
 	{
-		static_cast<MetapoolType*>(m_pool)
-			->template destruct<T>(obj);
+		static_cast<MetapoolBase*>(m_metapool_ptr)->template destruct<T>(object);
 	}
 
 private:
-	void*       m_pool;
-	FetchFunc   m_fetch;
-	ReleaseFunc m_release;
 
-	MetapoolDescriptor(
-		uint32_t low, uint32_t high, uint32_t sm,
-		void* pool, FetchFunc f, ReleaseFunc r
-	)
-		: range{low, high}
-		, stride_mult{sm}
-		, m_pool{pool}
-		, m_fetch{f}
-		, m_release{r}
+	void* m_metapool_ptr = nullptr;
+
+	FetchFunc m_fetch = nullptr;
+	ReleaseFunc m_release = nullptr;
+
+	template <auto BasePoolBlockCount, auto... StridePivots>
+	requires mem::valid_metapool_sequence <BasePoolBlockCount, StridePivots...>
+	friend class Metapool;
+
+	MetapoolDescriptor(Range r, uint32_t sm, void* ptr, FetchFunc fetch, ReleaseFunc release)
+		: range         {r},
+		, stride_mult   {sm}
+		, m_metapool_ptr{ptr}
+		, m_fetch       {fetch}
+		, m_release     {release}
 	{}
 };
+
 
 template <typename T, std::size_t MetapoolCount>
 concept metapool_descriptor_array =
