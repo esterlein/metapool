@@ -24,25 +24,29 @@ namespace mem {
 	// and change consts and concept
 
 	static inline constexpr uint32_t min_base_block_count = 64;
-	static inline constexpr uint32_t min_last_block_count = 32;
-	static inline constexpr uint32_t block_count_mult = 16;
-	static inline constexpr uint32_t min_stride_mult = 16;
+	static inline constexpr uint32_t min_last_block_count = 64;
+	static inline constexpr uint32_t block_count_mult = 16; // replace with a footprint function enum as a template parameter
+	static inline constexpr uint32_t min_stride_mult = 8;
+	static inline constexpr uint32_t max_stride_mult = 256;
+	static inline constexpr uint32_t min_stride = 16;
 
 	struct metapool_config_tag {};
 
-	template <auto BasePoolBlockCount, auto... StridePivots>
-	concept valid_metapool_init_sequence =
-		BasePoolBlockCount >= min_base_block_count &&
-		BasePoolBlockCount % block_count_mult == 0 &&
-		sizeof...(StridePivots) >= 1 &&
-		((StridePivots % min_stride_mult == 0) && ...) &&
-		((sizeof...(StridePivots) > 1)
-			? (BasePoolBlockCount * math::int_pow<int32_t>(2, static_cast<int32_t>(-(sizeof...(StridePivots) - 2))) >= min_last_block_count)
-			: true
+	template <auto BasePoolBlockCount, auto StrideMultiple, auto... StridePivots>
+	concept valid_metapool_config =
+		BasePoolBlockCount      >= min_base_block_count  &&
+		BasePoolBlockCount      %  block_count_mult == 0 &&
+		StrideMultiple          >= min_stride_mult       &&
+		sizeof...(StridePivots) >= 1                     &&
+		((StridePivots          %  min_stride_mult == 0) && ...) &&
+		(
+			(sizeof...(StridePivots) > 1)
+				? (BasePoolBlockCount * math::int_pow<int32_t>(2, static_cast<int32_t>(-(sizeof...(StridePivots) - 2))) >= min_last_block_count)
+				: true
 		) &&
 		[]() constexpr {
 			constexpr auto arr = std::array{ StridePivots... };
-			if (arr[0] <= 0)
+			if (arr[0] <= 0 || arr[0] % StrideMultiple != 0)
 				return false;
 			for (std::size_t i = 1; i < arr.size(); ++i) {
 				if (arr[i] <= 0 || arr[i] <= arr[i - 1])
@@ -60,7 +64,7 @@ namespace mem {
 
 
 template <auto BasePoolBlockCount, auto... StridePivots>
-requires mem::valid_metapool_init_sequence<BasePoolBlockCount, StridePivots...>
+requires mem::valid_metapool_config <BasePoolBlockCount, StridePivots...>
 struct MetapoolConfig
 {
 	using tag = mem::metapool_config_tag;
