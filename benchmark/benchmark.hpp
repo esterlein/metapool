@@ -58,6 +58,24 @@ public:
 		}
 	}
 
+	/*
+	inline void test_memory_leaks()
+	{
+		size_t initial_memory = get_memory_usage();
+		{
+			hpr::MemoryModel memory_model;
+			auto& allocator = memory_model.get_memory_resource();
+			
+			for (int i = 0; i < 1000; i++) {
+			    void* ptr = resource.allocate(i % 100 + 1, 8);
+			    resource.deallocate(ptr, i % 100 + 1, 8);
+			}
+		}
+		size_t final_memory = get_memory_usage();
+		assert(final_memory - initial_memory == 0);
+	}
+	*/
+
 	inline void test_with_containers()
 	{
 		hpr::MemoryModel memory_model;
