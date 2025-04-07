@@ -148,4 +148,24 @@ void Metapool<BasePoolBlockCount, StridePivots...>::release(std::byte* location)
 	m_pools[pool_index].fl_release(&m_pools[pool_index].freelist, block);
 }
 
+
+template <auto BasePoolBlockCount, auto... StridePivots>
+requires mem::valid_metapool_sequence<BasePoolBlockCount, StridePivots...>
+MetapoolDescriptor Metapool<BasePoolBlockCount, StridePivots...>::create_descriptor()
+{
+	return MetapoolDescriptor {
+		{ m_pools.front().stride, m_pools.back().stride },
+
+		// replace with template parameter logic
+		m_stride_mult,
+
+		static_cast<void*>(this),
+		[](void* p, std::size_t stride) -> std::byte* {
+			return static_cast<Metapool*>(p)->fetch(stride);
+		},
+		[](void* p, std::byte* location) {
+			static_cast<Metapool*>(p)->release(location);
+		}
+	};
+}
 } // hpr

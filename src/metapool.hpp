@@ -14,6 +14,7 @@
 
 #include "math.hpp"
 #include "freelist.hpp"
+#include "metapool_descriptor.hpp"
 
 
 namespace hpr {
@@ -143,7 +144,7 @@ private:
 			[&pool_strides, &block_count]<uint32_t... I>(std::index_sequence<I...>)
 			{
 				return std::array<Pool, num_pools>{
-					Pool{
+					Pool {
 						pool_strides[I],
 						block_count[I],
 						&freelist_typed_fetch<pool_strides[I], block_count[I]>,
@@ -268,9 +269,10 @@ private:
 		return (sizeof(T) + MetapoolBase::alloc_header_size + alignment - 1U) & ~(alignment - 1U);
 	}
 
-	inline constexpr MetapoolDescriptor get_descriptor() noexcept
+	MetapoolDescriptor create_descriptor();
+	[[nodiscard]] inline MetapoolDescriptor descriptor() noexcept
 	{
-		return MetapoolDescriptor::make_descriptor(this);
+		return m_descriptor;
 	}
 
 	void upstream_allocate(std::size_t size);
@@ -281,6 +283,10 @@ private:
 	std::pmr::memory_resource* m_upstream = nullptr;
 
 	std::array<Pool, compute_number_of_pools()> m_pools = compute_pools();
+
+	MetapoolDescriptor m_descriptor;
+
+	uint32_t m_stride_mult = 8U; // replace with template parameter logic
 };
 
 } // hpr
