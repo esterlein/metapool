@@ -1,6 +1,8 @@
 #pragma once
 
+#include "metapool.hpp"
 #include <cstdint>
+#include <new>
 #include <numeric>
 #include <optional>
 
@@ -13,7 +15,6 @@ namespace mem {
 
 
 template <auto BasePoolBlockCount, auto... StridePivots>
-requires mem::valid_metapool_sequence<BasePoolBlockCount, StridePivots...>
 Metapool<BasePoolBlockCount, StridePivots...>::Metapool(std::pmr::memory_resource* upstream)
 	: m_upstream{ upstream }
 {
@@ -55,9 +56,9 @@ Metapool<BasePoolBlockCount, StridePivots...>::Metapool(std::pmr::memory_resourc
 	for (std::size_t i = 1; i < m_pools.size(); ++i) {
 		uintptr_t current_addr = reinterpret_cast<uintptr_t>(current_memory);
 
-		if ((current_addr + alloc_header_size) % mem::cacheline != 0) {
+		if ((current_addr + MetapoolBase::alloc_header_size) % mem::cacheline != 0) {
 			uintptr_t shift_aligned_addr = (current_addr + alloc_header_size + mem::cacheline - 1) & ~(mem::cacheline - 1);
-			current_memory = reinterpret_cast<std::byte*>(shift_aligned_addr - alloc_header_size);
+			current_memory = reinterpret_cast<std::byte*>(shift_aligned_addr - MetapoolBase::alloc_header_size);
 		}
 
 		std::visit(
@@ -71,36 +72,30 @@ Metapool<BasePoolBlockCount, StridePivots...>::Metapool(std::pmr::memory_resourc
 
 
 template <auto BasePoolBlockCount, auto... StridePivots>
-requires mem::valid_metapool_sequence<BasePoolBlockCount, StridePivots...>
 Metapool<BasePoolBlockCount, StridePivots...>::~Metapool()
 {}
 
 
 template <auto BasePoolBlockCount, auto... StridePivots>
-requires mem::valid_metapool_sequence<BasePoolBlockCount, StridePivots...>
 Metapool<BasePoolBlockCount, StridePivots...>::Metapool(Metapool&& other) noexcept
 	: m_upstream    {std::exchange(other.m_upstream, nullptr)}
 	, m_pools       {std::move(other.m_pools)}
-	, m_lookup_table{std::move(other.m_lookup_table)}
 {}
 
 
 template <auto BasePoolBlockCount, auto... StridePivots>
-requires mem::valid_metapool_sequence<BasePoolBlockCount, StridePivots...>
 Metapool<BasePoolBlockCount, StridePivots...>&
 Metapool<BasePoolBlockCount, StridePivots...>::operator=(Metapool&& other) noexcept
 {
 	if (this != &other) {
 		m_upstream = std::exchange(other.m_upstream, nullptr);
 		m_pools = std::move(other.m_pools);
-		m_lookup_table = std::move(other.m_lookup_table);
 	}
 	return *this;
 }
 
 
 template <auto BasePoolBlockCount, auto... StridePivots>
-requires mem::valid_metapool_sequence<BasePoolBlockCount, StridePivots...>
 std::optional<std::size_t> Metapool<BasePoolBlockCount, StridePivots...>::get_pool_index(std::size_t stride)
 {
 	return std::nullopt;
@@ -108,7 +103,6 @@ std::optional<std::size_t> Metapool<BasePoolBlockCount, StridePivots...>::get_po
 
 
 template <auto BasePoolBlockCount, auto... StridePivots>
-requires mem::valid_metapool_sequence<BasePoolBlockCount, StridePivots...>
 std::byte* Metapool<BasePoolBlockCount, StridePivots...>::fetch(std::size_t stride_ul)
 {
 	const uint32_t stride = static_cast<uint32_t>(stride_ul);
@@ -125,20 +119,18 @@ std::byte* Metapool<BasePoolBlockCount, StridePivots...>::fetch(std::size_t stri
 	header->pool_index = pool_index;
 	header->magic = 0xABCD;
 
-	std::byte* object_location = block + sizeof(AllocationHeader);
+	std::byte* object_location = block + sizeof(AllocHeader);
 
-	T* object = std::launder(new (object_location) T(std::forward<Types>(args)...));
-	return object;
+	return std::launder(object_location);
 }
 
 template <auto BasePoolBlockCount, auto... StridePivots>
-requires mem::valid_metapool_sequence<BasePoolBlockCount, StridePivots...>
 void Metapool<BasePoolBlockCount, StridePivots...>::release(std::byte* location)
 {
 	if (!location)
 		return;
 
-	std::byte* block = location - sizeof(AllocationHeader);
+	std::byte* block = location - sizeof(AllocHeader);
 	auto* header = reinterpret_cast<AllocHeader*>(block);
 
 	if (header->magic != 0xABCD)
@@ -150,7 +142,6 @@ void Metapool<BasePoolBlockCount, StridePivots...>::release(std::byte* location)
 
 
 template <auto BasePoolBlockCount, auto... StridePivots>
-requires mem::valid_metapool_sequence<BasePoolBlockCount, StridePivots...>
 MetapoolDescriptor Metapool<BasePoolBlockCount, StridePivots...>::create_descriptor()
 {
 	return MetapoolDescriptor {

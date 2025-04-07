@@ -28,8 +28,10 @@ namespace mem {
 	static inline constexpr uint32_t block_count_mult = 16;
 	static inline constexpr uint32_t min_stride_mult = 16;
 
+	struct metapool_config_tag {};
+
 	template <auto BasePoolBlockCount, auto... StridePivots>
-	concept valid_metapool_sequence =
+	concept valid_metapool_init_sequence =
 		BasePoolBlockCount >= min_base_block_count &&
 		BasePoolBlockCount % block_count_mult == 0 &&
 		sizeof...(StridePivots) >= 1 &&
@@ -48,7 +50,35 @@ namespace mem {
 			}
 			return true;
 		}();
+
+	template <typename T>
+	concept is_metapool_config = requires {
+		typename T::tag;
+		std::same_as<typename T::tag, metapool_config_tag>;
+	};
 } // hpr::mem
+
+
+template <auto BasePoolBlockCount, auto... StridePivots>
+requires mem::valid_metapool_init_sequence<BasePoolBlockCount, StridePivots...>
+struct MetapoolConfig
+{
+	using tag = mem::metapool_config_tag;
+
+	static constexpr uint32_t base_block_count = BasePoolBlockCount;
+
+	static constexpr std::array<uint32_t, sizeof...(StridePivots)> stride_pivots = { StridePivots... };
+
+	static constexpr uint32_t low = []{
+		constexpr auto& arr = stride_pivots;
+		return arr.front();
+	}();
+
+	static constexpr uint32_t high = []{
+		constexpr auto& arr = stride_pivots;
+		return arr[arr.size() - 2];
+	}();
+};
 
 
 class MetapoolBase
@@ -70,8 +100,7 @@ public:
 };
 
 
-template <auto BasePoolBlockCount, auto... StridePivots>
-requires mem::valid_metapool_sequence <BasePoolBlockCount, StridePivots...>
+template <mem::is_metapool_config Config>
 class Metapool final : public MetapoolBase
 {
 public:
@@ -143,7 +172,7 @@ private:
 		static constexpr std::array<Pool, num_pools> pools =
 			[&pool_strides, &block_count]<uint32_t... I>(std::index_sequence<I...>)
 			{
-				return std::array<Pool, num_pools>{
+				return std::array<Pool, num_pools> {
 					Pool {
 						pool_strides[I],
 						block_count[I],
