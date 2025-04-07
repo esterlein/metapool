@@ -14,8 +14,8 @@ namespace mem {
 }
 
 
-template <auto BasePoolBlockCount, auto... StridePivots>
-Metapool<BasePoolBlockCount, StridePivots...>::Metapool(std::pmr::memory_resource* upstream)
+template <mem::is_metapool_config Config>
+Metapool<Config>::Metapool(std::pmr::memory_resource* upstream)
 	: m_upstream{ upstream }
 {
 	assert(upstream != nullptr);
@@ -71,21 +71,20 @@ Metapool<BasePoolBlockCount, StridePivots...>::Metapool(std::pmr::memory_resourc
 }
 
 
-template <auto BasePoolBlockCount, auto... StridePivots>
-Metapool<BasePoolBlockCount, StridePivots...>::~Metapool()
+template <mem::is_metapool_config Config>
+Metapool<Config>::~Metapool()
 {}
 
 
-template <auto BasePoolBlockCount, auto... StridePivots>
-Metapool<BasePoolBlockCount, StridePivots...>::Metapool(Metapool&& other) noexcept
+template <mem::is_metapool_config Config>
+Metapool<Config>::Metapool(Metapool&& other) noexcept
 	: m_upstream    {std::exchange(other.m_upstream, nullptr)}
 	, m_pools       {std::move(other.m_pools)}
 {}
 
 
-template <auto BasePoolBlockCount, auto... StridePivots>
-Metapool<BasePoolBlockCount, StridePivots...>&
-Metapool<BasePoolBlockCount, StridePivots...>::operator=(Metapool&& other) noexcept
+template <mem::is_metapool_config Config>
+Metapool<Config>& Metapool<Config>::operator=(Metapool&& other) noexcept
 {
 	if (this != &other) {
 		m_upstream = std::exchange(other.m_upstream, nullptr);
@@ -95,15 +94,15 @@ Metapool<BasePoolBlockCount, StridePivots...>::operator=(Metapool&& other) noexc
 }
 
 
-template <auto BasePoolBlockCount, auto... StridePivots>
-std::optional<std::size_t> Metapool<BasePoolBlockCount, StridePivots...>::get_pool_index(std::size_t stride)
+template <mem::is_metapool_config Config>
+std::optional<std::size_t> Metapool<Config>::get_pool_index(std::size_t stride)
 {
 	return std::nullopt;
 }
 
 
-template <auto BasePoolBlockCount, auto... StridePivots>
-std::byte* Metapool<BasePoolBlockCount, StridePivots...>::fetch(std::size_t stride_ul)
+template <mem::is_metapool_config Config>
+std::byte* Metapool<Config>::fetch(std::size_t stride_ul)
 {
 	const uint32_t stride = static_cast<uint32_t>(stride_ul);
 
@@ -124,8 +123,8 @@ std::byte* Metapool<BasePoolBlockCount, StridePivots...>::fetch(std::size_t stri
 	return std::launder(object_location);
 }
 
-template <auto BasePoolBlockCount, auto... StridePivots>
-void Metapool<BasePoolBlockCount, StridePivots...>::release(std::byte* location)
+template <mem::is_metapool_config Config>
+void Metapool<Config>::release(std::byte* location)
 {
 	if (!location)
 		return;
@@ -141,8 +140,8 @@ void Metapool<BasePoolBlockCount, StridePivots...>::release(std::byte* location)
 }
 
 
-template <auto BasePoolBlockCount, auto... StridePivots>
-MetapoolDescriptor Metapool<BasePoolBlockCount, StridePivots...>::create_descriptor()
+template <mem::is_metapool_config Config>
+MetapoolDescriptor Metapool<Config>::create_descriptor()
 {
 	return MetapoolDescriptor {
 		{ m_pools.front().stride, m_pools.back().stride },

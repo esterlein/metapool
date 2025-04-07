@@ -63,13 +63,15 @@ namespace mem {
 } // hpr::mem
 
 
-template <auto BasePoolBlockCount, auto... StridePivots>
-requires mem::valid_metapool_config <BasePoolBlockCount, StridePivots...>
+template <auto BasePoolBlockCount, auto StrideMultiple, auto... StridePivots>
+requires mem::valid_metapool_config <BasePoolBlockCount, StrideMultiple, StridePivots...>
 struct MetapoolConfig
 {
 	using tag = mem::metapool_config_tag;
 
 	static constexpr uint32_t base_block_count = BasePoolBlockCount;
+
+	static constexpr uint32_t stride_mult = StrideMultiple;
 
 	static constexpr std::array<uint32_t, sizeof...(StridePivots)> stride_pivots = { StridePivots... };
 
