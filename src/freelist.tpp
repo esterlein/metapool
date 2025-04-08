@@ -2,6 +2,7 @@
 
 #include <cassert>
 #include <cstdint>
+#include <cstddef>
 
 
 namespace hpr {
