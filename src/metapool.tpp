@@ -78,8 +78,8 @@ Metapool<Config>::~Metapool()
 
 template <mem::is_metapool_config Config>
 Metapool<Config>::Metapool(Metapool&& other) noexcept
-	: m_upstream    {std::exchange(other.m_upstream, nullptr)}
-	, m_pools       {std::move(other.m_pools)}
+	: m_upstream{std::exchange(other.m_upstream, nullptr)}
+	, m_pools   {std::move(other.m_pools)}
 {}
 
 

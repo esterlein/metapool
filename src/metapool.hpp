@@ -123,36 +123,35 @@ public:
 
 private:
 
-
-	static constexpr uint32_t compute_number_of_pools()
+	static inline constexpr uint32_t compute_number_of_pools()
 	{
 		constexpr auto& pivots = Config::stride_pivots;
 		static constexpr uint32_t value = (pivots.back() - pivots.front()) / 8U;
 		return value;
 	}
-	
-	static constexpr const auto& compute_pool_strides()
+
+	static inline constexpr const auto& compute_pool_strides()
 	{
 		constexpr auto& pivots = Config::stride_pivots;
 		static constexpr uint32_t num_pools = compute_number_of_pools();
-	
+
 		static constexpr auto strides = [&]<std::size_t... I>(std::index_sequence<I...>) constexpr {
 			return std::array<uint32_t, num_pools>{ (pivots.front() + static_cast<uint32_t>(I) * 8U)... };
 		}(std::make_index_sequence<num_pools>{});
-	
+
 		return strides;
 	}
-	
-	static constexpr const auto& compute_block_count()
+
+	static inline constexpr const auto& compute_block_count()
 	{
 		constexpr auto& pivots = Config::stride_pivots;
 		static constexpr uint32_t num_pools = compute_number_of_pools();
 		static constexpr auto& pool_strides = compute_pool_strides();
-	
+
 		static constexpr std::array<uint32_t, num_pools> block_counts = []() {
 			std::array<uint32_t, num_pools> counts{};
 			uint32_t curr_count = Config::base_block_count;
-	
+
 			for (std::size_t i = 0; i < num_pools; ++i) {
 				bool is_pivot = false;
 				for (std::size_t j = 1; j < pivots.size() - 1; ++j) {
@@ -166,16 +165,16 @@ private:
 			}
 			return counts;
 		}();
-	
+
 		return block_counts;
 	}
 
-	static constexpr auto& compute_pools()
+	static inline constexpr auto& compute_pools()
 	{
 		constexpr uint32_t num_pools = compute_number_of_pools();
 		constexpr auto& pool_strides = compute_pool_strides();
 		constexpr auto& block_count = compute_block_count();
-	
+
 		static constexpr std::array<Pool, num_pools> pools =
 			[&pool_strides, &block_count]<uint32_t... I>(std::index_sequence<I...>)
 			{
@@ -189,16 +188,16 @@ private:
 					}...
 				};
 			}(std::make_index_sequence<num_pools>{});
-	
+
 		return pools;
 	}
 
 private:
 
-	template <auto& Strides, auto& BlockCount, typename IndexSequence>
+	template <const auto& Strides, const auto& BlockCount, typename IndexSequence>
 	struct FreelistGenerator;
 
-	template <auto& Strides, auto& BlockCount, uint32_t... I>
+	template <const auto& Strides, const auto& BlockCount, uint32_t... I>
 	struct FreelistGenerator<Strides, BlockCount, std::index_sequence<I...>>
 	{
 		using type = std::variant<Freelist<Strides[I], BlockCount[I]>...>;
