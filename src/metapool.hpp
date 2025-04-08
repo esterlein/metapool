@@ -255,7 +255,7 @@ public:
 		if (stride < m_pools.front().stride || stride > m_pools.back().stride)
 			throw std::bad_alloc{};
 
-		const auto pool_index = (stride - m_pools.front().stride) / 8U;
+		const auto pool_index = (stride - m_pools.front().stride) / Config::stride_mult;
 		std::byte* block = m_pools[pool_index].fl_fetch(&m_pools[pool_index].freelist);
 		if (!block)
 			throw std::bad_alloc{};
@@ -315,15 +315,12 @@ private:
 
 private:
 
-	std::pmr::memory_resource* m_upstream = nullptr;
-
 	std::array<Pool, compute_number_of_pools()> m_pools = compute_pools();
 
 	MetapoolDescriptor m_descriptor;
 
-	uint32_t m_stride_mult = 8U; // replace with template parameter logic
+	std::pmr::memory_resource* m_upstream = nullptr;
 };
-
 } // hpr
 
 #include "metapool.tpp"
