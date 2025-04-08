@@ -123,34 +123,35 @@ public:
 
 private:
 
-	static constexpr auto& compute_number_of_pools()
+
+	static constexpr uint32_t compute_number_of_pools()
 	{
-		constexpr std::array<uint32_t, sizeof...(StridePivots)> pivots = {StridePivots...};
-		static constexpr auto num_pools = (pivots[pivots.size() - 1] - pivots[0]) / 8U;
-		return num_pools;
+		constexpr auto& pivots = Config::stride_pivots;
+		static constexpr uint32_t value = (pivots.back() - pivots.front()) / 8U;
+		return value;
 	}
-
-	static constexpr auto& compute_pool_strides()
+	
+	static constexpr const auto& compute_pool_strides()
 	{
-		constexpr std::array<uint32_t, sizeof...(StridePivots)> pivots = {StridePivots...};
-		constexpr uint32_t num_pools = compute_number_of_pools();
-
-		static constexpr auto strides = [&pivots]<uint32_t... I>(std::index_sequence<I...>) {
-			return std::array<uint32_t, num_pools>{ (static_cast<uint32_t>(pivots[0] + I * 8U))... };
+		constexpr auto& pivots = Config::stride_pivots;
+		static constexpr uint32_t num_pools = compute_number_of_pools();
+	
+		static constexpr auto strides = [&]<std::size_t... I>(std::index_sequence<I...>) constexpr {
+			return std::array<uint32_t, num_pools>{ (pivots.front() + static_cast<uint32_t>(I) * 8U)... };
 		}(std::make_index_sequence<num_pools>{});
-
+	
 		return strides;
 	}
-
-	static constexpr auto& compute_block_count()
-	{
-		constexpr std::array<uint32_t, sizeof...(StridePivots)> pivots = {StridePivots...};
-		constexpr uint32_t num_pools = compute_number_of_pools();
-		constexpr auto pool_strides = compute_pool_strides();
 	
-		static constexpr std::array<uint32_t, num_pools> block_counts = [&pivots, &pool_strides, &num_pools]() constexpr {
+	static constexpr const auto& compute_block_count()
+	{
+		constexpr auto& pivots = Config::stride_pivots;
+		static constexpr uint32_t num_pools = compute_number_of_pools();
+		static constexpr auto& pool_strides = compute_pool_strides();
+	
+		static constexpr std::array<uint32_t, num_pools> block_counts = []() {
 			std::array<uint32_t, num_pools> counts{};
-			uint32_t curr_count = BasePoolBlockCount;
+			uint32_t curr_count = Config::base_block_count;
 	
 			for (std::size_t i = 0; i < num_pools; ++i) {
 				bool is_pivot = false;

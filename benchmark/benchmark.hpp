@@ -1,6 +1,7 @@
 #pragma once
 
 #include <vector>
+#include <cstring>
 #include <utility>
 #include <iostream>
 #include <memory_resource>
