@@ -109,7 +109,7 @@ std::byte* Metapool<Config>::fetch(std::size_t stride_ul)
 	if (stride < m_pools.front().stride || stride > m_pools.back().stride)
 		throw std::bad_alloc{};
 
-	const auto pool_index = (stride - m_pools.front().stride) / Config::stride_mult;
+	const auto pool_index = (stride - m_pools.front().stride) / Config::stride_step;
 	std::byte* block = m_pools[pool_index].fl_fetch(&m_pools[pool_index].freelist);
 	if (!block)
 		throw std::bad_alloc{};
@@ -145,7 +145,7 @@ MetapoolDescriptor Metapool<Config>::create_descriptor()
 {
 	return MetapoolDescriptor {
 		{ m_pools.front().stride, m_pools.back().stride },
-		Config::stride_mult,
+		Config::stride_step,
 		static_cast<void*>(this),
 		[](void* mpool_this, std::size_t stride) -> std::byte* {
 			return static_cast<Metapool*>(mpool_this)->fetch(stride);

@@ -20,33 +20,31 @@
 namespace hpr {
 namespace mem {
 
-	// create structs for metapool template instantiation
-	// and change consts and concept
+	static inline constexpr uint32_t alignment_quantum = 8U;
 
-	static inline constexpr uint32_t min_base_block_count = 64;
-	static inline constexpr uint32_t min_last_block_count = 64;
-	static inline constexpr uint32_t block_count_mult = 16; // replace with a footprint function enum as a template parameter
-	static inline constexpr uint32_t min_stride_mult = 8;
-	static inline constexpr uint32_t max_stride_mult = 256;
-	static inline constexpr uint32_t min_stride = 16;
+	static inline constexpr uint32_t min_base_block_count = 64U;
+	static inline constexpr uint32_t min_last_block_count = 64U;
+
+	static inline constexpr uint32_t min_stride = 16U;
+	static inline constexpr uint32_t min_stride_step = 8U;
+	static inline constexpr uint32_t max_stride_step = 256U;
 
 	struct metapool_config_tag {};
 
-	template <auto BasePoolBlockCount, auto StrideMultiple, auto... StridePivots>
+	template <auto BaseBlockCount, auto StrideStep, auto... StridePivots>
 	concept valid_metapool_config =
-		BasePoolBlockCount      >= min_base_block_count  &&
-		BasePoolBlockCount      %  block_count_mult == 0 &&
-		StrideMultiple          >= min_stride_mult       &&
+		BaseBlockCount          >= min_base_block_count  &&
+		StrideStep              >= min_stride_step       &&
 		sizeof...(StridePivots) >= 1                     &&
-		((StridePivots          %  min_stride_mult == 0) && ...) &&
+		((StridePivots          %  min_stride_step == 0) && ...) &&
 		(
 			(sizeof...(StridePivots) > 1)
-				? (BasePoolBlockCount * math::int_pow<int32_t>(2, static_cast<int32_t>(-(sizeof...(StridePivots) - 2))) >= min_last_block_count)
+				? (BaseBlockCount * math::int_pow<int32_t>(2, static_cast<int32_t>(-(sizeof...(StridePivots) - 2))) >= min_last_block_count)
 				: true
 		) &&
 		[]() constexpr {
 			constexpr auto arr = std::array{ StridePivots... };
-			if (arr[0] <= 0 || arr[0] % StrideMultiple != 0)
+			if (arr[0] <= 0 || arr[0] % StrideStep != 0)
 				return false;
 			for (std::size_t i = 1; i < arr.size(); ++i) {
 				if (arr[i] <= 0 || arr[i] <= arr[i - 1])
@@ -63,15 +61,15 @@ namespace mem {
 } // hpr::mem
 
 
-template <auto BasePoolBlockCount, auto StrideMultiple, auto... StridePivots>
-requires mem::valid_metapool_config <BasePoolBlockCount, StrideMultiple, StridePivots...>
+template <auto BaseBlockCount, auto StrideStep, auto... StridePivots>
+requires mem::valid_metapool_config <BaseBlockCount, StrideStep, StridePivots...>
 struct MetapoolConfig
 {
 	using tag = mem::metapool_config_tag;
 
-	static constexpr uint32_t base_block_count = BasePoolBlockCount;
+	static constexpr uint32_t base_block_count = BaseBlockCount;
 
-	static constexpr uint32_t stride_mult = StrideMultiple;
+	static constexpr uint32_t stride_step = StrideStep;
 
 	static constexpr std::array<uint32_t, sizeof...(StridePivots)> stride_pivots = { StridePivots... };
 
@@ -126,7 +124,7 @@ private:
 	static inline constexpr uint32_t compute_number_of_pools()
 	{
 		constexpr auto& pivots = Config::stride_pivots;
-		static constexpr uint32_t value = (pivots.back() - pivots.front()) / 8U;
+		static constexpr uint32_t value = (pivots.back() - pivots.front()) / Config::stride_step;
 		return value;
 	}
 
@@ -136,7 +134,7 @@ private:
 		static constexpr uint32_t num_pools = compute_number_of_pools();
 
 		static constexpr auto strides = [&]<std::size_t... I>(std::index_sequence<I...>) constexpr {
-			return std::array<uint32_t, num_pools>{ (pivots.front() + static_cast<uint32_t>(I) * 8U)... };
+			return std::array<uint32_t, num_pools>{ (pivots.front() + static_cast<uint32_t>(I) * Config::stride_step)... };
 		}(std::make_index_sequence<num_pools>{});
 
 		return strides;
@@ -255,7 +253,7 @@ public:
 		if (stride < m_pools.front().stride || stride > m_pools.back().stride)
 			throw std::bad_alloc{};
 
-		const auto pool_index = (stride - m_pools.front().stride) / Config::stride_mult;
+		const auto pool_index = (stride - m_pools.front().stride) / Config::stride_step;
 		std::byte* block = m_pools[pool_index].fl_fetch(&m_pools[pool_index].freelist);
 		if (!block)
 			throw std::bad_alloc{};
@@ -300,7 +298,7 @@ private:
 	template <typename T>
 	static inline constexpr uint32_t get_type_stride()
 	{
-		constexpr uint32_t alignment = ((alignof(T) + 7U) & ~7U);
+		constexpr uint32_t alignment = ((alignof(T) + (mem::alignment_quantum - 1U)) & ~(mem::alignment_quantum - 1U));
 		return (sizeof(T) + MetapoolBase::alloc_header_size + alignment - 1U) & ~(alignment - 1U);
 	}
 
