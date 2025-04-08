@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstddef>
+#include <cstdint>
 #include <stdexcept>
 #include <memory_resource>
 
@@ -12,7 +13,7 @@ namespace hpr {
 
 
 template <std::size_t MetapoolCount>
-class Allocator final : public std::pmr::memory_resource
+class Allocator : public std::pmr::memory_resource
 {
 public:
 
@@ -22,7 +23,7 @@ public:
 		: m_descriptors(std::forward<Array>(descriptors))
 	{}
 
-	~Allocator() = default;
+	virtual ~Allocator() = default;
 
 	Allocator(const Allocator&) = default;
 	Allocator(Allocator&&) = default;
@@ -31,11 +32,11 @@ public:
 
 protected:
 
-	void* do_allocate(std::size_t bytes, std::size_t alignment) override;
+	virtual void* do_allocate(std::size_t bytes, std::size_t alignment) override;
 
-	void do_deallocate(void* address, std::size_t bytes, std::size_t alignment) override;
+	virtual void do_deallocate(void* address, std::size_t bytes, std::size_t alignment) override;
 
-	inline bool do_is_equal(const std::pmr::memory_resource& other) const noexcept override
+	inline virtual bool do_is_equal(const std::pmr::memory_resource& other) const noexcept override
 	{
 		return this == &other;
 	}
@@ -44,10 +45,10 @@ private:
 
 	static constexpr auto compute_lookup_table_size(const auto& descriptors)
 	{
-		std::size_t lookup_table_size = 0;
+		uint32_t lookup_table_size = 0;
 		for (const auto& desc : descriptors) {
 
-			std::size_t strides_count = (desc.upper_bound - desc.lower_bound) / desc.
+			uint32_t strides_count = (desc.upper_bound - desc.lower_bound) / desc.
 
 		}
 		return max_bound / MetapoolInterface::stride_multiple + 1;

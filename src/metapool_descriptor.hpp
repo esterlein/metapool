@@ -2,29 +2,25 @@
 
 #include <array>
 #include <cstdint>
-#include <tuple>
-#include <variant>
 
 #include "metapool.hpp"
-#include "ranges"
 
 
 namespace hpr {
 
 
-class MetapoolDescriptor
+class MetapoolDescriptor final
 {
 public:
+
+	MetapoolDescriptor() = delete;
 
 	struct Range
 	{
 		uint32_t low, high;
 	} range;
 
-	uint32_t stride_mult;
-
-	using FetchFunc = std::byte* (*)(void*, std::size_t);
-	using ReleaseFunc = void (*)(void*, std::byte*);
+	uint32_t stride_step;
 
 	std::byte* fetch(std::size_t stride) const
 	{
@@ -52,18 +48,20 @@ public:
 
 private:
 
+	using FetchFunc = std::byte* (*)(void*, std::size_t);
+	using ReleaseFunc = void (*)(void*, std::byte*);
+
 	void* m_metapool_ptr = nullptr;
 
 	FetchFunc m_fetch = nullptr;
 	ReleaseFunc m_release = nullptr;
 
-	template <auto BasePoolBlockCount, auto... StridePivots>
-	requires mem::valid_metapool_sequence <BasePoolBlockCount, StridePivots...>
+	template <mem::is_metapool_config Config>
 	friend class Metapool;
 
-	MetapoolDescriptor(Range r, uint32_t sm, void* ptr, FetchFunc fetch, ReleaseFunc release)
-		: range         {r},
-		, stride_mult   {sm}
+	MetapoolDescriptor(Range r, uint32_t ss, void* ptr, FetchFunc fetch, ReleaseFunc release)
+		: range         {r}
+		, stride_step   {ss}
 		, m_metapool_ptr{ptr}
 		, m_fetch       {fetch}
 		, m_release     {release}
