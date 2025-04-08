@@ -1,10 +1,11 @@
 #pragma once
 
-#include "metapool.hpp"
 #include <cstdint>
-#include <new>
 #include <numeric>
 #include <optional>
+
+#include "metapool.hpp"
+#include "monotonic_arena.hpp"
 
 
 namespace hpr {
@@ -15,7 +16,7 @@ namespace mem {
 
 
 template <mem::is_metapool_config Config>
-Metapool<Config>::Metapool(std::pmr::memory_resource* upstream)
+Metapool<Config>::Metapool(MonotonicArena* upstream)
 	: m_upstream{ upstream }
 {
 	assert(upstream != nullptr);
@@ -43,7 +44,7 @@ Metapool<Config>::Metapool(std::pmr::memory_resource* upstream)
 		);
 	}
 
-	std::byte* base_memory = static_cast<std::byte*>(m_upstream->allocate_aligned(total_size, mem::cacheline, alloc_header_size));
+	std::byte* base_memory = static_cast<std::byte*>(m_upstream->fetch(total_size, mem::cacheline));
 	std::byte* current_memory = base_memory;
 
 	std::visit(
@@ -57,7 +58,8 @@ Metapool<Config>::Metapool(std::pmr::memory_resource* upstream)
 		uintptr_t current_addr = reinterpret_cast<uintptr_t>(current_memory);
 
 		if ((current_addr + MetapoolBase::alloc_header_size) % mem::cacheline != 0) {
-			uintptr_t shift_aligned_addr = (current_addr + alloc_header_size + mem::cacheline - 1) & ~(mem::cacheline - 1);
+			uintptr_t shift_aligned_addr =
+				(current_addr + MetapoolBase::alloc_header_size + mem::cacheline - 1) & ~(mem::cacheline - 1);
 			current_memory = reinterpret_cast<std::byte*>(shift_aligned_addr - MetapoolBase::alloc_header_size);
 		}
 
@@ -91,13 +93,6 @@ Metapool<Config>& Metapool<Config>::operator=(Metapool&& other) noexcept
 		m_pools = std::move(other.m_pools);
 	}
 	return *this;
-}
-
-
-template <mem::is_metapool_config Config>
-std::optional<std::size_t> Metapool<Config>::get_pool_index(std::size_t stride)
-{
-	return std::nullopt;
 }
 
 

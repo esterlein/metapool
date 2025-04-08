@@ -15,6 +15,7 @@
 #include "math.hpp"
 #include "freelist.hpp"
 #include "metapool_descriptor.hpp"
+#include "monotonic_arena.hpp"
 
 
 namespace hpr {
@@ -109,7 +110,7 @@ class Metapool final : public MetapoolBase
 {
 public:
 
-	explicit Metapool(std::pmr::memory_resource* upstream);
+	explicit Metapool(MonotonicArena* upstream);
 
 	~Metapool();
 
@@ -308,16 +309,13 @@ private:
 		return m_descriptor;
 	}
 
-	void upstream_allocate(std::size_t size);
-	std::optional<std::size_t> get_pool_index(std::size_t stride);
-
 private:
 
 	std::array<Pool, compute_number_of_pools()> m_pools = compute_pools();
 
 	MetapoolDescriptor m_descriptor;
 
-	std::pmr::memory_resource* m_upstream = nullptr;
+	MonotonicArena* m_upstream = nullptr;
 };
 } // hpr
 
