@@ -4,6 +4,7 @@
 
 #include "metapool.hpp"
 #include "allocator.hpp"
+#include "metapool.tpp"
 #include "monotonic_arena.hpp"
 
 
@@ -21,8 +22,8 @@ namespace mem {
 		static inline constexpr std::size_t count = sizeof...(Metapools);
 	};
 
-	using DefaultMetapoolList =
-		MetapoolList<
+	using StandardMetapoolList =
+		MetapoolList <
 			Metapool<mem::MetapoolConfig<1024, 8, 16, 32, 64, 128, 256, 264>>
 		>;
 
@@ -32,15 +33,6 @@ namespace mem {
 		Standard
 	};
 
-
-	constexpr AllocatorConfig make_allocator_config(auto count)
-	{
-		return AllocatorConfig {
-			.alignment_quantum = alignment_quantum,
-			.alignment_shift = MetapoolBase::alloc_header_size
-		};
-	}
-
 } // hpr::mem
 
 
@@ -48,46 +40,69 @@ class MemoryModel final
 {
 public:
 
-	constexpr MemoryModel()
-		: m_arena    {mem::arena_size, mem::cacheline}
-		, m_metapools{create_metapools<typename DefaultMetapoolList::tuple_type>(&m_arena)}
-	{}
+	MemoryModel() = delete;
 
-	static inline Allocator create_allocator()
+	template <mem::AllocatorType Type>
+	static auto& get_allocator()
 	{
-
+		if constexpr (Type == mem::AllocatorType::Standard) {
+			return create_thread_local_allocator<mem::StandardMetapoolList>();
+		}
+		else if constexpr (Type == mem::AllocatorType::Standard) {
+			return create_thread_local_allocator<mem::StandardMetapoolList>();
+		}
+		else if constexpr (Type == mem::AllocatorType::Standard) {
+			return create_thread_local_allocator<mem::StandardMetapoolList>();
+		}
 	}
 
 private:
 
-	template <typename MetapoolsTuple>
-	static auto create_metapools(std::pmr::memory_resource* upstream)
+	template <typename MetapoolList>
+	auto create_metapools()
 	{
-		return [upstream]<std::size_t... I>(std::index_sequence<I...>) {
-			return std::tuple<std::tuple_element_t<I, MetapoolsTuple>...>{
-				std::tuple_element_t<I, MetapoolsTuple>(upstream)...
+		using MetapoolsTuple = typename MetapoolList::tuple_type;
+
+		thread_local static MonotonicArena arena{mem::arena_size, mem::cacheline};
+
+		return []<std::size_t... I>(std::index_sequence<I...>) {
+			return std::tuple<std::tuple_element_t<I, MetapoolsTuple>...> {
+				std::tuple_element_t<I, MetapoolsTuple>(&arena)...
 			};
 		}(std::make_index_sequence<std::tuple_size_v<MetapoolsTuple>>{});
-	};
+	}
 
-	constexpr auto create_descriptors()
+	template <typename MetapoolsTuple>
+	auto create_descriptors(MetapoolsTuple& metapools)
 	{
-		return [this]<std::size_t... I>(std::index_sequence<I...>) {
-			return std::array<MetapoolDescriptor, sizeof...(I)>{
-				([this]() -> MetapoolDescriptor {
-					auto [low, high] = std::get<I>(m_metapools).get_bounds();
-					return MetapoolDescriptor{low, high, &std::get<I>(m_metapools)};
+		return [&metapools]<std::size_t... I>(std::index_sequence<I...>) {
+			return std::array<MetapoolDescriptor, sizeof...(I)> {
+				([&metapools]() -> MetapoolDescriptor {
+					auto& pool = std::get<I>(metapools);
+					return pool.get_descriptor();
 				}())...
 			};
-		}(std::make_index_sequence<std::tuple_size_v<std::decay_t<decltype(m_metapools)>>>{});
-	};
+		}(std::make_index_sequence<std::tuple_size_v<std::decay_t<decltype(metapools)>>>{});
+	}
 
-private:
+	template <typename MetapoolListType>
+	auto& create_thread_local_allocator()
+	{
+		thread_local static auto metapools = create_metapools<MetapoolListType>();
 
-	MonotonicArena m_arena;
+		thread_local static auto descriptors = create_descriptors(metapools);
 
-	typename mem::DefaultMetapoolList::tuple_type m_metapools;
+		using MetapoolDescriptorArray = std::decay_t<decltype(descriptors)>;
+		using AllocatorConfigType = mem::AllocatorConfig<MetapoolDescriptorArray>;
 
-	Allocator<DefaultMetapoolList::count> m_allocator;
+		thread_local static constexpr AllocatorConfigType config {
+			.alignment_quantum = mem::alignment_quantum,
+			.alignment_shift = MetapoolBase::alloc_header_size
+		};
+
+		thread_local static Allocator<AllocatorConfigType> allocator(descriptors);
+
+		return allocator;
+	}
 };
 } // hpr

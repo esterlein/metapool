@@ -55,7 +55,7 @@ namespace mem {
 		}();
 
 	template <typename T>
-	concept IsMetapoolConfig= requires {
+	concept IsMetapoolConfig = requires {
 		typename T::tag;
 		std::same_as<typename T::tag, metapool_config_tag>;
 	};
