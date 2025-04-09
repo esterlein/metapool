@@ -15,7 +15,7 @@ namespace mem {
 }
 
 
-template <mem::is_metapool_config Config>
+template <mem::IsMetapoolConfig Config>
 Metapool<Config>::Metapool(MonotonicArena* upstream)
 	: m_upstream{ upstream }
 {
@@ -73,19 +73,19 @@ Metapool<Config>::Metapool(MonotonicArena* upstream)
 }
 
 
-template <mem::is_metapool_config Config>
+template <mem::IsMetapoolConfig Config>
 Metapool<Config>::~Metapool()
 {}
 
 
-template <mem::is_metapool_config Config>
+template <mem::IsMetapoolConfig Config>
 Metapool<Config>::Metapool(Metapool&& other) noexcept
 	: m_upstream{std::exchange(other.m_upstream, nullptr)}
 	, m_pools   {std::move(other.m_pools)}
 {}
 
 
-template <mem::is_metapool_config Config>
+template <mem::IsMetapoolConfig Config>
 Metapool<Config>& Metapool<Config>::operator=(Metapool&& other) noexcept
 {
 	if (this != &other) {
@@ -96,7 +96,7 @@ Metapool<Config>& Metapool<Config>::operator=(Metapool&& other) noexcept
 }
 
 
-template <mem::is_metapool_config Config>
+template <mem::IsMetapoolConfig Config>
 std::byte* Metapool<Config>::fetch(std::size_t stride_ul)
 {
 	const uint32_t stride = static_cast<uint32_t>(stride_ul);
@@ -118,7 +118,7 @@ std::byte* Metapool<Config>::fetch(std::size_t stride_ul)
 	return std::launder(object_location);
 }
 
-template <mem::is_metapool_config Config>
+template <mem::IsMetapoolConfig Config>
 void Metapool<Config>::release(std::byte* location)
 {
 	if (!location)
@@ -135,7 +135,7 @@ void Metapool<Config>::release(std::byte* location)
 }
 
 
-template <mem::is_metapool_config Config>
+template <mem::IsMetapoolConfig Config>
 MetapoolDescriptor Metapool<Config>::create_descriptor()
 {
 	return MetapoolDescriptor {

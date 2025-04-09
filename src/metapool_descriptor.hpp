@@ -56,7 +56,7 @@ private:
 	FetchFunc m_fetch = nullptr;
 	ReleaseFunc m_release = nullptr;
 
-	template <mem::is_metapool_config Config>
+	template <mem::IsMetapoolConfig Config>
 	friend class Metapool;
 
 	MetapoolDescriptor(Range r, uint32_t ss, void* ptr, FetchFunc fetch, ReleaseFunc release)
@@ -71,9 +71,9 @@ private:
 
 namespace mem {
 
-	template <typename T, auto MetapoolCount>
-	concept metapool_descriptor_array =
-		std::same_as<std::remove_cvref_t<T>, std::array<MetapoolDescriptor, MetapoolCount>>;
+	template <typename DescriptorArray, auto MetapoolCount>
+	concept MetapoolDescriptorArray =
+		std::same_as<std::remove_cvref_t<DescriptorArray>, std::array<MetapoolDescriptor, MetapoolCount>>;
 
 } // hpr::mem
 } // hpr

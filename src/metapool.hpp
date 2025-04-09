@@ -33,7 +33,7 @@ namespace mem {
 	struct metapool_config_tag {};
 
 	template <auto BaseBlockCount, auto StrideStep, auto... StridePivots>
-	concept valid_metapool_config =
+	concept ValidMetapoolConfig =
 		BaseBlockCount          >= min_base_block_count  &&
 		StrideStep              >= min_stride_step       &&
 		sizeof...(StridePivots) >= 1                     &&
@@ -55,13 +55,13 @@ namespace mem {
 		}();
 
 	template <typename T>
-	concept is_metapool_config = requires {
+	concept IsMetapoolConfig= requires {
 		typename T::tag;
 		std::same_as<typename T::tag, metapool_config_tag>;
 	};
 
 	template <auto BaseBlockCount, auto StrideStep, auto... StridePivots>
-	requires valid_metapool_config <BaseBlockCount, StrideStep, StridePivots...>
+	requires ValidMetapoolConfig <BaseBlockCount, StrideStep, StridePivots...>
 	struct MetapoolConfig
 	{
 		using tag = metapool_config_tag;
@@ -103,7 +103,7 @@ public:
 };
 
 
-template <mem::is_metapool_config Config>
+template <mem::IsMetapoolConfig Config>
 class Metapool final : public MetapoolBase
 {
 public:
