@@ -2,27 +2,35 @@
 
 #include <cstddef>
 #include <cstdint>
-#include <stdexcept>
+
 #include <memory_resource>
 
-#include "metapool.hpp"
 #include "metapool_descriptor.hpp"
 
 
 namespace hpr {
+namespace mem {
 
+	struct AllocatorConfig
+	{
+		uint32_t metapool_count;
+		uint32_t alignment_quantum;
+		uint32_t alignment_shift;
+	};
+} // hpr::mem
 
-template <std::size_t MetapoolCount>
+template <mem::AllocatorConfig Config>
 class Allocator : public std::pmr::memory_resource
 {
 public:
 
 	template <typename Array>
-	requires metapool_descriptor_array<Array, MetapoolCount>
+	requires metapool_descriptor_array<Array, Config.metapool_count>
 	constexpr Allocator(Array&& descriptors)
-		: m_descriptors(std::forward<Array>(descriptors))
+		: m_descriptors{std::forward<Array>(descriptors)}
 	{}
 
+	Allocator() = delete;
 	virtual ~Allocator() = default;
 
 	Allocator(const Allocator&) = default;
@@ -45,33 +53,30 @@ private:
 
 	static constexpr auto compute_lookup_table_size(const auto& descriptors)
 	{
-		uint32_t lookup_table_size = 0;
-		for (const auto& desc : descriptors) {
+		uint32_t total_stride_count = 0;
+		for (const auto& desc : descriptors)
+			total_stride_count += (desc.range.high - desc.range.low) / desc.stride_step;
 
-			uint32_t strides_count = (desc.upper_bound - desc.lower_bound) / desc.
-
-		}
-		return max_bound / MetapoolInterface::stride_multiple + 1;
+		return total_stride_count;
 	}
 
 	template <typename T>
 	static inline constexpr std::size_t get_type_stride()
 	{
-		constexpr std::size_t alignment = ((alignof(T) + 7UL) & ~7UL);
-		return (sizeof(T) + MetapoolBase::alloc_header_size + alignment - 1) & ~(alignment - 1);
+		constexpr std::size_t alignment = ((alignof(T) + Config.alignment_quantum - 1U) & ~(Config.alignment_quantum - 1U));
+		return (sizeof(T) + Config.alignment_shift + alignment - 1U) & ~(alignment - 1U);
 	}
 
 	static inline constexpr std::size_t get_pmr_stride(std::size_t bytes, std::size_t alignment)
 	{
-		alignment = (alignment + 7UL) & ~7UL;
-		return (bytes + alignment - 1) & ~(alignment - 1);
+		alignment = (alignment + Config.alignment_quantum - 1U) & ~(Config.alignment_quantum - 1U);
+		return (bytes + alignment - 1U) & ~(alignment - 1U);
 	}
 
 private:
 
-	std::array<MetapoolDescriptor, MetapoolCount> m_descriptors;
-	std::array<uint32_t, compute_lookup_table_size()> m_strides;
-
+	std::array<MetapoolDescriptor, Config.metapool_count> m_descriptors {};
+	std::array<uint32_t, compute_lookup_table_size()> m_strides {};
 };
 
 

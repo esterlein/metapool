@@ -1,7 +1,6 @@
 #pragma once
 
 
-
 namespace hpr {
 
 template <std::size_t MetapoolCount>
