@@ -17,10 +17,9 @@ namespace mem {
 	struct MetapoolList
 	{
 		using tuple_type = std::tuple<Metapools...>;
-		using ptr_variant = std::variant<Metapools*...>;
+		using variant_ptr = std::variant<Metapools*...>;
 		static inline constexpr std::size_t count = sizeof...(Metapools);
 	};
-
 
 	using DefaultMetapoolList =
 		MetapoolList<
@@ -28,10 +27,15 @@ namespace mem {
 		>;
 
 
+	enum class AllocatorType
+	{
+		Standard
+	};
+
+
 	constexpr AllocatorConfig make_allocator_config(auto count)
 	{
 		return AllocatorConfig {
-			.metapool_count = static_cast<uint32_t>(count),
 			.alignment_quantum = alignment_quantum,
 			.alignment_shift = MetapoolBase::alloc_header_size
 		};
@@ -47,7 +51,6 @@ public:
 	constexpr MemoryModel()
 		: m_arena    {mem::arena_size, mem::cacheline}
 		, m_metapools{create_metapools<typename DefaultMetapoolList::tuple_type>(&m_arena)}
-		, m_allocator{create_descriptors()}
 	{}
 
 	static inline Allocator create_allocator()
