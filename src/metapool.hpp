@@ -59,32 +59,30 @@ namespace mem {
 		typename T::tag;
 		std::same_as<typename T::tag, metapool_config_tag>;
 	};
+
+	template <auto BaseBlockCount, auto StrideStep, auto... StridePivots>
+	requires valid_metapool_config <BaseBlockCount, StrideStep, StridePivots...>
+	struct MetapoolConfig
+	{
+		using tag = metapool_config_tag;
+	
+		static constexpr uint32_t base_block_count = BaseBlockCount;
+	
+		static constexpr uint32_t stride_step = StrideStep;
+	
+		static constexpr std::array<uint32_t, sizeof...(StridePivots)> stride_pivots = { StridePivots... };
+	
+		static constexpr uint32_t low = []{
+			constexpr auto& arr = stride_pivots;
+			return arr.front();
+		}();
+	
+		static constexpr uint32_t high = []{
+			constexpr auto& arr = stride_pivots;
+			return arr[arr.size() - 2];
+		}();
+	};
 } // hpr::mem
-
-
-template <auto BaseBlockCount, auto StrideStep, auto... StridePivots>
-requires mem::valid_metapool_config <BaseBlockCount, StrideStep, StridePivots...>
-struct MetapoolConfig
-{
-	using tag = mem::metapool_config_tag;
-
-	static constexpr uint32_t base_block_count = BaseBlockCount;
-
-	static constexpr uint32_t stride_step = StrideStep;
-
-	static constexpr std::array<uint32_t, sizeof...(StridePivots)> stride_pivots = { StridePivots... };
-
-	static constexpr uint32_t low = []{
-		constexpr auto& arr = stride_pivots;
-		return arr.front();
-	}();
-
-	static constexpr uint32_t high = []{
-		constexpr auto& arr = stride_pivots;
-		return arr[arr.size() - 2];
-	}();
-};
-
 
 class MetapoolBase
 {
