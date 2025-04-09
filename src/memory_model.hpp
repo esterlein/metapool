@@ -22,19 +22,9 @@ namespace mem {
 	};
 
 
-	template <typename T>
-	struct MetapoolCounter;
-
-	template <typename... Metapools>
-	struct MetapoolCounter<MetapoolList<Metapools...>>
-	{
-		static constexpr std::size_t value = sizeof...(Metapools);
-	};
-
-
 	using DefaultMetapoolList =
 		MetapoolList<
-			Metapool<1024, 8, 32, 64, 128, 256, 264>
+			Metapool<mem::MetapoolConfig<1024, 8, 16, 32, 64, 128, 256, 264>>
 		>;
 
 
@@ -47,11 +37,24 @@ namespace mem {
 		};
 	}
 
-
 } // hpr::mem
+
 
 class MemoryModel final
 {
+public:
+
+	constexpr MemoryModel()
+		: m_arena    {mem::arena_size, mem::cacheline}
+		, m_metapools{create_metapools<typename DefaultMetapoolList::tuple_type>(&m_arena)}
+		, m_allocator{create_descriptors()}
+	{}
+
+	static inline Allocator create_allocator()
+	{
+
+	}
+
 private:
 
 	template <typename MetapoolsTuple>
@@ -76,21 +79,11 @@ private:
 		}(std::make_index_sequence<std::tuple_size_v<std::decay_t<decltype(m_metapools)>>>{});
 	};
 
-public:
-
-	constexpr MemoryModel()
-		: m_arena    {mem::arena_size, mem::cacheline}
-		, m_metapools{create_metapools<typename DefaultMetapoolList::tuple_type>(&m_arena)}
-		, m_allocator{create_descriptors()}
-	{}
-
-	inline std::pmr::memory_resource& get_memory_resource() { return m_allocator; }
-
 private:
 
 	MonotonicArena m_arena;
 
-	typename DefaultMetapoolList::tuple_type m_metapools;
+	typename mem::DefaultMetapoolList::tuple_type m_metapools;
 
 	Allocator<DefaultMetapoolList::count> m_allocator;
 };

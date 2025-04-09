@@ -29,8 +29,8 @@ class Allocator : public std::pmr::memory_resource
 {
 public:
 
-	constexpr Allocator(DescriptorArray&& descriptors)
-		: m_descriptors{std::forward<DescriptorArray>(descriptors)}
+	constexpr Allocator(DescriptorArray descriptors)
+		: m_descriptors{std::move(descriptors)}
 	{}
 
 	Allocator() = delete;
@@ -78,8 +78,9 @@ private:
 
 private:
 
-	std::array<MetapoolDescriptor, Config.metapool_count> m_descriptors {};
 	std::array<uint32_t, compute_lookup_table_size()> m_strides {};
+
+	DescriptorArray m_descriptors {};
 };
 
 
