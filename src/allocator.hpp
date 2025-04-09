@@ -19,15 +19,18 @@ namespace mem {
 	};
 } // hpr::mem
 
-template <mem::AllocatorConfig Config>
+
+template <typename DescriptorArray, mem::AllocatorConfig Config>
+requires mem::metapool_descriptor_array<
+	DescriptorArray,
+	std::tuple_size_v<std::remove_cvref_t<DescriptorArray>>
+>
 class Allocator : public std::pmr::memory_resource
 {
 public:
 
-	template <typename Array>
-	requires metapool_descriptor_array<Array, Config.metapool_count>
-	constexpr Allocator(Array&& descriptors)
-		: m_descriptors{std::forward<Array>(descriptors)}
+	constexpr Allocator(DescriptorArray&& descriptors)
+		: m_descriptors{std::forward<DescriptorArray>(descriptors)}
 	{}
 
 	Allocator() = delete;
@@ -80,12 +83,8 @@ private:
 };
 
 
-template <std::size_t MetapoolCount>
-Allocator(std::array<MetapoolDescriptor, MetapoolCount>&) -> Allocator<MetapoolCount>;
-
-
-template <std::size_t MetapoolCount>
-Allocator(std::array<MetapoolDescriptor, MetapoolCount>&&) -> Allocator<MetapoolCount>;
+template <typename DescriptorArray, mem::AllocatorConfig Config>
+Allocator(const Allocator<DescriptorArray, Config>&) -> Allocator<DescriptorArray, Config>;
 
 } // hpr
 

@@ -69,8 +69,11 @@ private:
 };
 
 
-template <typename T, std::size_t MetapoolCount>
-concept metapool_descriptor_array =
-	std::same_as<std::remove_cvref_t<T>, std::array<MetapoolDescriptor, MetapoolCount>>;
+namespace mem {
 
+	template <typename T, auto MetapoolCount>
+	concept metapool_descriptor_array =
+		std::same_as<std::remove_cvref_t<T>, std::array<MetapoolDescriptor, MetapoolCount>>;
+
+} // hpr::mem
 } // hpr
