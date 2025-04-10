@@ -24,6 +24,7 @@ namespace mem {
 
 		uint32_t alignment_quantum;
 		uint32_t alignment_shift;
+		uint32_t min_stride_step;
 	};
 
 	template <typename T>
@@ -52,7 +53,11 @@ public:
 
 	constexpr Allocator(DescriptorArray descriptors)
 		: m_descriptors{std::move(descriptors)}
-	{}
+	{
+		if (!validate_descriptor_array(m_descriptors)) {
+			// error
+		}
+	}
 
 	Allocator() = delete;
 	virtual ~Allocator() = default;
@@ -61,6 +66,8 @@ public:
 	Allocator(Allocator&&) = default;
 	Allocator& operator=(const Allocator&) = default;
 	Allocator& operator=(Allocator&&) = default;
+
+	// overload allocate/deallocate templates
 
 protected:
 
@@ -75,13 +82,71 @@ protected:
 
 private:
 
-	static constexpr auto compute_lookup_table_size(const auto& descriptors)
+	static constexpr bool validate_descriptor_array(const DescriptorArray& descriptors)
 	{
+		constexpr size_t arr_size = std::tuple_size_v<DescriptorArray>;
+		if constexpr (arr_size == 0) {
+			return false;
+		}
+
+		for (size_t i = 0; i < arr_size; ++i) {
+
+			const auto& desc = std::get<i>(descriptors);
+			if (desc.stride_step == 0) {
+				return false;
+			}
+			if ((desc.stride_step & (desc.stride_step - 1)) == 0) {
+				const uint32_t mask = desc.stride_step - 1;
+				if ((desc.low & mask) != 0 || (desc.high & mask) != 0) {
+					return false;
+				}
+			}
+			else {
+				if (desc.low % desc.stride_step != 0 || desc.high % desc.stride_step != 0) {
+					return false;
+				}
+			}
+			if (i < arr_size - 1) {
+				const auto& next = std::get<i + 1>(descriptors);
+				if (desc.high + desc.stride_step != next.low) {
+					return false;
+				}
+			}
+		}
+		return true;
+	}
+
+	static constexpr auto compute_lookup_table_size(const DescriptorArray& descriptors)
+	{
+		constexpr size_t N = std::tuple_size_v<DescriptorArray>;
 		uint32_t total_stride_count = 0;
-		for (const auto& desc : descriptors)
-			total_stride_count += (desc.range.high - desc.range.low) / desc.stride_step;
+
+		for (size_t i = 0; i < N; ++i) {
+			const auto& desc = std::get<i>(descriptors);
+			total_stride_count += (desc.range.high - desc.range.low) / Config::min_stride_step;
+		}
 
 		return total_stride_count;
+	}
+
+	static constexpr auto compute_lookup_table(const DescriptorArray& descriptors)
+	{
+		constexpr std::size_t table_size = compute_lookup_table_size(descriptors);
+
+		return [table_size, &descriptors = std::as_const(descriptors)]() {
+			std::array<uint32_t, table_size> table{};
+			uint32_t table_index = 0;
+
+			for (size_t i = 0; i < std::tuple_size_v<DescriptorArray>; ++i) {
+				const auto& desc = std::get<i>(descriptors);
+				const uint32_t stride_count = (desc.range.high - desc.range.low) / Config::min_stride_step;
+
+				for (uint32_t j = 0; j < stride_count; ++j) {
+					table[table_index++] = static_cast<uint32_t>(i);
+				}
+			}
+			return table;
+		}();
 	}
 
 	template <typename T>

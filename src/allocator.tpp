@@ -3,34 +3,35 @@
 
 namespace hpr {
 
-template <std::size_t MetapoolCount>
-void* Allocator<MetapoolCount>::do_allocate(std::size_t bytes, std::size_t alignment)
-{
-	auto alignment_mpool = (alignment + 7UL) & ~7UL;
-	auto stride = (bytes + MetapoolBase::alloc_header_size + alignment_mpool - 1) & ~(alignment_mpool - 1);
 
-	const std::size_t table_index = stride / 8 - 1;
-	if (table_index >= m_stride_table.size() || !m_stride_table[table_index]) {
+template <mem::IsAllocatorConfig Config>
+void* Allocator<Config>::do_allocate(std::size_t bytes, std::size_t alignment)
+{
+	auto alignment_mpool = (alignment + Config::alignment_quantum - 1U) & ~(Config::alignment_quantum - 1U);
+	auto stride = (bytes + Config::alignment_shift + alignment_mpool - 1U) & ~(alignment_mpool - 1U);
+
+	const std::size_t table_index = stride / Config::min_stride_step - 1U;
+	if (table_index >= m_strides.size() || !m_strides[table_index]) {
 		throw std::bad_alloc{};
 	}
 
-	return m_stride_table[table_index]->fetch_func(stride);
+	return m_strides[table_index]->fetch(stride);
 }
 
 
-template <std::size_t MetapoolCount>
-void Allocator<MetapoolCount>::do_deallocate(void* location, std::size_t bytes, std::size_t alignment)
+template <mem::IsAllocatorConfig Config>
+void Allocator<Config>::do_deallocate(void* location, std::size_t bytes, std::size_t alignment)
 {
 	if (!location) return;
 
-	auto alignment_mpool = (alignment + 7UL) & ~7UL;
-	auto stride = (bytes + MetapoolBase::alloc_header_size + alignment_mpool - 1) & ~(alignment_mpool - 1);
+	auto alignment_mpool = (alignment + Config::alignment_quantum - 1U) & ~(Config::alignment_quantum - 1U);
+	auto stride = (bytes + Config::alignment_shift + alignment_mpool - 1U) & ~(alignment_mpool - 1U);
 
-	const std::size_t table_index = stride / 8;
+	const std::size_t table_index = stride / Config::min_stride_step - 1U;
 	if (table_index >= m_stride_table.size() || !m_stride_table[table_index]) {
 		throw std::runtime_error("no suitable metapool found for deallocation");
 	}
 
-	m_stride_table[table_index]->release_func(static_cast<std::byte*>(location));
+	m_strides[table_index]->release(static_cast<std::byte*>(location));
 }
 } // hpr

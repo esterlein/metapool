@@ -97,7 +97,8 @@ private:
 
 		thread_local static constexpr AllocatorConfigType config {
 			.alignment_quantum = mem::alignment_quantum,
-			.alignment_shift = MetapoolBase::alloc_header_size
+			.alignment_shift   = MetapoolBase::alloc_header_size,
+			.min_stride_step   = mem::min_stride_step
 		};
 
 		thread_local static Allocator<AllocatorConfigType> allocator(descriptors);
