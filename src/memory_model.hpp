@@ -1,10 +1,7 @@
 #pragma once
 
-#include <memory_resource>
-
 #include "metapool.hpp"
 #include "allocator.hpp"
-#include "metapool.tpp"
 #include "monotonic_arena.hpp"
 
 
@@ -20,6 +17,26 @@ namespace mem {
 		using tuple_type = std::tuple<Metapools...>;
 		using variant_ptr = std::variant<Metapools*...>;
 		static inline constexpr std::size_t count = sizeof...(Metapools);
+
+		static constexpr uint32_t min_stride = []() {
+			return min_stride_impl(std::make_index_sequence<count>{});
+		}();
+		
+		static constexpr uint32_t max_stride = []() {
+			return max_stride_impl(std::make_index_sequence<count>{});
+		}();
+		
+	private:
+
+		template <std::size_t... Is>
+		static constexpr uint32_t min_stride_impl(std::index_sequence<Is...>) {
+			return std::min({std::tuple_element_t<Is, tuple_type>::config_type::stride_min...});
+		}
+		
+		template <std::size_t... Is>
+		static constexpr uint32_t max_stride_impl(std::index_sequence<Is...>) {
+			return std::max({std::tuple_element_t<Is, tuple_type>::config_type::stride_max...});
+		}
 	};
 
 	using StandardMetapoolList =
@@ -65,9 +82,9 @@ private:
 
 		thread_local static MonotonicArena arena{mem::arena_size, mem::cacheline};
 
-		return []<std::size_t... I>(std::index_sequence<I...>) {
-			return std::tuple<std::tuple_element_t<I, MetapoolsTuple>...> {
-				std::tuple_element_t<I, MetapoolsTuple>(&arena)...
+		return []<std::size_t... Is>(std::index_sequence<Is...>) {
+			return std::tuple<std::tuple_element_t<Is, MetapoolsTuple>...> {
+				std::tuple_element_t<Is, MetapoolsTuple>(&arena)...
 			};
 		}(std::make_index_sequence<std::tuple_size_v<MetapoolsTuple>>{});
 	}
@@ -75,11 +92,11 @@ private:
 	template <typename MetapoolsTuple>
 	auto create_descriptors(MetapoolsTuple& metapools)
 	{
-		return [&metapools]<std::size_t... I>(std::index_sequence<I...>) {
-			return std::array<MetapoolDescriptor, sizeof...(I)> {
+		return [&metapools]<std::size_t... Is>(std::index_sequence<Is...>) {
+			return std::array<MetapoolDescriptor, sizeof...(Is)> {
 				([&metapools]() -> MetapoolDescriptor {
-					auto& pool = std::get<I>(metapools);
-					return pool.get_descriptor();
+					auto& pool = std::get<Is>(metapools);
+					return pool.descriptor();
 				}())...
 			};
 		}(std::make_index_sequence<std::tuple_size_v<std::decay_t<decltype(metapools)>>>{});
@@ -98,7 +115,9 @@ private:
 		thread_local static constexpr AllocatorConfigType config {
 			.alignment_quantum = mem::alignment_quantum,
 			.alignment_shift   = MetapoolBase::alloc_header_size,
-			.min_stride_step   = mem::min_stride_step
+			.min_stride_step   = mem::min_stride_step,
+			.min_stride        = MetapoolListType::min_stride,
+			.max_stride        = MetapoolListType::max_stride
 		};
 
 		thread_local static Allocator<AllocatorConfigType> allocator(descriptors);
