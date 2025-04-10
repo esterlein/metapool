@@ -118,10 +118,10 @@ private:
 
 	static constexpr auto compute_lookup_table_size(const DescriptorArray& descriptors)
 	{
-		constexpr size_t N = std::tuple_size_v<DescriptorArray>;
+		constexpr std::size_t arr_size = std::tuple_size_v<DescriptorArray>;
 		uint32_t total_stride_count = 0;
 
-		for (size_t i = 0; i < N; ++i) {
+		for (std::size_t i = 0; i < arr_size; ++i) {
 			const auto& desc = std::get<i>(descriptors);
 			total_stride_count += (desc.range.high - desc.range.low) / Config::min_stride_step;
 		}
@@ -129,7 +129,7 @@ private:
 		return total_stride_count;
 	}
 
-	static constexpr auto compute_lookup_table(const DescriptorArray& descriptors)
+	static constexpr auto fill_lookup_table(const DescriptorArray& descriptors)
 	{
 		constexpr std::size_t table_size = compute_lookup_table_size(descriptors);
 
