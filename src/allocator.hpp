@@ -22,9 +22,12 @@ namespace mem {
 
 		static constexpr auto metapool_count = std::tuple_size_v<DescriptorArray>;
 
-		uint32_t alignment_quantum;
-		uint32_t alignment_shift;
-		uint32_t min_stride_step;
+		uint32_t alignment_quantum {};
+		uint32_t alignment_shift {};
+		uint32_t min_stride_step {};
+		uint32_t min_stride {};
+		uint32_t max_stride {};
+
 	};
 
 	template <typename T>
@@ -116,22 +119,18 @@ private:
 		return true;
 	}
 
-	static constexpr auto compute_lookup_table_size(const DescriptorArray& descriptors)
+	static constexpr auto compute_lookup_table_size()
 	{
-		constexpr std::size_t arr_size = std::tuple_size_v<DescriptorArray>;
-		uint32_t total_stride_count = 0;
+		constexpr uint32_t min_stride = Config::min_stride;
+		constexpr uint32_t max_stride = Config::max_stride;
+		constexpr uint32_t step_size = Config::min_stride_step;
 
-		for (std::size_t i = 0; i < arr_size; ++i) {
-			const auto& desc = std::get<i>(descriptors);
-			total_stride_count += (desc.range.high - desc.range.low) / Config::min_stride_step;
-		}
-
-		return total_stride_count;
+		return (max_stride - min_stride) / step_size + 1U;
 	}
 
 	static constexpr auto fill_lookup_table(const DescriptorArray& descriptors)
 	{
-		constexpr std::size_t table_size = compute_lookup_table_size(descriptors);
+		constexpr std::size_t table_size = compute_lookup_table_size();
 
 		return [table_size, &descriptors = std::as_const(descriptors)]() {
 			std::array<uint32_t, table_size> table{};
@@ -139,7 +138,7 @@ private:
 
 			for (size_t i = 0; i < std::tuple_size_v<DescriptorArray>; ++i) {
 				const auto& desc = std::get<i>(descriptors);
-				const uint32_t stride_count = (desc.range.high - desc.range.low) / Config::min_stride_step;
+				const uint32_t stride_count = (desc.range.min_stride - desc.range.max_stride) / Config::min_stride_step;
 
 				for (uint32_t j = 0; j < stride_count; ++j) {
 					table[table_index++] = static_cast<uint32_t>(i);
