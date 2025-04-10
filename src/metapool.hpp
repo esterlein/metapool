@@ -65,18 +65,26 @@ namespace mem {
 	struct MetapoolConfig
 	{
 		using tag = metapool_config_tag;
-	
+
 		static constexpr uint32_t base_block_count = BaseBlockCount;
-	
+
 		static constexpr uint32_t stride_step = StrideStep;
-	
+
 		static constexpr std::array<uint32_t, sizeof...(StridePivots)> stride_pivots = { StridePivots... };
-	
+
+		static constexpr uint32_t stride_min = stride_pivots.front();
+
+		static constexpr uint32_t stride_max = [](){
+			constexpr uint32_t pool_count =
+				(stride_pivots.back() - stride_pivots.front()) / stride_step;
+			return stride_pivots.front() + (pool_count - 1) * stride_step;
+		}();
+
 		static constexpr uint32_t low = []{
 			constexpr auto& arr = stride_pivots;
 			return arr.front();
 		}();
-	
+
 		static constexpr uint32_t high = []{
 			constexpr auto& arr = stride_pivots;
 			return arr[arr.size() - 2];
@@ -241,11 +249,11 @@ public:
 
 	using PoolVariant = FreelistVariant;
 
-	std::byte* fetch(std::size_t stride);
+	[[nodiscard]] std::byte* fetch(std::size_t stride);
 	void release(std::byte* block);
 
 	template <typename T, typename... Types>
-	T* construct(std::size_t stride_ul, Types&&... args)
+	[[nodiscard]] T* construct(std::size_t stride_ul, Types&&... args)
 	{
 		const uint32_t stride = static_cast<uint32_t>(stride_ul);
 
@@ -287,9 +295,15 @@ public:
 		m_pools[pool_index].fl_release(&m_pools[pool_index].freelist, block);
 	}
 
-	inline constexpr auto get_bounds()
+	[[nodiscard]] static inline constexpr auto bounds() noexcept
 	{
-		return std::pair{m_pools.front().stride, m_pools.back().stride};
+		constexpr auto& pivots = Config::stride_pivots;
+
+		constexpr uint32_t first_stride = pivots.front();
+		constexpr uint32_t last_stride  = first_stride +
+			(compute_number_of_pools() - 1) * Config::stride_step;
+
+		return std::pair{first_stride, last_stride};
 	}
 
 private:
