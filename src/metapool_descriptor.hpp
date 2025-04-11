@@ -48,17 +48,17 @@ public:
 
 private:
 
-	using FetchFunc = std::byte* (*)(void*, std::size_t);
-	using ReleaseFunc = void (*)(void*, std::byte*);
+	using MetapoolFetch = std::byte* (*)(void*, std::size_t);
+	using MetapoolRelease = void (*)(void*, std::byte*);
 
-	void* m_metapool_ptr   {nullptr};
-	FetchFunc fn_fetch     {nullptr};
-	ReleaseFunc fn_release {nullptr};
+	void* m_metapool_ptr       {nullptr};
+	MetapoolFetch fn_fetch     {nullptr};
+	MetapoolRelease fn_release {nullptr};
 
 	template <mem::IsMetapoolConfig Config>
 	friend class Metapool;
 
-	MetapoolDescriptor(Range r, uint32_t ss, void* ptr, FetchFunc fetch, ReleaseFunc release)
+	MetapoolDescriptor(Range r, uint32_t ss, void* ptr, MetapoolFetch fetch, MetapoolRelease release)
 		: range          {r}
 		, stride_step    {ss}
 		, m_metapool_ptr {ptr}

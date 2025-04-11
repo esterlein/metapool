@@ -74,6 +74,10 @@ public:
 
 	// overload allocate/deallocate templates
 
+	// implement construct/destruct
+
+	// transparent interface / replace method calls
+
 protected:
 
 	virtual void* do_allocate(std::size_t bytes, std::size_t alignment) override;
