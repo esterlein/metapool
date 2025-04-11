@@ -5,8 +5,11 @@ namespace hpr {
 
 
 template <mem::IsAllocatorConfig Config>
-void* Allocator<Config>::do_allocate(std::size_t bytes, std::size_t alignment)
+void* Allocator<Config>::do_allocate(std::size_t bytes_ul, std::size_t alignment_ul)
 {
+	const uint32_t bytes = static_cast<uint32_t>(bytes_ul);
+	const uint32_t alignment = static_cast<uint32_t>(alignment_ul);
+
 	auto alignment_mpool = (alignment + Config::alignment_quantum - 1U) & ~(Config::alignment_quantum - 1U);
 	auto stride = (bytes + Config::alignment_shift + alignment_mpool - 1U) & ~(alignment_mpool - 1U);
 
@@ -29,25 +32,28 @@ void* Allocator<Config>::do_allocate(std::size_t bytes, std::size_t alignment)
 
 
 template <mem::IsAllocatorConfig Config>
-void Allocator<Config>::do_deallocate(void* location, std::size_t bytes, std::size_t alignment)
+void Allocator<Config>::do_deallocate(void* location, std::size_t bytes_ul, std::size_t alignment_ul)
 {
 	if (!location) return;
+
+	const uint32_t bytes = static_cast<uint32_t>(bytes_ul);
+	const uint32_t alignment = static_cast<uint32_t>(alignment_ul);
 
 	auto alignment_mpool = (alignment + Config::alignment_quantum - 1U) & ~(Config::alignment_quantum - 1U);
 	auto stride = (bytes + Config::alignment_shift + alignment_mpool - 1U) & ~(alignment_mpool - 1U);
 
 	if (stride < Config::min_stride || stride > Config::max_stride) { [[unlikely]]
-		throw std::runtime_error("stride out of bounds for deallocation");
+		throw std::runtime_error {"stride out of bounds for deallocation"};
 	}
 
 	const std::size_t table_index = (stride - Config::min_stride) / Config::min_stride_step;
 	if (table_index >= m_strides.size()) { [[unlikely]]
-		throw std::runtime_error("table index out of bounds for deallocation");
+		throw std::runtime_error {"table index out of bounds for deallocation"};
 	}
 
 	const uint32_t descriptor_index = m_strides[table_index];
 	if (descriptor_index >= Config::metapool_count) { [[unlikely]]
-		throw std::runtime_error("descriptor index out of bounds for deallocation");
+		throw std::runtime_error {"descriptor index out of bounds for deallocation"};
 	}
 
 	m_descriptors[descriptor_index].release(static_cast<std::byte*>(location));

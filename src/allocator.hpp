@@ -58,7 +58,7 @@ public:
 		: m_descriptors {std::move(descriptors)}
 	{
 		if (!validate_descriptor_array(m_descriptors)) {
-			throw std::runtime_error("invalid descriptor array");
+			throw std::runtime_error {"invalid descriptor array"};
 		}
 
 		m_strides = fill_lookup_table(m_descriptors);
@@ -67,10 +67,10 @@ public:
 	Allocator() = delete;
 	virtual ~Allocator() = default;
 
-	Allocator(const Allocator&) = default;
-	Allocator(Allocator&&) = default;
-	Allocator& operator=(const Allocator&) = default;
-	Allocator& operator=(Allocator&&) = default;
+	Allocator(const Allocator&) = delete;
+	Allocator(Allocator&&) = delete;
+	Allocator& operator=(const Allocator&) = delete;
+	Allocator& operator=(Allocator&&) = delete;
 
 	// overload allocate/deallocate templates
 
