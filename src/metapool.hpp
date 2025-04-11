@@ -132,9 +132,12 @@ private:
 		constexpr auto& pivots = Config::stride_pivots;
 		static constexpr uint32_t num_pools = compute_number_of_pools();
 
-		static constexpr auto strides = [&]<std::size_t... I>(std::index_sequence<I...>) constexpr {
-			return std::array<uint32_t, num_pools>{ (pivots.front() + static_cast<uint32_t>(I) * Config::stride_step)... };
-		}(std::make_index_sequence<num_pools>{});
+		static constexpr auto strides =
+			[num_pools, &pivots = std::as_const(pivots)]<std::size_t... Is>(std::index_sequence<Is...>) constexpr {
+				return std::array<uint32_t, num_pools> {
+					(pivots.front() + static_cast<uint32_t>(Is) * Config::stride_step)...
+				};
+			}(std::make_index_sequence<num_pools>{});
 
 		return strides;
 	}
@@ -173,15 +176,15 @@ private:
 		constexpr auto& block_count = compute_block_count();
 
 		static constexpr std::array<Pool, num_pools> pools =
-			[&pool_strides, &block_count]<uint32_t... I>(std::index_sequence<I...>)
+			[&pool_strides, &block_count]<uint32_t... Is>(std::index_sequence<Is...>)
 			{
 				return std::array<Pool, num_pools> {
 					Pool {
-						pool_strides[I],
-						block_count[I],
-						&freelist_typed_fetch<pool_strides[I], block_count[I]>,
-						&freelist_typed_release<pool_strides[I], block_count[I]>,
-						Freelist<pool_strides[I], block_count[I]>{}
+						pool_strides[Is],
+						block_count[Is],
+						&freelist_typed_fetch<pool_strides[Is], block_count[Is]>,
+						&freelist_typed_release<pool_strides[Is], block_count[Is]>,
+						Freelist<pool_strides[Is], block_count[Is]>{}
 					}...
 				};
 			}(std::make_index_sequence<num_pools>{});
@@ -194,10 +197,10 @@ private:
 	template <const auto& Strides, const auto& BlockCount, typename IndexSequence>
 	struct FreelistGenerator;
 
-	template <const auto& Strides, const auto& BlockCount, uint32_t... I>
-	struct FreelistGenerator<Strides, BlockCount, std::index_sequence<I...>>
+	template <const auto& Strides, const auto& BlockCount, uint32_t... Is>
+	struct FreelistGenerator<Strides, BlockCount, std::index_sequence<Is...>>
 	{
-		using type = std::variant<Freelist<Strides[I], BlockCount[I]>...>;
+		using type = std::variant<Freelist<Strides[Is], BlockCount[Is]>...>;
 	};
 
 	using FreelistVariant =
