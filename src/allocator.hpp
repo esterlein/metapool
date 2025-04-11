@@ -58,8 +58,10 @@ public:
 		: m_descriptors{std::move(descriptors)}
 	{
 		if (!validate_descriptor_array(m_descriptors)) {
-			// error
+			// runtime error
 		}
+
+		m_strides = fill_lookup_table(m_descriptors);
 	}
 
 	Allocator() = delete;
@@ -128,24 +130,22 @@ private:
 		return (max_stride - min_stride) / step_size + 1U;
 	}
 
-	static constexpr auto fill_lookup_table(const DescriptorArray& descriptors)
+	static auto fill_lookup_table(const DescriptorArray& descriptors)
 	{
 		constexpr std::size_t table_size = compute_lookup_table_size();
-
-		return [table_size, &descriptors = std::as_const(descriptors)]() {
-			std::array<uint32_t, table_size> table{};
-			uint32_t table_index = 0;
-
-			for (size_t i = 0; i < std::tuple_size_v<DescriptorArray>; ++i) {
-				const auto& desc = std::get<i>(descriptors);
-				const uint32_t stride_count = (desc.range.min_stride - desc.range.max_stride) / Config::min_stride_step;
-
-				for (uint32_t j = 0; j < stride_count; ++j) {
-					table[table_index++] = static_cast<uint32_t>(i);
-				}
-			}
-			return table;
-		}();
+		std::array<uint32_t, table_size> table{};
+		
+		uint32_t table_index = 0;
+		for (size_t desc_index = 0; desc_index < std::tuple_size_v<DescriptorArray>; ++desc_index) {
+			const auto& desc = std::get<desc_index>(descriptors);
+			const uint32_t stride_count =
+				(desc.range.max_stride - desc.range.min_stride) / Config::min_stride_step;
+			
+			std::fill_n(table.begin() + table_index, stride_count, static_cast<uint32_t>(desc_index));
+			table_index += stride_count;
+		}
+		
+		return table;
 	}
 
 	template <typename T>
