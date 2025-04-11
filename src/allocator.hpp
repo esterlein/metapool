@@ -58,7 +58,7 @@ public:
 		: m_descriptors{std::move(descriptors)}
 	{
 		if (!validate_descriptor_array(m_descriptors)) {
-			// runtime error
+			throw std::runtime_error("invalid descriptor array");
 		}
 
 		m_strides = fill_lookup_table(m_descriptors);
@@ -102,18 +102,18 @@ private:
 			}
 			if ((desc.stride_step & (desc.stride_step - 1)) == 0) {
 				const uint32_t mask = desc.stride_step - 1;
-				if ((desc.low & mask) != 0 || (desc.high & mask) != 0) {
+				if ((desc.min_stride & mask) != 0 || (desc.max_stride & mask) != 0) {
 					return false;
 				}
 			}
 			else {
-				if (desc.low % desc.stride_step != 0 || desc.high % desc.stride_step != 0) {
+				if (desc.min_stride % desc.stride_step != 0 || desc.max_stride % desc.stride_step != 0) {
 					return false;
 				}
 			}
 			if (i < arr_size - 1) {
 				const auto& next = std::get<i + 1>(descriptors);
-				if (desc.high + desc.stride_step != next.low) {
+				if (desc.max_stride + desc.stride_step != next.min_stride) {
 					return false;
 				}
 			}
