@@ -36,20 +36,20 @@ public:
 	static auto& get_allocator()
 	{
 		if constexpr (Type == mem::AllocatorType::Standard) {
-			return create_thread_local_allocator<mem::StandardMetapoolList>();
+			return get_thread_local_allocator<mem::StandardMetapoolList>();
 		}
 		else if constexpr (Type == mem::AllocatorType::Standard) {
-			return create_thread_local_allocator<mem::StandardMetapoolList>();
+			return get_thread_local_allocator<mem::StandardMetapoolList>();
 		}
 		else if constexpr (Type == mem::AllocatorType::Standard) {
-			return create_thread_local_allocator<mem::StandardMetapoolList>();
+			return get_thread_local_allocator<mem::StandardMetapoolList>();
 		}
 	}
 
 private:
 
 	template <typename MetapoolRegistry>
-	auto create_metapools()
+	static auto create_metapools()
 	{
 		using MetapoolsTuple = typename MetapoolRegistry::tuple_type;
 
@@ -63,7 +63,7 @@ private:
 	}
 
 	template <typename MetapoolsTuple>
-	auto create_descriptors(MetapoolsTuple& metapools)
+	static auto create_descriptors(MetapoolsTuple& metapools)
 	{
 		return [&metapools]<std::size_t... Is>(std::index_sequence<Is...>) {
 			return std::array<MetapoolDescriptor, sizeof...(Is)> {
@@ -76,7 +76,7 @@ private:
 	}
 
 	template <typename MetapoolRegistryType>
-	auto& create_thread_local_allocator()
+	static auto& create_thread_local_allocator()
 	{
 		thread_local static auto metapools = create_metapools<MetapoolRegistryType>();
 
