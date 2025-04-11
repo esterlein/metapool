@@ -21,18 +21,18 @@ Metapool<Config>::Metapool(MonotonicArena* upstream)
 {
 	assert(upstream != nullptr);
 
-	std::size_t total_size = m_pools[0].stride * m_pools[0].block_count;
+	uint32_t total_size = m_pools[0].stride * m_pools[0].block_count;
 
 	if (m_pools.size() > 1) {
-		std::size_t current_pos = total_size;
+		uint32_t current_pos = total_size;
 
 		total_size += std::accumulate(
-			m_pools.begin() + 1, m_pools.end(), std::size_t(0),
-			[&current_pos](std::size_t sum, const auto& pool) {
+			m_pools.begin() + 1, m_pools.end(), uint32_t(0),
+			[&current_pos](uint32_t sum, const auto& pool) {
 				if (current_pos % mem::cacheline != 0) {
 
-					std::size_t aligned_pos =
-						(current_pos + mem::cacheline - 1UL) & ~(mem::cacheline - 1UL);
+					uint32_t aligned_pos =
+						(current_pos + mem::cacheline - 1U) & ~(mem::cacheline - 1U);
 
 					sum += (aligned_pos - current_pos);
 					current_pos = aligned_pos;
@@ -59,7 +59,7 @@ Metapool<Config>::Metapool(MonotonicArena* upstream)
 
 		if ((current_addr + MetapoolBase::alloc_header_size) % mem::cacheline != 0) {
 			uintptr_t shift_aligned_addr =
-				(current_addr + MetapoolBase::alloc_header_size + mem::cacheline - 1) & ~(mem::cacheline - 1);
+				(current_addr + MetapoolBase::alloc_header_size + mem::cacheline - 1U) & ~(mem::cacheline - 1U);
 			current_memory = reinterpret_cast<std::byte*>(shift_aligned_addr - MetapoolBase::alloc_header_size);
 		}
 
@@ -70,6 +70,8 @@ Metapool<Config>::Metapool(MonotonicArena* upstream)
 
 		current_memory += m_pools[i].stride * m_pools[i].block_count;
 	}
+
+	m_descriptor = create_descriptor();
 }
 
 
