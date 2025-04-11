@@ -36,7 +36,7 @@ namespace mem {
 	concept ValidMetapoolConfig =
 		BaseBlockCount          >= min_base_block_count  &&
 		StrideStep              >= min_stride_step       &&
-		sizeof...(StridePivots) >= 1                     &&
+		sizeof...(StridePivots) >= 2                     &&
 		((StridePivots          %  min_stride_step == 0) && ...) &&
 		(
 			(sizeof...(StridePivots) > 1)
@@ -133,7 +133,7 @@ private:
 		static constexpr uint32_t num_pools = compute_number_of_pools();
 
 		static constexpr auto strides =
-			[num_pools, &pivots = std::as_const(pivots)]<std::size_t... Is>(std::index_sequence<Is...>) constexpr {
+			[num_pools, &pivots]<std::size_t... Is>(std::index_sequence<Is...>) constexpr {
 				return std::array<uint32_t, num_pools> {
 					(pivots.front() + static_cast<uint32_t>(Is) * Config::stride_step)...
 				};
@@ -213,16 +213,16 @@ private:
 	using FreelistFetch = std::byte* (*)(void* freelist);
 	using FreelistRelease = void (*)(void* freelist, std::byte* block);
 
-	template <std::size_t Stride, std::size_t BlockCount>
-	[[nodiscard]] inline std::byte* freelist_typed_fetch(void* freelist_ptr)
+	template <uint32_t Stride, uint32_t BlockCount>
+	[[nodiscard]] static inline std::byte* freelist_typed_fetch(void* freelist_ptr)
 	{
 		assert(freelist_ptr != nullptr);
 		auto& freelist = *static_cast<Freelist<Stride, BlockCount>*>(freelist_ptr);
 		return freelist.fetch();
 	}
 
-	template <std::size_t Stride, std::size_t BlockCount>
-	inline void freelist_typed_release(void* freelist_ptr, std::byte* block)
+	template <uint32_t Stride, uint32_t BlockCount>
+	static inline void freelist_typed_release(void* freelist_ptr, std::byte* block)
 	{
 		assert(freelist_ptr != nullptr);
 		auto& freelist = *static_cast<Freelist<Stride, BlockCount>*>(freelist_ptr);
@@ -257,6 +257,10 @@ public:
 			throw std::bad_alloc{};
 
 		const auto pool_index = (stride - m_pools.front().stride) / Config::stride_step;
+
+		if (pool_index >= m_pools.size())
+			throw std::bad_alloc{};
+
 		std::byte* block = m_pools[pool_index].fl_fetch(&m_pools[pool_index].freelist);
 		if (!block)
 			throw std::bad_alloc{};
@@ -288,6 +292,9 @@ public:
 			throw std::runtime_error("memory corruption detected");
 
 		const auto pool_index = header->pool_index;
+		if (pool_index >= m_pools.size())
+			throw std::runtime_error("invalid pool index detected");
+
 		m_pools[pool_index].fl_release(&m_pools[pool_index].freelist, block);
 	}
 
@@ -315,9 +322,9 @@ private:
 
 	std::array<Pool, compute_number_of_pools()> m_pools = compute_pools();
 
-	MetapoolDescriptor m_descriptor;
+	MetapoolDescriptor m_descriptor {};
 
-	MonotonicArena* m_upstream = nullptr;
+	MonotonicArena* m_upstream {nullptr};
 };
 } // hpr
 

@@ -12,7 +12,7 @@ namespace mem {
 	static inline constexpr std::size_t arena_size = 268435456; // 256 MB
 
 
-	using StandardMetapoolList =
+	using StandardMetapoolRegistry =
 		MetapoolRegistry <
 			Metapool<mem::MetapoolConfig<1024, 8, 16, 32, 64, 128, 256, 264>>
 		>;
@@ -36,13 +36,13 @@ public:
 	static auto& get_allocator()
 	{
 		if constexpr (Type == mem::AllocatorType::Standard) {
-			return get_thread_local_allocator<mem::StandardMetapoolList>();
+			return get_thread_local_allocator<mem::StandardMetapoolRegistry>();
 		}
 		else if constexpr (Type == mem::AllocatorType::Standard) {
-			return get_thread_local_allocator<mem::StandardMetapoolList>();
+			return get_thread_local_allocator<mem::StandardMetapoolRegistry>();
 		}
 		else if constexpr (Type == mem::AllocatorType::Standard) {
-			return get_thread_local_allocator<mem::StandardMetapoolList>();
+			return get_thread_local_allocator<mem::StandardMetapoolRegistry>();
 		}
 	}
 
