@@ -55,7 +55,7 @@ public:
 	using DescriptorArray = typename Config::descriptor_array_type;
 
 	constexpr Allocator(DescriptorArray descriptors)
-		: m_descriptors{std::move(descriptors)}
+		: m_descriptors {std::move(descriptors)}
 	{
 		if (!validate_descriptor_array(m_descriptors)) {
 			throw std::runtime_error("invalid descriptor array");

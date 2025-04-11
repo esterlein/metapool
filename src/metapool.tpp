@@ -17,7 +17,7 @@ namespace mem {
 
 template <mem::IsMetapoolConfig Config>
 Metapool<Config>::Metapool(MonotonicArena* upstream)
-	: m_upstream{ upstream }
+	: m_upstream {upstream}
 {
 	assert(upstream != nullptr);
 
@@ -75,24 +75,15 @@ Metapool<Config>::Metapool(MonotonicArena* upstream)
 
 template <mem::IsMetapoolConfig Config>
 Metapool<Config>::~Metapool()
-{}
-
-
-template <mem::IsMetapoolConfig Config>
-Metapool<Config>::Metapool(Metapool&& other) noexcept
-	: m_upstream{std::exchange(other.m_upstream, nullptr)}
-	, m_pools   {std::move(other.m_pools)}
-{}
-
-
-template <mem::IsMetapoolConfig Config>
-Metapool<Config>& Metapool<Config>::operator=(Metapool&& other) noexcept
 {
-	if (this != &other) {
-		m_upstream = std::exchange(other.m_upstream, nullptr);
-		m_pools = std::move(other.m_pools);
+	if (!m_upstream)
+		return;
+	for (auto& pool : m_pools) {
+		std::visit([](auto& freelist) {
+			freelist.reset();
+		}, pool.freelist);
 	}
-	return *this;
+	m_upstream = nullptr;
 }
 
 

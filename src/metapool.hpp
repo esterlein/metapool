@@ -1,8 +1,7 @@
 #pragma once
 
-#include <cstddef>
-
 #include <array>
+#include <cstddef>
 #include <cstdint>
 #include <utility>
 #include <variant>
@@ -10,12 +9,11 @@
 #include <concepts>
 #include <stdexcept>
 #include <algorithm>
-#include <memory_resource>
 
 #include "math.hpp"
 #include "freelist.hpp"
-#include "metapool_descriptor.hpp"
 #include "monotonic_arena.hpp"
+#include "metapool_descriptor.hpp"
 
 
 namespace hpr {
@@ -114,9 +112,8 @@ public:
 
 	Metapool(const Metapool& other) = delete;
 	Metapool& operator=(const Metapool& other) = delete;
-
-	Metapool(Metapool&& other) noexcept;
-	Metapool& operator=(Metapool&& other) noexcept;
+	Metapool(Metapool&& other) = delete;
+	Metapool& operator=(Metapool&& other) = delete;
 
 private:
 
@@ -320,7 +317,7 @@ private:
 
 private:
 
-	std::array<Pool, compute_number_of_pools()> m_pools = compute_pools();
+	std::array<Pool, compute_number_of_pools()> m_pools {compute_pools()};
 
 	MetapoolDescriptor m_descriptor {};
 
