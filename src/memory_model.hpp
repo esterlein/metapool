@@ -1,6 +1,7 @@
 #pragma once
 
 #include "metapool.hpp"
+#include "metapool_registry.hpp"
 #include "allocator.hpp"
 #include "monotonic_arena.hpp"
 
@@ -11,36 +12,8 @@ namespace mem {
 	static inline constexpr std::size_t arena_size = 268435456; // 256 MB
 
 
-	template <typename... Metapools>
-	struct MetapoolList
-	{
-		using tuple_type = std::tuple<Metapools...>;
-		using variant_ptr = std::variant<Metapools*...>;
-		static inline constexpr std::size_t count = sizeof...(Metapools);
-
-		static constexpr uint32_t min_stride = []() {
-			return min_stride_impl(std::make_index_sequence<count>{});
-		}();
-		
-		static constexpr uint32_t max_stride = []() {
-			return max_stride_impl(std::make_index_sequence<count>{});
-		}();
-		
-	private:
-
-		template <std::size_t... Is>
-		static constexpr uint32_t min_stride_impl(std::index_sequence<Is...>) {
-			return std::min({std::tuple_element_t<Is, tuple_type>::config_type::stride_min...});
-		}
-		
-		template <std::size_t... Is>
-		static constexpr uint32_t max_stride_impl(std::index_sequence<Is...>) {
-			return std::max({std::tuple_element_t<Is, tuple_type>::config_type::stride_max...});
-		}
-	};
-
 	using StandardMetapoolList =
-		MetapoolList <
+		MetapoolRegistry <
 			Metapool<mem::MetapoolConfig<1024, 8, 16, 32, 64, 128, 256, 264>>
 		>;
 
@@ -75,10 +48,10 @@ public:
 
 private:
 
-	template <typename MetapoolList>
+	template <typename MetapoolRegistry>
 	auto create_metapools()
 	{
-		using MetapoolsTuple = typename MetapoolList::tuple_type;
+		using MetapoolsTuple = typename MetapoolRegistry::tuple_type;
 
 		thread_local static MonotonicArena arena{mem::arena_size, mem::cacheline};
 
@@ -102,10 +75,10 @@ private:
 		}(std::make_index_sequence<std::tuple_size_v<std::decay_t<decltype(metapools)>>>{});
 	}
 
-	template <typename MetapoolListType>
+	template <typename MetapoolRegistryType>
 	auto& create_thread_local_allocator()
 	{
-		thread_local static auto metapools = create_metapools<MetapoolListType>();
+		thread_local static auto metapools = create_metapools<MetapoolRegistryType>();
 
 		thread_local static auto descriptors = create_descriptors(metapools);
 
@@ -116,8 +89,8 @@ private:
 			.alignment_quantum = mem::alignment_quantum,
 			.alignment_shift   = MetapoolBase::alloc_header_size,
 			.min_stride_step   = mem::min_stride_step,
-			.min_stride        = MetapoolListType::min_stride,
-			.max_stride        = MetapoolListType::max_stride
+			.min_stride        = MetapoolRegistryType::min_stride,
+			.max_stride        = MetapoolRegistryType::max_stride
 		};
 
 		thread_local static Allocator<AllocatorConfigType> allocator(descriptors);
