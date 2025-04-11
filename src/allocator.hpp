@@ -149,13 +149,13 @@ private:
 	}
 
 	template <typename T>
-	static inline constexpr std::size_t get_type_stride()
+	static inline constexpr uint32_t get_type_stride()
 	{
-		constexpr std::size_t alignment = ((alignof(T) + Config::alignment_quantum - 1U) & ~(Config::alignment_quantum - 1U));
+		constexpr uint32_t  alignment = ((alignof(T) + Config::alignment_quantum - 1U) & ~(Config::alignment_quantum - 1U));
 		return (sizeof(T) + Config::alignment_shift + alignment - 1U) & ~(alignment - 1U);
 	}
 
-	static inline constexpr std::size_t get_pmr_stride(std::size_t bytes, std::size_t alignment)
+	static inline constexpr uint32_t get_pmr_stride(uint32_t bytes, uint32_t alignment)
 	{
 		alignment = (alignment + Config::alignment_quantum - 1U) & ~(Config::alignment_quantum - 1U);
 		return (bytes + alignment - 1U) & ~(alignment - 1U);

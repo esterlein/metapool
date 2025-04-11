@@ -124,7 +124,7 @@ void Metapool<Config>::release(std::byte* location)
 	std::byte* block = location - sizeof(AllocHeader);
 	auto* header = reinterpret_cast<AllocHeader*>(block);
 
-	if (header->magic != 0xABCD)
+	if (header->magic != 0xABCD) [[unlikely]]
 		throw std::runtime_error("memory corruption detected");
 
 	const auto pool_index = header->pool_index;
