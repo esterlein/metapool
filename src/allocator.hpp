@@ -169,8 +169,8 @@ private:
 };
 
 
-template <typename DescriptorArray, mem::AllocatorConfig Config>
-Allocator(const Allocator<DescriptorArray, Config>&) -> Allocator<DescriptorArray, Config>;
+template <mem::IsAllocatorConfig Config>
+Allocator(const Allocator<Config>&) -> Allocator<Config>;
 
 } // hpr
 
