@@ -92,12 +92,16 @@ std::byte* Metapool<Config>::fetch(std::size_t stride_ul)
 {
 	const uint32_t stride = static_cast<uint32_t>(stride_ul);
 
-	if (stride < m_pools.front().stride || stride > m_pools.back().stride)
+	if (stride < m_pools.front().stride || stride > m_pools.back().stride) [[unlikely]]
 		throw std::bad_alloc{};
 
 	const auto pool_index = (stride - m_pools.front().stride) / Config::stride_step;
+
+	if (pool_index >= m_pools.size()) [[unlikely]]
+		throw std::bad_alloc{};
+
 	std::byte* block = m_pools[pool_index].fl_fetch(&m_pools[pool_index].freelist);
-	if (!block)
+	if (!block) [[unlikely]]
 		throw std::bad_alloc{};
 
 	auto* header = reinterpret_cast<AllocHeader*>(block);
@@ -122,6 +126,10 @@ void Metapool<Config>::release(std::byte* location)
 		throw std::runtime_error("memory corruption detected");
 
 	const auto pool_index = header->pool_index;
+
+	if (pool_index >= m_pools.size()) [[unlikely]]
+		throw std::runtime_error("invalid pool index detected");
+
 	m_pools[pool_index].fl_release(&m_pools[pool_index].freelist, block);
 }
 
