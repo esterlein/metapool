@@ -17,9 +17,8 @@ public:
 
 	MonotonicArena(const MonotonicArena&) = delete;
 	MonotonicArena& operator=(const MonotonicArena&) = delete;
-
-	MonotonicArena(MonotonicArena&& other) noexcept;
-	MonotonicArena& operator=(MonotonicArena&& other) noexcept;
+	MonotonicArena(MonotonicArena&& other) = delete;
+	MonotonicArena& operator=(MonotonicArena&& other) = delete;
 
 public:
 
@@ -43,9 +42,9 @@ public:
 
 private:
 
-	std::byte*  m_arena;
-	std::size_t m_size;
-	std::size_t m_offset;
-	std::size_t m_shift;
+	std::byte*  m_arena  {nullptr};
+	std::size_t m_size   {0};
+	std::size_t m_offset {0};
+	std::size_t m_shift  {0};
 };
 } // hpr
