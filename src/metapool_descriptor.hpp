@@ -20,7 +20,7 @@ public:
 		uint32_t min_stride, max_stride;
 	} range {};
 
-	uint32_t stride_step {};
+	uint32_t stride_step {0};
 
 	std::byte* fetch(std::size_t stride) const
 	{

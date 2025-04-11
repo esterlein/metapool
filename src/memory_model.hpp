@@ -1,13 +1,14 @@
 #pragma once
 
 #include "metapool.hpp"
-#include "metapool_registry.hpp"
 #include "allocator.hpp"
 #include "monotonic_arena.hpp"
+#include "metapool_registry.hpp"
 
 
 namespace hpr {
 namespace mem {
+
 
 	static inline constexpr std::size_t arena_size = 268435456; // 256 MB
 
@@ -36,13 +37,13 @@ public:
 	static auto& get_allocator()
 	{
 		if constexpr (Type == mem::AllocatorType::Standard) {
-			return get_thread_local_allocator<mem::StandardMetapoolRegistry>();
+			return create_thread_local_allocator<mem::StandardMetapoolRegistry>();
 		}
 		else if constexpr (Type == mem::AllocatorType::Standard) {
-			return get_thread_local_allocator<mem::StandardMetapoolRegistry>();
+			return create_thread_local_allocator<mem::StandardMetapoolRegistry>();
 		}
 		else if constexpr (Type == mem::AllocatorType::Standard) {
-			return get_thread_local_allocator<mem::StandardMetapoolRegistry>();
+			return create_thread_local_allocator<mem::StandardMetapoolRegistry>();
 		}
 	}
 
