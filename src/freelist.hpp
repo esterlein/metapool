@@ -44,7 +44,10 @@ private:
 
 	static_assert(sizeof(Block) <= Stride, "block is larger than stride");
 
-	Block* m_head = nullptr;
+	Block* m_head {nullptr};
+
+	std::byte* m_memory_base {nullptr};
+	std::byte* m_memory_end  {nullptr};
 
 private:
 

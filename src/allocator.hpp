@@ -78,6 +78,10 @@ public:
 
 	// transparent interface / replace method calls
 
+	// try propagate lookup to freelist level
+
+	// uint32_t enum class error codes in hot paths
+
 protected:
 
 	virtual void* do_allocate(std::size_t bytes, std::size_t alignment) override;
