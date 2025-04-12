@@ -3,7 +3,7 @@
 #include <array>
 #include <cstdint>
 
-#include "metapool.hpp"
+#include "metapool_config.hpp"
 
 
 namespace hpr {
@@ -35,7 +35,7 @@ public:
 	template <typename T, typename... Args>
 	T* construct(std::size_t stride, Args&&... args) const
 	{
-		return static_cast<MetapoolBase*>(m_metapool_ptr)->template construct<T>(
+		return static_cast<MetapoolBase*>(m_metapool_ptr)->construct<T>(
 			stride, std::forward<Args>(args)...
 		);
 	}
@@ -43,7 +43,7 @@ public:
 	template <typename T>
 	void destruct(T* object) const
 	{
-		static_cast<MetapoolBase*>(m_metapool_ptr)->template destruct<T>(object);
+		static_cast<MetapoolBase*>(m_metapool_ptr)->destruct<T>(object);
 	}
 
 private:
@@ -69,6 +69,7 @@ private:
 
 
 namespace mem {
+
 
 	template <typename DescriptorArray, auto MetapoolCount>
 	concept MetapoolDescriptorArray =
