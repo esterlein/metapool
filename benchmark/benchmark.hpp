@@ -18,8 +18,7 @@ public:
 
 	inline void test_basic_allocation()
 	{
-		hpr::MemoryModel memory_model;
-		auto& allocator = memory_model.get_memory_resource();
+		auto& allocator = hpr::MemoryModel::get_allocator<hpr::mem::AllocatorType::Standard>();
 
 		void* ptr = allocator.allocate(100, 8);
 		assert(ptr != nullptr);
@@ -29,8 +28,7 @@ public:
 
 	inline void test_alignment()
 	{
-		hpr::MemoryModel memory_model;
-		auto& allocator = memory_model.get_memory_resource();
+		auto& allocator = hpr::MemoryModel::get_allocator<hpr::mem::AllocatorType::Standard>();
 
 		for (size_t alignment : {1, 2, 4, 8, 16, 32, 64}) {
 			void* ptr = allocator.allocate(64, alignment);
@@ -42,8 +40,7 @@ public:
 
 	inline void test_multiple_allocations()
 	{
-		hpr::MemoryModel memory_model;
-		auto& allocator = memory_model.get_memory_resource();
+		auto& allocator = hpr::MemoryModel::get_allocator<hpr::mem::AllocatorType::Standard>();
 
 		std::vector<std::pair<void*, size_t>> blocks;
 		for (size_t size : {8, 16, 32, 64, 128, 256}) {
@@ -79,8 +76,7 @@ public:
 
 	inline void test_with_containers()
 	{
-		hpr::MemoryModel memory_model;
-		auto& allocator = memory_model.get_memory_resource();
+		auto& allocator = hpr::MemoryModel::get_allocator<hpr::mem::AllocatorType::Standard>();
 
 		std::pmr::vector<int> vec(&allocator);
 		std::pmr::string str(&allocator);

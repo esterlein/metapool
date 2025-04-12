@@ -38,8 +38,7 @@ private:
 
 	inline void run_metapool()
 	{
-		hpr::MemoryModel memory_model;
-		auto& allocator = memory_model.get_memory_resource();
+		auto& allocator = hpr::MemoryModel::get_allocator<hpr::mem::AllocatorType::Standard>();
 
 		std::cout << "starting metapool benchmark...\n";
 
