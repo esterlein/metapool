@@ -12,6 +12,7 @@ namespace hpr {
 namespace mem {
 
 	static inline constexpr std::size_t cacheline = 64;
+
 }
 
 
@@ -57,10 +58,10 @@ Metapool<Config>::Metapool(MonotonicArena* upstream)
 	for (std::size_t i = 1; i < m_pools.size(); ++i) {
 		uintptr_t current_addr = reinterpret_cast<uintptr_t>(current_memory);
 
-		if ((current_addr + MetapoolBase::alloc_header_size) % mem::cacheline != 0) {
+		if ((current_addr + Config::alloc_header_size) % mem::cacheline != 0) {
 			uintptr_t shift_aligned_addr =
-				(current_addr + MetapoolBase::alloc_header_size + mem::cacheline - 1U) & ~(mem::cacheline - 1U);
-			current_memory = reinterpret_cast<std::byte*>(shift_aligned_addr - MetapoolBase::alloc_header_size);
+				(current_addr + Config::alloc_header_size + mem::cacheline - 1U) & ~(mem::cacheline - 1U);
+			current_memory = reinterpret_cast<std::byte*>(shift_aligned_addr - Config::alloc_header_size);
 		}
 
 		std::visit(
@@ -71,7 +72,7 @@ Metapool<Config>::Metapool(MonotonicArena* upstream)
 		current_memory += m_pools[i].stride * m_pools[i].block_count;
 	}
 
-	m_descriptor = create_descriptor();
+	m_proxy = create_proxy();
 }
 
 
@@ -137,9 +138,9 @@ void Metapool<Config>::release(std::byte* location)
 
 
 template <mem::IsMetapoolConfig Config>
-MetapoolDescriptor Metapool<Config>::create_descriptor()
+MetapoolProxy Metapool<Config>::create_proxy()
 {
-	return MetapoolDescriptor {
+	return MetapoolProxy {
 		{ m_pools.front().stride, m_pools.back().stride },
 		Config::stride_step,
 		static_cast<void*>(this),

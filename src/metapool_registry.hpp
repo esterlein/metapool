@@ -17,6 +17,7 @@ public:
 
 	using tuple_type = std::tuple<Metapools...>;
 	using variant_ptr = std::variant<Metapools*...>;
+
 	static inline constexpr std::size_t registry_size = sizeof...(Metapools);
 
 	static constexpr uint32_t min_stride = []() {

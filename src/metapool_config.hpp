@@ -24,18 +24,20 @@ namespace mem {
 	static inline constexpr uint32_t min_last_block_count = 64U;
 	static inline constexpr uint32_t min_stride = 16U;
 	static inline constexpr uint32_t min_stride_step = 8U;
-	static inline constexpr uint32_t max_stride_step = 256U;
+	static inline constexpr uint32_t max_stride_step = 524288U; // 512 KB
 
 	struct metapool_config_tag {};
 
-	template <auto BaseBlockCount, auto StrideStep, auto... StridePivots>
-	requires ValidMetapoolConfig <BaseBlockCount, StrideStep, StridePivots...>
+	template <auto AllocHeaderSize, auto BaseBlockCount, auto StrideStep, auto... StridePivots>
+	requires ValidMetapoolConfig <AllocHeaderSize, BaseBlockCount, StrideStep, StridePivots...>
 	struct MetapoolConfig
 	{
 		using tag = metapool_config_tag;
 
-		static constexpr uint32_t base_block_count = BaseBlockCount;
-		static constexpr uint32_t stride_step = StrideStep;
+		static constexpr uint32_t alloc_header_size = AllocHeaderSize;
+		static constexpr uint32_t base_block_count  = BaseBlockCount;
+		static constexpr uint32_t stride_step       = StrideStep;
+
 		static constexpr std::array<uint32_t, sizeof...(StridePivots)> stride_pivots = { StridePivots... };
 
 		static constexpr uint32_t stride_min = []{
@@ -62,7 +64,7 @@ namespace mem {
 	};
 
 
-	template <auto BaseBlockCount, auto StrideStep, auto... StridePivots>
+	template <auto AllocHeaderSize, auto BaseBlockCount, auto StrideStep, auto... StridePivots>
 	concept ValidMetapoolConfig =
 		BaseBlockCount          >= min_base_block_count  &&
 		StrideStep              >= min_stride_step       &&

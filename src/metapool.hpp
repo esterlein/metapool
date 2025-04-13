@@ -12,27 +12,14 @@
 
 #include "freelist.hpp"
 #include "monotonic_arena.hpp"
-#include "metapool_descriptor.hpp"
+#include "metapool_proxy.hpp"
 
 
 namespace hpr {
 
 
-class MetapoolBase
-{
-protected:
-
-public:
-
-	static inline constexpr std::size_t alloc_header_size = sizeof(AllocHeader);
-
-	MetapoolBase() = delete;
-	virtual ~MetapoolBase() = default;
-};
-
-
 template <mem::IsMetapoolConfig Config>
-class Metapool final : public MetapoolBase
+class Metapool final
 {
 public:
 
@@ -186,20 +173,20 @@ private:
 	static inline constexpr uint32_t get_type_stride()
 	{
 		constexpr uint32_t alignment = ((alignof(T) + (mem::alignment_quantum - 1U)) & ~(mem::alignment_quantum - 1U));
-		return (sizeof(T) + MetapoolBase::alloc_header_size + alignment - 1U) & ~(alignment - 1U);
+		return (sizeof(T) + Config::alloc_header_size + alignment - 1U) & ~(alignment - 1U);
 	}
 
-	MetapoolDescriptor create_descriptor();
-	[[nodiscard]] inline MetapoolDescriptor descriptor() noexcept
+	MetapoolProxy create_proxy();
+	[[nodiscard]] inline MetapoolProxy proxy() noexcept
 	{
-		return m_descriptor;
+		return m_proxy;
 	}
 
 private:
 
 	std::array<Pool, compute_number_of_pools()> m_pools {compute_pools()};
 
-	MetapoolDescriptor m_descriptor {};
+	MetapoolProxy m_proxy {};
 
 	MonotonicArena* m_upstream {nullptr};
 };
