@@ -20,13 +20,19 @@ namespace mem {
 		using tag = allocator_config_tag;
 		using descriptor_array_type = DescriptorArray;
 
+		struct AllocHeader
+		{
+			uint16_t pool_index;
+			uint16_t magic = 0xABCD;
+		};
+
 		static constexpr auto metapool_count = std::tuple_size_v<DescriptorArray>;
 
-		uint32_t alignment_quantum {};
-		uint32_t alignment_shift {};
-		uint32_t min_stride_step {};
-		uint32_t min_stride {};
-		uint32_t max_stride {};
+		uint32_t alignment_quantum {0};
+		uint32_t alignment_shift {0};
+		uint32_t min_stride_step {0};
+		uint32_t min_stride {0};
+		uint32_t max_stride {0};
 
 	};
 
@@ -83,12 +89,6 @@ public:
 	// uint32_t enum class error codes in hot paths
 
 public:
-
-	struct AllocHeader
-	{
-		uint32_t pool_index;
-		uint16_t magic = 0xABCD;
-	};
 
 	template <typename T, typename... Types>
 	[[nodiscard]] T* construct(Types&&... args)

@@ -17,23 +17,23 @@ public:
 
 	using tuple_type = std::tuple<Metapools...>;
 	using variant_ptr = std::variant<Metapools*...>;
-	static inline constexpr std::size_t count = sizeof...(Metapools);
+	static inline constexpr std::size_t registry_size = sizeof...(Metapools);
 
 	static constexpr uint32_t min_stride = []() {
-		return extract_min_stride(std::make_index_sequence<count>{});
+		return extract_min_stride(std::make_index_sequence<registry_size>{});
 	}();
 
 	static constexpr uint32_t max_stride = []() {
-		return extract_max_stride(std::make_index_sequence<count>{});
+		return extract_max_stride(std::make_index_sequence<registry_size>{});
 	}();
 
 	static_assert(
 		[]() constexpr {
-			if constexpr (count <= 1) {
+			if constexpr (registry_size <= 1) {
 				return true;
 			}
-			constexpr auto sorted_indices = sort_indices(std::make_index_sequence<count>{});
-			return validate_registry(sorted_indices, std::make_index_sequence<count-1>{});
+			constexpr auto sorted_indices = sort_indices(std::make_index_sequence<registry_size>{});
+			return validate_registry(sorted_indices, std::make_index_sequence<registry_size - 1>{});
 		}(),
 		"metapool registry has gaps, overlaps, or invalid stride steps"
 	);
@@ -55,8 +55,8 @@ private:
 	template <std::size_t... Is>
 	static constexpr auto sort_indices(std::index_sequence<Is...>)
 	{
-		std::array<std::size_t, count> indices = {Is...};
-		constexpr std::array<uint32_t, count> min_strides = {
+		std::array<std::size_t, registry_size> indices = {Is...};
+		constexpr std::array<uint32_t, registry_size> min_strides = {
 			std::tuple_element_t<Is, tuple_type>::config_type::stride_min...
 		};
 
