@@ -76,6 +76,10 @@ namespace mem {
 			constexpr auto& arr = stride_pivots;
 			return arr[arr.size() - 2];
 		}();
+
+		static constexpr uint32_t stride_count = []{
+			constexpr auto& arr = stride_pivots;
+			return (arr[arr.size() - 2] - arr.front()) / StrideStep;
 	};
 
 } // hpr::mem

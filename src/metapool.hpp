@@ -22,12 +22,6 @@ class MetapoolBase
 {
 protected:
 
-	struct AllocHeader
-	{
-		uint32_t pool_index;
-		uint16_t magic = 0xABCD;
-	};
-
 public:
 
 	static inline constexpr std::size_t alloc_header_size = sizeof(AllocHeader);
@@ -180,56 +174,6 @@ public:
 
 	[[nodiscard]] std::byte* fetch(std::size_t stride);
 	void release(std::byte* block);
-
-	template <typename T, typename... Types>
-	[[nodiscard]] T* construct(std::size_t stride_ul, Types&&... args)
-	{
-		const uint32_t stride = static_cast<uint32_t>(stride_ul);
-
-		if (stride < m_pools.front().stride || stride > m_pools.back().stride)
-			throw std::bad_alloc{};
-
-		const auto pool_index = (stride - m_pools.front().stride) / Config::stride_step;
-
-		if (pool_index >= m_pools.size())
-			throw std::bad_alloc{};
-
-		std::byte* block = m_pools[pool_index].fl_fetch(&m_pools[pool_index].freelist);
-		if (!block)
-			throw std::bad_alloc{};
-
-		auto* header = reinterpret_cast<AllocHeader*>(block);
-		header->pool_index = pool_index;
-		header->magic = 0xABCD;
-
-		std::byte* object_location = block + sizeof(AllocHeader);
-		T* object = std::launder(new (object_location) T(std::forward<Types>(args)...));
-
-		return object;
-	}
-
-	template <typename T>
-	void destruct(T* object)
-	{
-		if (!object)
-			return;
-
-		object->~T();
-
-		std::byte* object_location = reinterpret_cast<std::byte*>(object);
-		std::byte* block = object_location - sizeof(AllocHeader);
-
-		auto* header = reinterpret_cast<AllocHeader*>(block);
-
-		if (header->magic != 0xABCD)
-			throw std::runtime_error("memory corruption detected");
-
-		const auto pool_index = header->pool_index;
-		if (pool_index >= m_pools.size())
-			throw std::runtime_error("invalid pool index detected");
-
-		m_pools[pool_index].fl_release(&m_pools[pool_index].freelist, block);
-	}
 
 	[[nodiscard]] static inline constexpr auto bounds()
 	{

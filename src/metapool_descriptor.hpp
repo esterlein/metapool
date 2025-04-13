@@ -32,20 +32,6 @@ public:
 		fn_release(m_metapool_ptr, location);
 	}
 
-	template <typename T, typename... Args>
-	T* construct(std::size_t stride, Args&&... args) const
-	{
-		return static_cast<MetapoolBase*>(m_metapool_ptr)->construct<T>(
-			stride, std::forward<Args>(args)...
-		);
-	}
-
-	template <typename T>
-	void destruct(T* object) const
-	{
-		static_cast<MetapoolBase*>(m_metapool_ptr)->destruct<T>(object);
-	}
-
 private:
 
 	using MetapoolFetch = std::byte* (*)(void*, std::size_t);
