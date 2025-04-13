@@ -12,6 +12,12 @@ namespace mem {
 
 	struct allocator_config_tag {};
 
+	// this structure should be parameterized not by a descriptor array,
+	// but by a metapool registry type which is a tuple of metapool configs
+
+	// this way, the allocator config will help produce a constexpr stride index computation
+	// inside an allocator template instance
+
 	template <typename DescriptorArray>
 	struct AllocatorConfig
 	{
@@ -24,14 +30,16 @@ namespace mem {
 			uint16_t magic = 0xABCD;
 		};
 
-		static constexpr auto metapool_count = std::tuple_size_v<DescriptorArray>;
 		static constexpr auto alloc_header_size = sizeof(AllocHeader);
+		static constexpr auto metapool_count = std::tuple_size_v<DescriptorArray>;
 
 		static constexpr uint32_t alignment_quantum {0};
-		uint32_t min_stride_step {0};
-		uint32_t min_stride {0};
-		uint32_t max_stride {0};
+
+		uint32_t stride_step {0}; // should be multiple stride steps
+		uint32_t stride_min  {0}; // and bounds for each metapool
+		uint32_t stride_max  {0};
 	};
+
 
 	template <typename T>
 	concept IsAllocatorConfig = requires {
