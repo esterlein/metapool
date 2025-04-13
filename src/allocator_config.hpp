@@ -18,11 +18,10 @@ namespace mem {
 	// this way, the allocator config will help produce a constexpr stride index computation
 	// inside an allocator template instance
 
-	template <typename DescriptorArray>
+	template <typename MetapoolRegistryType>
 	struct AllocatorConfig
 	{
 		using tag = allocator_config_tag;
-		using descriptor_array_type = DescriptorArray;
 
 		struct AllocHeader
 		{
@@ -31,9 +30,8 @@ namespace mem {
 		};
 
 		static constexpr auto alloc_header_size = sizeof(AllocHeader);
-		static constexpr auto metapool_count = std::tuple_size_v<DescriptorArray>;
 
-		static constexpr uint32_t alignment_quantum {0};
+		static constexpr uint32_t alignment_quantum {8U};
 
 		uint32_t stride_step {0}; // should be multiple stride steps
 		uint32_t stride_min  {0}; // and bounds for each metapool

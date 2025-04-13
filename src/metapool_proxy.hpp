@@ -9,11 +9,11 @@
 namespace hpr {
 
 
-class MetapoolDescriptor final
+class MetapoolProxy final
 {
 public:
 
-	MetapoolDescriptor() = delete;
+	MetapoolProxy() = delete;
 
 	struct Range
 	{
@@ -44,7 +44,7 @@ private:
 	template <mem::IsMetapoolConfig Config>
 	friend class Metapool;
 
-	MetapoolDescriptor(Range r, uint32_t ss, void* ptr, MetapoolFetch fetch, MetapoolRelease release)
+	MetapoolProxy(Range r, uint32_t ss, void* ptr, MetapoolFetch fetch, MetapoolRelease release)
 		: range          {r}
 		, stride_step    {ss}
 		, m_metapool_ptr {ptr}
@@ -57,9 +57,9 @@ private:
 namespace mem {
 
 
-	template <typename DescriptorArray, auto MetapoolCount>
-	concept MetapoolDescriptorArray =
-		std::same_as<std::remove_cvref_t<DescriptorArray>, std::array<MetapoolDescriptor, MetapoolCount>>;
+	template <typename ProxyArray, auto MetapoolCount>
+	concept MetapoolProxyArray =
+		std::same_as<std::remove_cvref_t<ProxyArray>, std::array<MetapoolProxy, MetapoolCount>>;
 
 } // hpr::mem
 } // hpr
