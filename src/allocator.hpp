@@ -82,6 +82,83 @@ public:
 
 	// uint32_t enum class error codes in hot paths
 
+public:
+
+	struct AllocHeader
+	{
+		uint32_t pool_index;
+		uint16_t magic = 0xABCD;
+	};
+
+	template <typename T, typename... Types>
+	[[nodiscard]] T* construct(Types&&... args)
+	{
+		constexpr uint32_t alignment = (static_cast<uint32_t>(alignof(T)) + Config::alignment_quantum - 1U) & ~(Config::alignment_quantum - 1U);
+		constexpr uint32_t stride = (static_cast<uint32_t>(sizeof(T)) + Config::alignment_shift + alignment - 1U) & ~(alignment - 1U);
+
+		if (stride < Config::min_stride || stride > Config::max_stride) { [[unlikely]]
+			throw std::bad_alloc{};
+		}
+	
+		const std::size_t table_index = (stride - Config::min_stride) / Config::min_stride_step;
+		if (table_index >= m_strides.size()) { [[unlikely]]
+			throw std::bad_alloc{};
+		}
+	
+		const uint32_t descriptor_index = m_strides[table_index];
+		if (descriptor_index >= Config::metapool_count) { [[unlikely]]
+			throw std::bad_alloc{};
+		}
+
+		m_descriptors[descriptor_index].fetch(stride);
+
+
+
+		if (stride < m_pools.front().stride || stride > m_pools.back().stride)
+			throw std::bad_alloc{};
+
+		const auto pool_index = (stride - m_pools.front().stride) / Config::stride_step;
+
+		if (pool_index >= m_pools.size())
+			throw std::bad_alloc{};
+
+		std::byte* block = m_pools[pool_index].fl_fetch(&m_pools[pool_index].freelist);
+		if (!block)
+			throw std::bad_alloc{};
+
+		auto* header = reinterpret_cast<AllocHeader*>(block);
+		header->pool_index = pool_index;
+		header->magic = 0xABCD;
+
+		std::byte* object_location = block + sizeof(AllocHeader);
+		T* object = std::launder(new (object_location) T(std::forward<Types>(args)...));
+
+		return object;
+	}
+
+	template <typename T>
+	void destruct(T* object)
+	{
+		if (!object)
+			return;
+
+		object->~T();
+
+		std::byte* object_location = reinterpret_cast<std::byte*>(object);
+		std::byte* block = object_location - sizeof(AllocHeader);
+
+		auto* header = reinterpret_cast<AllocHeader*>(block);
+
+		if (header->magic != 0xABCD)
+			throw std::runtime_error("memory corruption detected");
+
+		const auto pool_index = header->pool_index;
+		if (pool_index >= m_pools.size())
+			throw std::runtime_error("invalid pool index detected");
+
+		m_pools[pool_index].fl_release(&m_pools[pool_index].freelist, block);
+	}
+
 protected:
 
 	virtual void* do_allocate(std::size_t bytes, std::size_t alignment) override;
