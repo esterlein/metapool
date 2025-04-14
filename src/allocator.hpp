@@ -6,6 +6,7 @@
 #include <memory_resource>
 
 #include "metapool_proxy.hpp"
+#include "allocator_config.hpp"
 
 
 namespace hpr {
@@ -16,16 +17,14 @@ class Allocator : public std::pmr::memory_resource
 {
 public:
 
-	using ProxyArray = typename Config::proxy_array_type;
-
-	constexpr Allocator(DescriptorArray descriptors)
-		: m_descriptors {std::move(descriptors)}
+	constexpr Allocator(typename Config::proxy_array_type proxies)
+		: m_proxies {std::move(proxies)}
 	{
-		if (!validate_descriptor_array(m_descriptors)) {
+		if (!validate_descriptor_array(m_proxies)) {
 			throw std::runtime_error {"invalid descriptor array"};
 		}
 
-		m_strides = fill_lookup_table(m_descriptors);
+		m_strides = fill_lookup_table(m_proxies);
 	}
 
 	Allocator() = delete;
@@ -206,9 +205,9 @@ private:
 
 private:
 
-	std::array<uint32_t, compute_lookup_table_size()> m_strides {};
+	std::array<uint8_t, compute_lookup_table_size()> m_strides {};
 
-	DescriptorArray m_descriptors {};
+	typename Config::proxy_array_type m_proxies {};
 };
 
 
