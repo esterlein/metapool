@@ -45,11 +45,6 @@ namespace mem {
 		typename T::proxy_array_type;
 
 		std::same_as<typename T::tag, allocator_config_tag>;
-
-/*		requires MetapoolProxyArray <
-			typename T::proxy_array_type,
-			std::tuple_size_v<typename T::proxy_array_type>
-		>;*/
 	};
 
 } // hpr::mem

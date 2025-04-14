@@ -13,7 +13,7 @@ namespace hpr {
 
 
 class MetapoolBase;
-class MetapoolDescriptor;
+class MetapoolProxy;
 
 
 namespace mem {

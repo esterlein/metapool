@@ -3,10 +3,8 @@
 #include <cstdint>
 
 
-
 namespace hpr {
 namespace mem {
-
 
 		struct AllocHeader
 		{
