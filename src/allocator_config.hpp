@@ -29,14 +29,6 @@ namespace mem {
 	{
 		using tag = allocator_config_tag;
 
-		struct AllocHeader
-		{
-			uint8_t pool_index;
-			uint8_t magic = 0xAB;
-		};
-
-		static constexpr auto alloc_header_size = sizeof(AllocHeader);
-
 		static constexpr uint32_t alignment_quantum {8U};
 
 		std::array<RangeMetadata, RangeCount> range_metadata;
