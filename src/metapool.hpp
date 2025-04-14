@@ -5,14 +5,13 @@
 #include <cstdint>
 #include <utility>
 #include <variant>
-#include <optional>
 #include <concepts>
 #include <stdexcept>
 #include <algorithm>
 
 #include "freelist.hpp"
-#include "monotonic_arena.hpp"
 #include "metapool_proxy.hpp"
+#include "monotonic_arena.hpp"
 
 
 namespace hpr {
@@ -34,9 +33,14 @@ public:
 
 	struct traits
 	{
-		static constexpr uint32_t stride_min  = StrideMin;
-		static constexpr uint32_t stride_max  = StrideMax;
-		static constexpr uint32_t stride_step = StrideStep;
+		static constexpr uint32_t stride_min = []() constexpr {
+			return Config::stride_pivots.front();
+		}();
+		static constexpr uint32_t stride_max = []() constexpr {
+			return Config::stride_pivots.back() - Config::stride_step;
+		}();
+		static constexpr uint32_t stride_step = Config::stride_step;
+		static constexpr uint32_t stride_count = (stride_max - stride_min) / stride_step;
 	};
 
 private:
@@ -161,6 +165,8 @@ private:
 		FreelistVariant freelist;
 	};
 
+	MetapoolProxy create_proxy();
+
 public:
 
 	using config_type = Config;
@@ -178,17 +184,6 @@ public:
 	{
 		return create_proxy();
 	}
-
-private:
-
-	template <typename T>
-	static inline constexpr uint32_t get_type_stride()
-	{
-		constexpr uint32_t alignment = ((alignof(T) + (mem::alignment_quantum - 1U)) & ~(mem::alignment_quantum - 1U));
-		return (sizeof(T) + Config::alloc_header_size + alignment - 1U) & ~(alignment - 1U);
-	}
-
-	MetapoolProxy create_proxy();
 
 private:
 

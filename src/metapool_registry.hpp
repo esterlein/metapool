@@ -30,6 +30,12 @@ public:
 		return extract_max_stride(std::make_index_sequence<registry_size>{});
 	}();
 
+	static constexpr auto create_allocator_config()
+	{
+		constexpr auto metadata = create_range_metadata();
+		return AllocatorConfig<registry_size>(metadata);
+	}
+
 	static_assert(
 		[]() constexpr {
 			if constexpr (registry_size <= 1) {
@@ -105,20 +111,15 @@ private:
 	{
 		return []<std::size_t... Is>(std::index_sequence<Is...>) {
 			return std::array<mem::RangeMetadata, sizeof...(Is)> {
-				{ mem::RangeMetadata {
-					std::tuple_element_t<Is, tuple_type>::traits::stride_min,
-					std::tuple_element_t<Is, tuple_type>::traits::stride_max,
-					std::tuple_element_t<Is, tuple_type>::traits::stride_step
-				  }...
+				{
+					mem::RangeMetadata {
+						std::tuple_element_t<Is, tuple_type>::traits::stride_min,
+						std::tuple_element_t<Is, tuple_type>::traits::stride_max,
+						std::tuple_element_t<Is, tuple_type>::traits::stride_step
+					}...
 				}
 			};
 		}(std::make_index_sequence<registry_size>{});
-	}
-
-	static constexpr auto create_allocator_config()
-	{
-		constexpr auto metadata = create_range_metadata();
-		return AllocatorConfig<registry_size>(metadata);
 	}
 };
 } // hpr

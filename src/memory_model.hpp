@@ -15,7 +15,7 @@ namespace mem {
 
 	using StandardMetapoolRegistry =
 		MetapoolRegistry <
-			Metapool<mem::MetapoolConfig<alloc_header_size, 1024, 8, 16, 32, 64, 128, 248, 256>>
+			Metapool<mem::MetapoolConfig<1024, 8, 16, 32, 64, 128, 256>>
 		>;
 
 

@@ -4,14 +4,15 @@
 #include <numeric>
 #include <optional>
 
-#include "metapool.hpp"
+#include "alloc_header.hpp"
 #include "monotonic_arena.hpp"
+
 
 
 namespace hpr {
 namespace mem {
 
-	static inline constexpr std::size_t cacheline = 64;
+	static inline constexpr uint32_t cacheline = 64U;
 
 }
 
@@ -58,10 +59,10 @@ Metapool<Config>::Metapool(MonotonicArena* upstream)
 	for (std::size_t i = 1; i < m_pools.size(); ++i) {
 		uintptr_t current_addr = reinterpret_cast<uintptr_t>(current_memory);
 
-		if ((current_addr + Config::alloc_header_size) % mem::cacheline != 0) {
+		if ((current_addr + mem::AllocHeader::alloc_header_size) % mem::cacheline != 0) {
 			uintptr_t shift_aligned_addr =
-				(current_addr + Config::alloc_header_size + mem::cacheline - 1U) & ~(mem::cacheline - 1U);
-			current_memory = reinterpret_cast<std::byte*>(shift_aligned_addr - Config::alloc_header_size);
+				(current_addr + mem::AllocHeader::alloc_header_size + mem::cacheline - 1U) & ~(mem::cacheline - 1U);
+			current_memory = reinterpret_cast<std::byte*>(shift_aligned_addr - mem::AllocHeader::alloc_header_size);
 		}
 
 		std::visit(

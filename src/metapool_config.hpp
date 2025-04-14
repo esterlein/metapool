@@ -19,17 +19,16 @@ class MetapoolDescriptor;
 namespace mem {
 
 
-	static inline constexpr uint32_t alignment_quantum = 8U;
 	static inline constexpr uint32_t min_base_block_count = 64U;
 	static inline constexpr uint32_t min_last_block_count = 64U;
-	static inline constexpr uint32_t min_stride = 16U;
+	static inline constexpr uint32_t min_stride = 8U;
 	static inline constexpr uint32_t min_stride_step = 8U;
 	static inline constexpr uint32_t max_stride_step = 524288U; // 512 KB
 
 	struct metapool_config_tag {};
 
-	template <auto AllocHeaderSize, auto BaseBlockCount, auto StrideStep, auto... StridePivots>
-	requires ValidMetapoolConfig <AllocHeaderSize, BaseBlockCount, StrideStep, StridePivots...>
+	template <auto BaseBlockCount, auto StrideStep, auto... StridePivots>
+	requires ValidMetapoolConfig <BaseBlockCount, StrideStep, StridePivots...>
 	struct MetapoolConfig
 	{
 		using tag = metapool_config_tag;
@@ -47,12 +46,12 @@ namespace mem {
 
 		static constexpr uint32_t stride_max = []{
 			constexpr auto& arr = stride_pivots;
-			return arr[arr.size() - 2];
+			return arr.back() - StrideStep;
 		}();
 
 		static constexpr uint32_t stride_count = []{
 			constexpr auto& arr = stride_pivots;
-			return (arr[arr.size() - 2] - arr.front()) / StrideStep;
+			return (arr.back() - arr.front()) / StrideStep;
 		}();
 	};
 
@@ -64,7 +63,7 @@ namespace mem {
 	};
 
 
-	template <auto AllocHeaderSize, auto BaseBlockCount, auto StrideStep, auto... StridePivots>
+	template <auto BaseBlockCount, auto StrideStep, auto... StridePivots>
 	concept ValidMetapoolConfig =
 		BaseBlockCount          >= min_base_block_count  &&
 		StrideStep              >= min_stride_step       &&
