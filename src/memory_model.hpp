@@ -12,7 +12,7 @@ namespace mem {
 
 
 	static inline constexpr std::size_t arena_size = 268435456; // 256 MB
-	
+
 
 	using StandardMetapoolRegistry =
 		MetapoolRegistry <

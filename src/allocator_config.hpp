@@ -1,12 +1,16 @@
 #pragma once
 
-#include <cstddef>
-#include <cstdint>
-
 #include "metapool_proxy.hpp"
+#include <array>
+#include <cstdint>
 
 
 namespace hpr {
+
+
+class MetapoolProxy;
+
+
 namespace mem {
 
 
@@ -28,6 +32,7 @@ namespace mem {
 	struct AllocatorConfig
 	{
 		using tag = allocator_config_tag;
+		using proxy_array_type = std::array<MetapoolProxy, RangeCount>;
 
 		static constexpr uint32_t alignment_quantum {8U};
 
