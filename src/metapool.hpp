@@ -32,6 +32,13 @@ public:
 	Metapool(Metapool&& other) = delete;
 	Metapool& operator=(Metapool&& other) = delete;
 
+	struct traits
+	{
+		static constexpr uint32_t stride_min  = StrideMin;
+		static constexpr uint32_t stride_max  = StrideMax;
+		static constexpr uint32_t stride_step = StrideStep;
+	};
+
 private:
 
 	static inline constexpr uint32_t compute_number_of_pools()

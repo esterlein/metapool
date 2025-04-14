@@ -6,6 +6,8 @@
 #include <variant>
 #include <algorithm>
 
+#include "allocator_config.hpp"
+
 
 namespace hpr {
 
@@ -61,7 +63,7 @@ private:
 			std::tuple_element_t<Is, tuple_type>::config_type::stride_min...
 		};
 
-		std::sort(indices.begin(), indices.end(), 
+		std::sort(indices.begin(), indices.end(),
 			[&min_strides](std::size_t left_index, std::size_t right_index) {
 				return min_strides[left_index] < min_strides[right_index];
 			});
@@ -97,6 +99,26 @@ private:
 		}
 
 		return true;
+	}
+
+	static constexpr auto create_range_metadata()
+	{
+		return []<std::size_t... Is>(std::index_sequence<Is...>) {
+			return std::array<mem::RangeMetadata, sizeof...(Is)> {
+				{ mem::RangeMetadata {
+					std::tuple_element_t<Is, tuple_type>::traits::stride_min,
+					std::tuple_element_t<Is, tuple_type>::traits::stride_max,
+					std::tuple_element_t<Is, tuple_type>::traits::stride_step
+				  }...
+				}
+			};
+		}(std::make_index_sequence<registry_size>{});
+	}
+
+	static constexpr auto create_allocator_config()
+	{
+		constexpr auto metadata = create_range_metadata();
+		return AllocatorConfig<registry_size>(metadata);
 	}
 };
 } // hpr
