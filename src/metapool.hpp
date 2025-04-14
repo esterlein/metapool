@@ -167,6 +167,11 @@ public:
 		return std::pair{Config::stride_min, Config::stride_max};
 	}
 
+	[[nodiscard]] inline MetapoolProxy proxy() noexcept
+	{
+		return create_proxy();
+	}
+
 private:
 
 	template <typename T>
@@ -177,16 +182,10 @@ private:
 	}
 
 	MetapoolProxy create_proxy();
-	[[nodiscard]] inline MetapoolProxy proxy() noexcept
-	{
-		return m_proxy;
-	}
 
 private:
 
 	std::array<Pool, compute_number_of_pools()> m_pools {compute_pools()};
-
-	MetapoolProxy m_proxy {};
 
 	MonotonicArena* m_upstream {nullptr};
 };

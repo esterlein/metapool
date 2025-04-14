@@ -5,7 +5,7 @@
 
 #include <memory_resource>
 
-#include "metapool_descriptor.hpp"
+#include "metapool_proxy.hpp"
 
 
 namespace hpr {
@@ -16,7 +16,7 @@ class Allocator : public std::pmr::memory_resource
 {
 public:
 
-	using DescriptorArray = typename Config::descriptor_array_type;
+	using ProxyArray = typename Config::proxy_array_type;
 
 	constexpr Allocator(DescriptorArray descriptors)
 		: m_descriptors {std::move(descriptors)}
