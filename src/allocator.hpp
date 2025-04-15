@@ -41,8 +41,6 @@ public:
 
 	// transparent interface / replace method calls
 
-	// try propagate lookup to freelist level
-
 	// uint32_t enum class error codes in hot paths
 
 public:
@@ -129,7 +127,13 @@ protected:
 
 private:
 
-	static constexpr bool validate_descriptor_array(const DescriptorArray& descriptors)
+	struct LookupEntry
+	{
+		uint8_t metapool_index;
+		uint8_t freelist_index;
+	};
+
+	static constexpr bool validate_proxy_array(const DescriptorArray& descriptors)
 	{
 		constexpr size_t arr_size = std::tuple_size_v<DescriptorArray>;
 		if constexpr (arr_size == 0) {
@@ -169,7 +173,7 @@ private:
 		constexpr uint32_t max_stride = Config::max_stride;
 		constexpr uint32_t step_size = Config::min_stride_step;
 
-		return (max_stride - min_stride) / step_size + 1U;
+		return (max_stride - min_stride) / step_size;
 	}
 
 	static auto fill_lookup_table(const DescriptorArray& descriptors)
