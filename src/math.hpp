@@ -18,7 +18,7 @@ namespace math {
 				return static_cast<double>(1) / int_pow(base, -exp);
 			}
 		}
-	
+
 		if (exp == 0) return 1;
 		else if (exp == 1) return base;
 		else if (exp == 2) return base * base;
@@ -33,11 +33,27 @@ namespace math {
 		}
 		return result;
 	}
-	
+
 	template <std::unsigned_integral T>
 	constexpr auto int_pow(T, T exp)
 	{
 		static_assert(exp >= 0, "negative exponents are not allowed for unsigned types");
 	}
+
+
+	template<typename T>
+	concept Integral = std::is_integral_v<T>;
+
+	template<Integral T>
+	constexpr T ceil_div(T n, T d)
+	{
+		if constexpr (std::is_signed_v<T>) {
+			return (n > 0) ? ((n + d - T(1)) / d) : (n / d);
+		}
+		else {
+			return (n + d - T(1)) / d;
+		}
+	}
+
 } // hpr::math
 } // hpr
