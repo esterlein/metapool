@@ -17,7 +17,9 @@ class Allocator : public std::pmr::memory_resource
 {
 public:
 
-	constexpr Allocator(typename Config::proxy_array_type proxies)
+	using ProxyArray = typename Config::proxy_array_type;
+
+	constexpr Allocator(ProxyArray proxies)
 		: m_proxies {std::move(proxies)}
 	{
 		if (!validate_descriptor_array(m_proxies)) {
@@ -54,12 +56,12 @@ public:
 		if (stride < Config::min_stride || stride > Config::max_stride) { [[unlikely]]
 			throw std::bad_alloc{};
 		}
-	
+
 		const std::size_t table_index = (stride - Config::min_stride) / Config::min_stride_step;
 		if (table_index >= m_strides.size()) { [[unlikely]]
 			throw std::bad_alloc{};
 		}
-	
+
 		const uint32_t descriptor_index = m_strides[table_index];
 		if (descriptor_index >= Config::metapool_count) { [[unlikely]]
 			throw std::bad_alloc{};
@@ -136,21 +138,20 @@ private:
 	static constexpr std::size_t compute_number_of_entries()
 	{
 		std::size_t total = 0;
-		const auto& meta = Config::range_metadata;
-		for (std::size_t i = 0; i < meta.size(); i++) {
-			total += meta[i].count();
+		const auto& range_meta = Config::range_metadata;
+		for (std::size_t i = 0; i < range_meta.size(); ++i) {
+			total += range_meta[i].count();
 		}
 		return total;
 	}
 
 	static constexpr auto create_lookup_table()
 	{
-		constexpr std::size_t total_entries = compute_nuber_of_entries();
-		std::array<LookupEntry, total_entries> table = {};
+		std::array<LookupEntry, compute_nuber_of_entries()> table = {};
 		std::size_t offset = 0;
-		const auto& meta = AllocConfig::range_metadata;
-		for (std::size_t i = 0; i < meta.size(); ++i) {
-			const auto& region = meta[i];
+		const auto& range_meta = AllocConfig::range_metadata;
+		for (std::size_t i = 0; i < range_meta.size(); ++i) {
+			const auto& region = range_meta[i];
 			const std::size_t count = region.count();
 			for (std::size_t j = 0; j < count; ++j) {
 				table[offset + j] = LookupEntry {
