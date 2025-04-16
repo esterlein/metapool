@@ -133,6 +133,16 @@ private:
 		uint8_t freelist_index;
 	};
 
+	static constexpr std::size_t compute_total_entries()
+	{
+		std::size_t total = 0;
+		const auto& meta = Config::range_metadata;
+		for (std::size_t i = 0; i < meta.size(); i++) {
+			total += meta[i].count();
+		}
+		return total;
+	}
+
 	static constexpr bool validate_proxy_array(const DescriptorArray& descriptors)
 	{
 		constexpr size_t arr_size = std::tuple_size_v<DescriptorArray>;
