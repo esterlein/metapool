@@ -133,7 +133,7 @@ private:
 		uint8_t freelist_index;
 	};
 
-	static constexpr std::size_t compute_total_entries()
+	static constexpr std::size_t compute_number_of_entries()
 	{
 		std::size_t total = 0;
 		const auto& meta = Config::range_metadata;
@@ -141,6 +141,26 @@ private:
 			total += meta[i].count();
 		}
 		return total;
+	}
+
+	static constexpr auto create_lookup_table()
+	{
+		constexpr std::size_t total_entries = compute_nuber_of_entries();
+		std::array<LookupEntry, total_entries> table = {};
+		std::size_t offset = 0;
+		const auto& meta = AllocConfig::range_metadata;
+		for (std::size_t i = 0; i < meta.size(); ++i) {
+			const auto& region = meta[i];
+			const std::size_t count = region.count();
+			for (std::size_t j = 0; j < count; ++j) {
+				table[offset + j] = LookupEntry {
+					static_cast<uint8_t>(i),
+					static_cast<uint8_t>(j)
+				};
+			}
+			offset += count;
+		}
+		return table;
 	}
 
 	static constexpr bool validate_proxy_array(const DescriptorArray& descriptors)
@@ -177,33 +197,6 @@ private:
 		return true;
 	}
 
-	static constexpr auto compute_lookup_table_size()
-	{
-		constexpr uint32_t min_stride = Config::min_stride;
-		constexpr uint32_t max_stride = Config::max_stride;
-		constexpr uint32_t step_size = Config::min_stride_step;
-
-		return (max_stride - min_stride) / step_size;
-	}
-
-	static auto fill_lookup_table(const DescriptorArray& descriptors)
-	{
-		constexpr std::size_t table_size = compute_lookup_table_size();
-		std::array<uint32_t, table_size> table{};
-		
-		uint32_t table_index = 0;
-		for (size_t desc_index = 0; desc_index < std::tuple_size_v<DescriptorArray>; ++desc_index) {
-			const auto& desc = std::get<desc_index>(descriptors);
-			const uint32_t stride_count =
-				(desc.range.max_stride - desc.range.min_stride) / Config::min_stride_step;
-			
-			std::fill_n(table.begin() + table_index, stride_count, static_cast<uint32_t>(desc_index));
-			table_index += stride_count;
-		}
-		
-		return table;
-	}
-
 	template <typename T>
 	static inline constexpr uint32_t get_type_stride()
 	{
@@ -219,7 +212,7 @@ private:
 
 private:
 
-	std::array<uint8_t, compute_lookup_table_size()> m_strides {};
+	std::array<uint8_t, compute_number_of_entries()> m_strides {};
 
 	typename Config::proxy_array_type m_proxies {};
 };
