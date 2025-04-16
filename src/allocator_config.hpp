@@ -1,8 +1,10 @@
 #pragma once
 
-#include "metapool_proxy.hpp"
 #include <array>
 #include <cstdint>
+
+#include "metapool_proxy.hpp"
+
 
 
 namespace hpr {

@@ -9,6 +9,7 @@
 #include "math.hpp"
 
 
+
 namespace hpr {
 
 
@@ -19,11 +20,15 @@ class MetapoolProxy;
 namespace mem {
 
 
-	static inline constexpr uint32_t min_base_block_count = 64U;
-	static inline constexpr uint32_t min_last_block_count = 64U;
-	static inline constexpr uint32_t min_stride = 8U;
-	static inline constexpr uint32_t min_stride_step = 8U;
-	static inline constexpr uint32_t max_stride_step = 524288U; // 512 KB
+	struct MetapoolConstraints
+	{
+		static inline constexpr uint32_t min_base_block_count = 64U;
+		static inline constexpr uint32_t min_last_block_count = 64U;
+		static inline constexpr uint32_t min_stride = 8U;
+		static inline constexpr uint32_t min_stride_step = 8U;
+		static inline constexpr uint32_t max_stride_step = 524288U; // 512 KB
+	};
+
 
 	struct metapool_config_tag {};
 
@@ -36,18 +41,19 @@ namespace mem {
 
 	template <auto BaseBlockCount, auto StrideStep, auto... StridePivots>
 	concept ValidMetapoolConfig =
-		BaseBlockCount          >= min_base_block_count  &&
-		StrideStep              >= min_stride_step       &&
-		sizeof...(StridePivots) >= 2                     &&
-		((StridePivots          %  min_stride_step == 0) && ...) &&
+		BaseBlockCount          >= MetapoolConstraints::min_base_block_count  &&
+		StrideStep              >= MetapoolConstraints::min_stride_step       &&
+		StrideStep              <= MetapoolConstraints::max_stride_step       &&
+		sizeof...(StridePivots) >= 2                                          &&
+		((StridePivots          %  MetapoolConstraints::min_stride_step == 0) && ...) &&
 		(
 			(sizeof...(StridePivots) > 1)
-				? (BaseBlockCount * math::int_pow<int32_t>(2, static_cast<int32_t>(-(sizeof...(StridePivots) - 2))) >= min_last_block_count)
+				? (BaseBlockCount * math::int_pow<int32_t>(2, static_cast<int32_t>(-(sizeof...(StridePivots) - 2))) >= MetapoolConstraints::min_last_block_count)
 				: true
 		) &&
 		[]() constexpr {
 			constexpr auto arr = std::array{ StridePivots... };
-			if (arr[0] <= 0 || arr[0] % StrideStep != 0)
+			if (arr[0] < MetapoolConstraints::min_stride || arr[0] % StrideStep != 0)
 				return false;
 			for (std::size_t i = 1; i < arr.size(); ++i) {
 				if (arr[i] <= 0 || arr[i] <= arr[i - 1])
@@ -83,8 +89,6 @@ namespace mem {
 			return (arr.back() - arr.front()) / StrideStep;
 		}();
 	};
-
-
 
 } // hpr::mem
 
