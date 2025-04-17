@@ -75,7 +75,7 @@ public:
 	template <typename T>
 	void destruct(T* object)
 	{
-		if (!object)
+		if (!object) [[unlikely]]
 			return;
 
 		std::byte* block = reinterpret_cast<std::byte*>(object) - sizeof(mem::AllocHeader);
