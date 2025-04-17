@@ -5,6 +5,7 @@
 
 #include <memory_resource>
 
+#include "alloc_header.hpp"
 #include "metapool_proxy.hpp"
 #include "allocator_config.hpp"
 
@@ -37,10 +38,6 @@ public:
 	Allocator& operator=(const Allocator&) = delete;
 	Allocator& operator=(Allocator&&) = delete;
 
-	// overload allocate/deallocate templates
-
-	// implement construct/destruct
-
 	// transparent interface / replace method calls
 
 	// uint32_t enum class error codes in hot paths
@@ -50,42 +47,26 @@ public:
 	template <typename T, typename... Types>
 	[[nodiscard]] T* construct(Types&&... args)
 	{
-		constexpr uint32_t alignment = (static_cast<uint32_t>(alignof(T)) + Config::alignment_quantum - 1U) & ~(Config::alignment_quantum - 1U);
-		constexpr uint32_t stride = (static_cast<uint32_t>(sizeof(T)) + Config::alignment_shift + alignment - 1U) & ~(alignment - 1U);
+		constexpr uint32_t alignment =
+			(static_cast<uint32_t>(alignof(T)) + Config::alignment_quantum - 1U) & ~(Config::alignment_quantum - 1U);
+		constexpr uint32_t stride =
+			(static_cast<uint32_t>(sizeof(T)) + Config::alignment_shift + alignment - 1U) & ~(alignment - 1U);
 
-		if (stride < Config::min_stride || stride > Config::max_stride) { [[unlikely]]
-			throw std::bad_alloc{};
-		}
-
-		const std::size_t table_index = (stride - Config::min_stride) / Config::min_stride_step;
-		if (table_index >= m_lookup_table.size()) { [[unlikely]]
-			throw std::bad_alloc{};
-		}
-
-		const uint32_t proxy_index = m_lookup_table[table_index];
-		if (descriptor_index >= Config::metapool_count) { [[unlikely]]
-			throw std::bad_alloc{};
-		}
-
-
-
-		if (stride < m_pools.front().stride || stride > m_pools.back().stride)
+		if (stride < Config::min_stride || stride > Config::max_stride) [[unlikely]]
 			throw std::bad_alloc{};
 
-		const auto pool_index = (stride - m_pools.front().stride) / Config::stride_step;
+		auto lookup_entry = lookup(stride);
 
-		if (pool_index >= m_pools.size())
+		auto& proxy = m_proxies[lookup_entry.mpool_index];
+		std::byte* block = proxy.fetch(lookup_entry.flist_index);
+
+		if (!block) [[unlikely]]
 			throw std::bad_alloc{};
 
-		std::byte* block = m_pools[pool_index].fl_fetch(&m_pools[pool_index].freelist);
-		if (!block)
-			throw std::bad_alloc{};
+		auto* header = reinterpret_cast<mem::AllocHeader*>(block);
+		*header = mem::AllocHeader::make(lookup_entry.mpool_index, lookup_entry.flist_index);
 
-		auto* header = reinterpret_cast<AllocHeader*>(block);
-		header->pool_index = pool_index;
-		header->magic = 0xABCD;
-
-		std::byte* object_location = block + sizeof(AllocHeader);
+		std::byte* object_location = block + sizeof(mem::AllocHeader);
 		T* object = std::launder(new (object_location) T(std::forward<Types>(args)...));
 
 		return object;
@@ -97,21 +78,14 @@ public:
 		if (!object)
 			return;
 
+		std::byte* block = reinterpret_cast<std::byte*>(object) - sizeof(mem::AllocHeader);
+		auto* header = reinterpret_cast<const mem::AllocHeader*>(block);
+	
+		auto& proxy = m_proxies[header->mpool_index()];
+
 		object->~T();
 
-		std::byte* object_location = reinterpret_cast<std::byte*>(object);
-		std::byte* block = object_location - sizeof(AllocHeader);
-
-		auto* header = reinterpret_cast<AllocHeader*>(block);
-
-		if (header->magic != 0xABCD)
-			throw std::runtime_error("memory corruption detected");
-
-		const auto pool_index = header->pool_index;
-		if (pool_index >= m_pools.size())
-			throw std::runtime_error("invalid pool index detected");
-
-		m_pools[pool_index].fl_release(&m_pools[pool_index].freelist, block);
+		proxy.release(header->flist_index(), block);
 	}
 
 protected:
@@ -128,7 +102,7 @@ protected:
 private:
 
 	static_assert(Config::range_metadata.size() <= 256,
-		"too many metapools for a 1 byte lookup address");
+		"too many metapools for a 1 byte lookup index");
 
 	struct LookupEntry
 	{
@@ -143,7 +117,7 @@ private:
 		for (std::size_t i = 0; i < range_meta.size(); ++i) {
 
 			static_assert(Config::range_metadata.size() <= 256,
-				"too many freelists for a 1 byte lookup address");
+				"too many freelists for a 1 byte lookup index");
 
 			total += range_meta[i].count();
 		}
@@ -176,9 +150,10 @@ private:
 	static constexpr LookupEntry lookup(uint32_t stride)
 	{
 		constexpr auto& range_meta = Config::range_metadata;
-		constexpr std::size_t range_meta_size = range_meta.size();
 
-		std::size_t low = 0, high = range_meta_size - 1;
+		std::size_t low = 0;
+		std::size_t high = range_meta.size() - 1;
+
 		while (low < high) {
 			std::size_t mid = (low + high + 1) >> 1;
 			if (stride >= range_meta[mid].stride_min) {
