@@ -26,7 +26,7 @@ public:
 			throw std::runtime_error {"invalid descriptor array"};
 		}
 
-		m_strides = fill_lookup_table(m_proxies);
+		m_lookup_table = fill_lookup_table(m_proxies);
 	}
 
 	Allocator() = delete;
@@ -58,16 +58,14 @@ public:
 		}
 
 		const std::size_t table_index = (stride - Config::min_stride) / Config::min_stride_step;
-		if (table_index >= m_strides.size()) { [[unlikely]]
+		if (table_index >= m_lookup_table.size()) { [[unlikely]]
 			throw std::bad_alloc{};
 		}
 
-		const uint32_t descriptor_index = m_strides[table_index];
+		const uint32_t proxy_index = m_lookup_table[table_index];
 		if (descriptor_index >= Config::metapool_count) { [[unlikely]]
 			throw std::bad_alloc{};
 		}
-
-		m_descriptors[descriptor_index].fetch(stride);
 
 
 
@@ -129,6 +127,9 @@ protected:
 
 private:
 
+	static_assert(Config::range_metadata.size() <= 256,
+		"too many metapools for a 1 byte lookup address");
+
 	struct LookupEntry
 	{
 		uint8_t metapool_index;
@@ -140,6 +141,10 @@ private:
 		std::size_t total = 0;
 		const auto& range_meta = Config::range_metadata;
 		for (std::size_t i = 0; i < range_meta.size(); ++i) {
+
+			static_assert(Config::range_metadata.size() <= 256,
+				"too many freelists for a 1 byte lookup address");
+
 			total += range_meta[i].count();
 		}
 		return total;
@@ -147,55 +152,50 @@ private:
 
 	static constexpr auto create_lookup_table()
 	{
-		std::array<LookupEntry, compute_nuber_of_entries()> table = {};
 		std::size_t offset = 0;
-		const auto& range_meta = AllocConfig::range_metadata;
-		for (std::size_t i = 0; i < range_meta.size(); ++i) {
-			const auto& region = range_meta[i];
-			const std::size_t count = region.count();
-			for (std::size_t j = 0; j < count; ++j) {
-				table[offset + j] = LookupEntry {
-					static_cast<uint8_t>(i),
-					static_cast<uint8_t>(j)
+		std::array<LookupEntry, compute_number_of_entries()> table = {};
+
+		constexpr auto& range_meta = Config::range_metadata;
+		for (std::size_t mp_index = 0; mp_index < range_meta.size(); ++mp_index) {
+
+			const std::size_t freelist_count = range_meta[mp_index].count();
+
+			for (std::size_t fl_index = 0; fl_index < freelist_count; ++fl_index) {
+				table[offset + fl_index] = LookupEntry {
+					static_cast<uint8_t>(mp_index),
+					static_cast<uint8_t>(fl_index)
 				};
 			}
-			offset += count;
+			offset += freelist_count;
 		}
 		return table;
 	}
 
-	static constexpr bool validate_proxy_array(const DescriptorArray& descriptors)
+private:
+
+	static constexpr LookupEntry lookup(uint32_t stride)
 	{
-		constexpr size_t arr_size = std::tuple_size_v<DescriptorArray>;
-		if constexpr (arr_size == 0) {
-			return false;
-		}
+		constexpr auto& range_meta = Config::range_metadata;
+		constexpr std::size_t range_meta_size = range_meta.size();
 
-		for (size_t i = 0; i < arr_size; ++i) {
-
-			const auto& desc = std::get<i>(descriptors);
-			if (desc.stride_step == 0) {
-				return false;
-			}
-			if ((desc.stride_step & (desc.stride_step - 1)) == 0) {
-				const uint32_t mask = desc.stride_step - 1;
-				if ((desc.min_stride & mask) != 0 || (desc.max_stride & mask) != 0) {
-					return false;
-				}
+		std::size_t low = 0, high = range_meta_size - 1;
+		while (low < high) {
+			std::size_t mid = (low + high + 1) >> 1;
+			if (stride >= range_meta[mid].stride_min) {
+				low = mid;
 			}
 			else {
-				if (desc.min_stride % desc.stride_step != 0 || desc.max_stride % desc.stride_step != 0) {
-					return false;
-				}
-			}
-			if (i < arr_size - 1) {
-				const auto& next = std::get<i + 1>(descriptors);
-				if (desc.max_stride + desc.stride_step != next.min_stride) {
-					return false;
-				}
+				high = mid - 1;
 			}
 		}
-		return true;
+
+		auto const& mp_range = range_meta[low];
+		uint32_t fl_index = (stride - mp_range.stride_min) / mp_range.stride_step;
+
+		return LookupEntry {
+			static_cast<uint8_t>(low),
+			static_cast<uint8_t>(fl_index)
+		};
 	}
 
 	template <typename T>
@@ -213,9 +213,9 @@ private:
 
 private:
 
-	std::array<uint8_t, compute_number_of_entries()> m_strides {};
+	std::array<LookupEntry, compute_number_of_entries()> m_lookup_table {create_lookup_table()};
 
-	typename Config::proxy_array_type m_proxies {};
+	ProxyArray m_proxies {};
 };
 
 

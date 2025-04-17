@@ -49,8 +49,11 @@ namespace mem {
 	concept IsAllocatorConfig = requires {
 		typename T::tag;
 		typename T::proxy_array_type;
+
 		std::same_as<typename T::tag, allocator_config_tag>;
+
 		T::range_metadata;
+
 	} && []() constexpr {
 		const auto& ranges = T::range_metadata;
 
