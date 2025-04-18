@@ -31,7 +31,7 @@ public:
 	Metapool(Metapool&& other) = delete;
 	Metapool& operator=(Metapool&& other) = delete;
 
-	struct traits
+	struct MetapoolTraits
 	{
 		static constexpr uint32_t stride_min = []() constexpr {
 			return Config::stride_pivots.front();
@@ -47,20 +47,17 @@ private:
 
 	static inline constexpr uint32_t compute_number_of_pools()
 	{
-		constexpr auto& pivots = Config::stride_pivots;
-		static constexpr uint32_t value = (pivots.back() - pivots.front()) / Config::stride_step;
-		return value;
+		return MetapoolTraits::stride_count;
 	}
 
 	static inline constexpr const auto& compute_pool_strides()
 	{
-		constexpr auto& pivots = Config::stride_pivots;
 		static constexpr uint32_t num_pools = compute_number_of_pools();
-
+		
 		static constexpr auto strides =
-			[num_pools, &pivots]<std::size_t... Is>(std::index_sequence<Is...>) constexpr {
+			[]<std::size_t... Is>(std::index_sequence<Is...>) constexpr {
 				return std::array<uint32_t, num_pools> {
-					(pivots.front() + static_cast<uint32_t>(Is) * Config::stride_step)...
+					(MetapoolTraits::stride_min + static_cast<uint32_t>(Is) * MetapoolTraits::stride_step)...
 				};
 			}(std::make_index_sequence<num_pools>{});
 
@@ -69,23 +66,22 @@ private:
 
 	static inline constexpr const auto& compute_block_count()
 	{
-		constexpr auto& pivots = Config::stride_pivots;
 		static constexpr uint32_t num_pools = compute_number_of_pools();
 		static constexpr auto& pool_strides = compute_pool_strides();
 
 		static constexpr std::array<uint32_t, num_pools> block_counts = []() {
 			std::array<uint32_t, num_pools> counts{};
 			uint32_t curr_count = Config::base_block_count;
-
+			
 			for (std::size_t i = 0; i < num_pools; ++i) {
-				bool is_pivot = false;
-				for (std::size_t j = 1; j < pivots.size() - 1; ++j) {
-					if (pivots[j] == pool_strides[i]) {
-						is_pivot = true;
-						break;
+				if (i > 0 &&
+					std::find(
+						Config::stride_pivots.begin() + 1,
+						Config::stride_pivots.end() - 1,
+						pool_strides[i]
+					) != Config::stride_pivots.end()) {
+						curr_count /= 2;
 					}
-				}
-				if (i > 0 && is_pivot) curr_count /= 2;
 				counts[i] = curr_count;
 			}
 			return counts;
