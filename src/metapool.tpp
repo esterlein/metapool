@@ -2,7 +2,6 @@
 
 #include <cstdint>
 #include <numeric>
-#include <optional>
 
 #include "alloc_header.hpp"
 #include "monotonic_arena.hpp"
@@ -72,8 +71,6 @@ Metapool<Config>::Metapool(MonotonicArena* upstream)
 
 		current_memory += m_pools[i].stride * m_pools[i].block_count;
 	}
-
-	m_proxy = create_proxy();
 }
 
 
@@ -92,47 +89,25 @@ Metapool<Config>::~Metapool()
 
 
 template <mem::IsMetapoolConfig Config>
-std::byte* Metapool<Config>::fetch(std::size_t stride_ul)
+std::byte* Metapool<Config>::fetch(uint8_t pool_index)
 {
-	const uint32_t stride = static_cast<uint32_t>(stride_ul);
-
-	if (stride < m_pools.front().stride || stride > m_pools.back().stride) [[unlikely]]
-		throw std::bad_alloc {};
-
-	const auto pool_index = (stride - m_pools.front().stride) / Config::stride_step;
-
-	if (pool_index >= m_pools.size()) [[unlikely]]
-		throw std::bad_alloc {};
-
 	std::byte* block = m_pools[pool_index].fl_fetch(&m_pools[pool_index].freelist);
+
 	if (!block) [[unlikely]]
-		throw std::bad_alloc {};
+		return nullptr;
 
-	auto* header = reinterpret_cast<AllocHeader*>(block);
-	header->pool_index = pool_index;
-	header->magic = 0xABCD;
-
-	std::byte* object_location = block + sizeof(AllocHeader);
-
-	return std::launder(object_location);
+	return std::launder(block);
 }
 
+
 template <mem::IsMetapoolConfig Config>
-void Metapool<Config>::release(std::byte* location)
+void Metapool<Config>::release(uint8_t pool_index, std::byte* block)
 {
-	if (!location)
+	if (!block) [[unlikely]]
 		return;
 
-	std::byte* block = location - sizeof(AllocHeader);
-	auto* header = reinterpret_cast<AllocHeader*>(block);
-
-	if (header->magic != 0xABCD) [[unlikely]]
-		throw std::runtime_error {"memory corruption detected"};
-
-	const auto pool_index = header->pool_index;
-
 	if (pool_index >= m_pools.size()) [[unlikely]]
-		throw std::runtime_error {"invalid pool index detected"};
+		return;
 
 	m_pools[pool_index].fl_release(&m_pools[pool_index].freelist, block);
 }
@@ -142,7 +117,10 @@ template <mem::IsMetapoolConfig Config>
 MetapoolProxy Metapool<Config>::create_proxy()
 {
 	return MetapoolProxy {
-		{ m_pools.front().stride, m_pools.back().stride },
+		{
+			m_pools.front().stride,
+			m_pools.back().stride
+		},
 		Config::stride_step,
 		static_cast<void*>(this),
 		[](void* mpool_this, std::size_t stride) -> std::byte* {

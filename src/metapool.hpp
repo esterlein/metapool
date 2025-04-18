@@ -70,7 +70,7 @@ private:
 		static constexpr auto& pool_strides = compute_pool_strides();
 
 		static constexpr std::array<uint32_t, num_pools> block_counts = []() {
-			std::array<uint32_t, num_pools> counts{};
+			std::array<uint32_t, num_pools> counts {};
 			uint32_t curr_count = Config::base_block_count;
 			
 			for (std::size_t i = 0; i < num_pools; ++i) {
