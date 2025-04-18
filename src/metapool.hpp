@@ -72,16 +72,16 @@ private:
 		static constexpr std::array<uint32_t, num_pools> block_counts = []() {
 			std::array<uint32_t, num_pools> counts {};
 			uint32_t curr_count = Config::base_block_count;
-			
+
 			for (std::size_t i = 0; i < num_pools; ++i) {
 				if (i > 0 &&
 					std::find(
 						Config::stride_pivots.begin() + 1,
 						Config::stride_pivots.end() - 1,
-						pool_strides[i]
-					) != Config::stride_pivots.end()) {
-						curr_count /= 2;
-					}
+						pool_strides[i])
+							!= Config::stride_pivots.end()) {
+								curr_count /= 2;
+							}
 				counts[i] = curr_count;
 			}
 			return counts;
@@ -168,8 +168,8 @@ public:
 	using config_type = Config;
 	using PoolVariant = FreelistVariant;
 
-	[[nodiscard]] std::byte* fetch(std::size_t stride);
-	void release(std::byte* block);
+	[[nodiscard]] std::byte* fetch(uint8_t pool_index);
+	void release(uint8_t pool_index, std::byte* block);
 
 	[[nodiscard]] static inline constexpr auto bounds()
 	{
