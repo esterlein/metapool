@@ -118,7 +118,7 @@ private:
 			if constexpr (registry_size <= 1) {
 				return true;
 			}
-			return validate_registry_coverage(std::make_index_sequence<registry_size>{});
+			return validate_registry_sequence(std::make_index_sequence<registry_size>{});
 		}(),
 		"metapool registry has gaps, overlaps, or invalid stride steps"
 	);
