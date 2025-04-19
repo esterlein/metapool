@@ -23,26 +23,6 @@ public:
 	using variant_ptr = std::variant<Metapools*...>;
 	static inline constexpr std::size_t registry_size = sizeof...(Metapools);
 
-	static constexpr uint32_t min_stride = []() constexpr {
-		if constexpr (registry_size == 0) {
-			return 0;
-		}
-		return compute_model_min_stride(std::make_index_sequence<registry_size>{});
-	}();
-
-	static constexpr uint32_t max_stride = []() constexpr {
-		if constexpr (registry_size == 0) {
-			return 0;
-		}
-		return compute_model_max_stride(std::make_index_sequence<registry_size>{});
-	}();
-
-	static constexpr auto create_allocator_config()
-	{
-		constexpr auto metadata = create_range_metadata();
-		return AllocatorConfig<registry_size>(metadata);
-	}
-
 private:
 
 	template <std::size_t I>
@@ -98,6 +78,30 @@ private:
 		return true;
 	}
 
+public:
+
+	static constexpr uint32_t min_stride = []() constexpr {
+		if constexpr (registry_size == 0) {
+			return 0;
+		}
+		return MetapoolRegistry::compute_model_min_stride(std::make_index_sequence<registry_size>{});
+	}();
+
+	static constexpr uint32_t max_stride = []() constexpr {
+		if constexpr (registry_size == 0) {
+			return 0;
+		}
+		return MetapoolRegistry::compute_model_max_stride(std::make_index_sequence<registry_size>{});
+	}();
+
+	static constexpr auto create_allocator_config()
+	{
+		constexpr auto metadata = create_range_metadata();
+		return AllocatorConfig<registry_size>(metadata);
+	}
+
+private:
+
 	static constexpr auto create_range_metadata()
 	{
 		return []<std::size_t... Is>(std::index_sequence<Is...>) {
@@ -118,7 +122,7 @@ private:
 			if constexpr (registry_size <= 1) {
 				return true;
 			}
-			return validate_registry_sequence(std::make_index_sequence<registry_size>{});
+			return MetapoolRegistry::validate_registry_sequence(std::make_index_sequence<registry_size>{});
 		}(),
 		"metapool registry has gaps, overlaps, or invalid stride steps"
 	);
