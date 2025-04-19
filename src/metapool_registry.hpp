@@ -9,7 +9,9 @@
 #include "allocator_config.hpp"
 
 
+
 namespace hpr {
+
 
 
 template <typename... Metapools>
@@ -19,15 +21,20 @@ public:
 
 	using tuple_type = std::tuple<Metapools...>;
 	using variant_ptr = std::variant<Metapools*...>;
-
 	static inline constexpr std::size_t registry_size = sizeof...(Metapools);
 
-	static constexpr uint32_t min_stride = []() {
-		return extract_min_stride(std::make_index_sequence<registry_size>{});
+	static constexpr uint32_t min_stride = []() constexpr {
+		if constexpr (registry_size == 0) {
+			return 0;
+		}
+		return compute_model_min_stride(std::make_index_sequence<registry_size>{});
 	}();
 
-	static constexpr uint32_t max_stride = []() {
-		return extract_max_stride(std::make_index_sequence<registry_size>{});
+	static constexpr uint32_t max_stride = []() constexpr {
+		if constexpr (registry_size == 0) {
+			return 0;
+		}
+		return compute_model_max_stride(std::make_index_sequence<registry_size>{});
 	}();
 
 	static constexpr auto create_allocator_config()
@@ -36,28 +43,36 @@ public:
 		return AllocatorConfig<registry_size>(metadata);
 	}
 
-	static_assert(
-		[]() constexpr {
-			if constexpr (registry_size <= 1) {
-				return true;
-			}
-			return validate_registry_sequence(std::make_index_sequence<registry_size>{});
-		}(),
-		"metapool registry has gaps, overlaps, or invalid stride steps"
-	);
-
 private:
 
-	template <std::size_t... Is>
-	static constexpr uint32_t extract_min_stride(std::index_sequence<Is...>)
+	template <std::size_t I>
+	static constexpr uint32_t get_min_stride()
 	{
-		return std::min({std::tuple_element_t<Is, tuple_type>::config_type::stride_min...});
+		return std::tuple_element_t<I, tuple_type>::config_type::stride_min;
+	}
+
+	template <std::size_t I>
+	static constexpr uint32_t get_max_stride()
+	{
+		return std::tuple_element_t<I, tuple_type>::config_type::stride_max;
+	}
+
+	template <std::size_t I>
+	static constexpr uint32_t get_stride_step()
+	{
+		return std::tuple_element_t<I, tuple_type>::config_type::stride_step;
 	}
 
 	template <std::size_t... Is>
-	static constexpr uint32_t extract_max_stride(std::index_sequence<Is...>)
+	static constexpr uint32_t compute_model_min_stride(std::index_sequence<Is...>)
 	{
-		return std::max({std::tuple_element_t<Is, tuple_type>::config_type::stride_max...});
+		return std::min({get_min_stride<Is>()...});
+	}
+
+	template <std::size_t... Is>
+	static constexpr uint32_t compute_model_max_stride(std::index_sequence<Is...>)
+	{
+		return std::max({get_max_stride<Is>()...});
 	}
 
 	template <std::size_t... Is>
@@ -67,7 +82,7 @@ private:
 		constexpr std::array<uint32_t, registry_size> max_strides = { get_max_stride<Is>()... };
 		constexpr std::array<uint32_t, registry_size> step_sizes  = { get_stride_step<Is>()... };
 
-		for (uint32_t stride = min_stride; stride <= max_stride; stride++) {
+		for (uint32_t stride = min_stride; stride <= max_stride; ++stride) {
 			int covered_count = 0;
 			for (std::size_t i = 0; i < registry_size; i++) {
 				if (stride >= min_strides[i] &&
@@ -97,5 +112,15 @@ private:
 			};
 		}(std::make_index_sequence<registry_size>{});
 	}
+
+	static_assert(
+		[]() constexpr {
+			if constexpr (registry_size <= 1) {
+				return true;
+			}
+			return validate_registry_coverage(std::make_index_sequence<registry_size>{});
+		}(),
+		"metapool registry has gaps, overlaps, or invalid stride steps"
+	);
 };
 } // hpr

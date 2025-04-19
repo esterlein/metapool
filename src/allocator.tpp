@@ -43,7 +43,7 @@ void Allocator<Config>::do_deallocate(void* location, std::size_t bytes, std::si
 	
 	auto* header = reinterpret_cast<mem::AllocHeader*>(block);
 	
-	auto& proxy = m_proxies[header->mpool_index];
-	proxy.release(header->flist_index, block);
+	auto& proxy = m_proxies[header->mpool_index()];
+	proxy.release(header->flist_index(), block);
 }
 } // hpr
