@@ -27,18 +27,15 @@ namespace mem {
 
 	struct allocator_config_tag {};
 
-	template <auto RangeCount>
+	template <auto MetapoolRangeArray>
 	struct AllocatorConfig
 	{
 		using tag = allocator_config_tag;
-		using proxy_array_type = std::array<MetapoolProxy, RangeCount>;
 
-		static constexpr uint32_t alignment_quantum {8U};
+		static constexpr auto range_metadata = MetapoolRangeArray;
+		static constexpr auto range_count    = MetapoolRangeArray.size();
 
-		std::array<RangeMetadata, RangeCount> range_metadata;
-
-		constexpr AllocatorConfig(const std::array<RangeMetadata, RangeCount>& mpool_traits_arr)
-			: range_metadata(mpool_traits_arr) {}
+		using ProxyArrayType = std::array<MetapoolProxy, range_count>;
 	};
 
 
