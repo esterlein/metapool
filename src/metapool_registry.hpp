@@ -19,102 +19,100 @@ class MetapoolRegistry final
 {
 public:
 
-	using tuple_type = std::tuple<Metapools...>;
-	using variant_ptr = std::variant<Metapools*...>;
 	static inline constexpr std::size_t registry_size = sizeof...(Metapools);
+
+	using TupleType           = std::tuple<Metapools...>;
+	using VariantPtr          = std::variant<Metapools*...>;
+	using AllocatorConfigType = mem::AllocatorConfig<registry_size>;
 
 private:
 
 	template <std::size_t I>
 	static constexpr uint32_t get_min_stride()
 	{
-		return std::tuple_element_t<I, tuple_type>::MetapoolTraits::stride_min;
+		return std::tuple_element_t<I, TupleType>::MetapoolTraits::stride_min;
 	}
-	
+
 	template <std::size_t I>
 	static constexpr uint32_t get_max_stride()
 	{
-		return std::tuple_element_t<I, tuple_type>::MetapoolTraits::stride_max;
+		return std::tuple_element_t<I, TupleType>::MetapoolTraits::stride_max;
 	}
-	
+
 	template <std::size_t I>
 	static constexpr uint32_t get_stride_step()
 	{
-		return std::tuple_element_t<I, tuple_type>::MetapoolTraits::stride_step;
+		return std::tuple_element_t<I, TupleType>::MetapoolTraits::stride_step;
 	}
+
+	template <std::size_t I>
+	static constexpr uint32_t get_stride_count()
+	{
+		return std::tuple_element_t<I, TupleType>::MetapoolTraits::stride_count;
+	}
+
 
 	template <std::size_t... Is>
 	static constexpr uint32_t compute_model_min_stride(std::index_sequence<Is...>)
 	{
-		return std::min({get_min_stride<Is>()...});
+		return std::min({ get_min_stride<Is>()... });
 	}
 
 	template <std::size_t... Is>
 	static constexpr uint32_t compute_model_max_stride(std::index_sequence<Is...>)
 	{
-		return std::max({get_max_stride<Is>()...});
+		return std::max({ get_max_stride<Is>()... });
 	}
+
 
 	template <std::size_t... Is>
 	static constexpr bool validate_registry_sequence(std::index_sequence<Is...>)
 	{
-		constexpr std::array<uint32_t, registry_size> min_strides = { get_min_stride<Is>()... };
-		constexpr std::array<uint32_t, registry_size> max_strides = { get_max_stride<Is>()... };
-		constexpr std::array<uint32_t, registry_size> step_sizes  = { get_stride_step<Is>()... };
+		constexpr auto mins   = std::array<uint32_t, registry_size>{ get_min_stride<Is>()... };
+		constexpr auto maxs   = std::array<uint32_t, registry_size>{ get_max_stride<Is>()... };
+		constexpr auto steps  = std::array<uint32_t, registry_size>{ get_stride_step<Is>()... };
 
-		for (uint32_t stride = min_stride; stride <= max_stride; ++stride) {
-			int covered_count = 0;
-			for (std::size_t i = 0; i < registry_size; i++) {
-				if (stride >= min_strides[i] &&
-					stride <= max_strides[i] &&
-					(stride - min_strides[i]) % step_sizes[i] == 0) {
-						covered_count++;
-					}
+		constexpr uint32_t model_min = compute_model_min_stride(std::index_sequence<Is...>{});
+		constexpr uint32_t model_max = compute_model_max_stride(std::index_sequence<Is...>{});
+
+		for (uint32_t stride = model_min; stride <= model_max; ++stride) {
+			auto coverage = 0;
+			for (std::size_t i = 0; i < registry_size; ++i) {
+				if (stride >= mins[i] && stride <= maxs[i] && ((stride - mins[i]) % steps[i] == 0))
+					++coverage;
 			}
-			if (covered_count != 1) {
+			if (coverage != 1)
 				return false;
-			}
 		}
 		return true;
 	}
 
+
+	static constexpr auto create_range_metadata()
+	{
+		return []<std::size_t... Is>(std::index_sequence<Is...>)
+			-> std::array<mem::RangeMetadata, sizeof...(Is)>
+		{
+			return {{ 
+				mem::RangeMetadata{
+					.stride_min   = std::tuple_element_t<Is, TupleType>::MetapoolTraits::stride_min,
+					.stride_max   = std::tuple_element_t<Is, TupleType>::MetapoolTraits::stride_max,
+					.stride_step  = std::tuple_element_t<Is, TupleType>::MetapoolTraits::stride_step,
+					.stride_count = std::tuple_element_t<Is, TupleType>::MetapoolTraits::stride_count
+				}...
+			}};
+		}(std::make_index_sequence<registry_size>{});
+	}
+
 public:
 
-	static constexpr uint32_t min_stride = []() constexpr {
-		if constexpr (registry_size == 0) {
-			return 0;
-		}
-		return MetapoolRegistry::compute_model_min_stride(std::make_index_sequence<registry_size>{});
-	}();
+	static constexpr auto range_metadata_array = create_range_metadata();
 
-	static constexpr uint32_t max_stride = []() constexpr {
-		if constexpr (registry_size == 0) {
-			return 0;
-		}
-		return MetapoolRegistry::compute_model_max_stride(std::make_index_sequence<registry_size>{});
-	}();
 
 	static constexpr auto create_allocator_config()
 	{
 		constexpr auto metadata = create_range_metadata();
 		return mem::AllocatorConfig<registry_size>(metadata);
-	}
-
-private:
-
-	static constexpr auto create_range_metadata()
-	{
-		return []<std::size_t... Is>(std::index_sequence<Is...>) {
-			return std::array<mem::RangeMetadata, sizeof...(Is)> {
-				{
-					mem::RangeMetadata {
-						std::tuple_element_t<Is, tuple_type>::MetapoolTraits::stride_min,
-						std::tuple_element_t<Is, tuple_type>::MetapoolTraits::stride_max,
-						std::tuple_element_t<Is, tuple_type>::MetapoolTraits::stride_step
-					}...
-				}
-			};
-		}(std::make_index_sequence<registry_size>{});
 	}
 
 	static_assert(
