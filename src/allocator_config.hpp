@@ -18,13 +18,10 @@ namespace mem {
 
 	struct RangeMetadata
 	{
-		uint32_t stride_step {0};
-		uint32_t stride_min  {0};
-		uint32_t stride_max  {0};
-
-		constexpr uint32_t count() const {
-			return (stride_max - stride_min) / stride_step;
-		}
+		uint32_t stride_min   {0};
+		uint32_t stride_max   {0};
+		uint32_t stride_step  {0};
+		uint32_t stride_count {0};
 	};
 
 
