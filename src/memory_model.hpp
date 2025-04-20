@@ -49,10 +49,6 @@ private:
 	template <typename MetapoolRegistryType>
 	class MetapoolContainer
 	{
-	private:
-
-		typename MetapoolRegistryType::tuple_type metapool_storage;
-
 	public:
 
 		explicit MetapoolContainer(MonotonicArena* arena)
@@ -75,6 +71,8 @@ private:
 			return create_proxies(std::make_index_sequence<MetapoolRegistryType::registry_size>{});
 		}
 
+	private:
+
 		template <std::size_t... Is>
 		auto create_proxies(std::index_sequence<Is...>)
 		{
@@ -82,7 +80,12 @@ private:
 				(std::get<Is>(metapool_storage).proxy())...
 			};
 		}
-	};
+
+
+		typename MetapoolRegistryType::tuple_type metapool_storage;
+
+	}; // MemoryModel::MetapoolContainer
+
 
 	template <typename MetapoolRegistryType>
 	static auto& create_thread_local_allocator()
@@ -90,7 +93,7 @@ private:
 		thread_local static MonotonicArena arena{mem::arena_size, mem::cacheline};
 		thread_local static MetapoolContainer<MetapoolRegistryType> container(&arena);
 
-		thread_local static auto proxies = container.get_proxies();
+		thread_local static auto& proxies = container.get_proxies();
 		
 		constexpr auto allocator_config = MetapoolRegistryType::create_allocator_config();
 		thread_local static Allocator<decltype(allocator_config)> allocator(proxies);
