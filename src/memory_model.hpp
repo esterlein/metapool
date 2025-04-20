@@ -1,5 +1,7 @@
 #pragma once
 
+#include <tuple>
+
 #include "metapool.hpp"
 #include "metapool_config.hpp"
 #include "metapool_registry.hpp"
@@ -44,42 +46,56 @@ public:
 
 private:
 
-	template <typename MetapoolRegistry>
-	static auto create_metapools()
+	template <typename MetapoolRegistryType>
+	class MetapoolContainer
 	{
-		using MetapoolsTuple = typename MetapoolRegistry::tuple_type;
-		thread_local static MonotonicArena arena{mem::arena_size, mem::cacheline};
+	private:
 
-		return []<std::size_t... Is>(std::index_sequence<Is...>) {
-			return std::tuple<std::tuple_element_t<Is, MetapoolsTuple>...> {
-				std::tuple_element_t<Is, MetapoolsTuple>(&arena)...
+		typename MetapoolRegistryType::tuple_type metapool_storage;
+
+	public:
+
+		explicit MetapoolContainer(MonotonicArena* arena)
+			: metapool_storage{create_storage(arena, std::make_index_sequence<MetapoolRegistryType::registry_size>{})}
+		{}
+
+		template <std::size_t... Is>
+		static auto create_storage(MonotonicArena* arena, std::index_sequence<Is...>)
+		{
+			using Tuple = typename MetapoolRegistryType::tuple_type;
+			using std::tuple_element_t;
+
+			return typename MetapoolRegistryType::tuple_type {
+				(tuple_element_t<Is, Tuple>(arena))...
 			};
-		}(std::make_index_sequence<std::tuple_size_v<MetapoolsTuple>>{});
-	}
+		}
 
-	template <typename MetapoolsTuple>
-	static auto create_proxies(MetapoolsTuple& metapools)
-	{
-		return [&metapools]<std::size_t... Is>(std::index_sequence<Is...>) {
+		auto get_proxies()
+		{
+			return create_proxies(std::make_index_sequence<MetapoolRegistryType::registry_size>{});
+		}
+
+		template <std::size_t... Is>
+		auto create_proxies(std::index_sequence<Is...>)
+		{
 			return std::array<MetapoolProxy, sizeof...(Is)> {
-				([&metapools]() -> MetapoolProxy {
-					auto& pool = std::get<Is>(metapools);
-					return pool.proxy();
-				}())...
+				(std::get<Is>(metapool_storage).proxy())...
 			};
-		}(std::make_index_sequence<std::tuple_size_v<std::decay_t<decltype(metapools)>>>{});
-	}
+		}
+	};
 
 	template <typename MetapoolRegistryType>
 	static auto& create_thread_local_allocator()
 	{
-		thread_local static auto metapools = create_metapools<MetapoolRegistryType>();
-		thread_local static auto proxies = create_proxies(metapools);
+		thread_local static MonotonicArena arena{mem::arena_size, mem::cacheline};
+		thread_local static MetapoolContainer<MetapoolRegistryType> container(&arena);
+
+		thread_local static auto proxies = container.get_proxies();
 		
 		constexpr auto allocator_config = MetapoolRegistryType::create_allocator_config();
-		
 		thread_local static Allocator<decltype(allocator_config)> allocator(proxies);
 		return allocator;
 	}
 };
+
 } // hpr
