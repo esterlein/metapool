@@ -18,7 +18,7 @@ class Allocator : public std::pmr::memory_resource
 {
 public:
 
-	using ProxyArray = typename Config::proxy_array_type;
+	using ProxyArray = typename Config::ProxyArrayType;
 
 	constexpr Allocator(ProxyArray proxies)
 		: m_proxies {std::move(proxies)}
@@ -50,7 +50,7 @@ public:
 		constexpr uint32_t alignment =
 			(static_cast<uint32_t>(alignof(T)) + Config::alignment_quantum - 1U) & ~(Config::alignment_quantum - 1U);
 		constexpr uint32_t stride =
-			(static_cast<uint32_t>(sizeof(T)) + Config::alignment_shift + alignment - 1U) & ~(alignment - 1U);
+			(static_cast<uint32_t>(sizeof(T)) + mem::alloc_header_size + alignment - 1U) & ~(alignment - 1U);
 
 		if (stride < Config::min_stride || stride > Config::max_stride) [[unlikely]]
 			throw std::bad_alloc{};
@@ -119,7 +119,7 @@ private:
 			static_assert(Config::range_metadata.size() <= 256,
 				"too many freelists for a 1 byte lookup index");
 
-			total += range_meta[i].count();
+			total += range_meta[i].stride_count;
 		}
 		return total;
 	}
@@ -132,7 +132,7 @@ private:
 		constexpr auto& range_meta = Config::range_metadata;
 		for (std::size_t mp_index = 0; mp_index < range_meta.size(); ++mp_index) {
 
-			const std::size_t freelist_count = range_meta[mp_index].count();
+			const std::size_t freelist_count = range_meta[mp_index].stride_count;
 
 			for (std::size_t fl_index = 0; fl_index < freelist_count; ++fl_index) {
 				table[offset + fl_index] = LookupEntry {
@@ -177,7 +177,7 @@ private:
 	static inline constexpr uint32_t get_type_stride()
 	{
 		constexpr uint32_t  alignment = ((alignof(T) + Config::alignment_quantum - 1U) & ~(Config::alignment_quantum - 1U));
-		return (sizeof(T) + Config::alignment_shift + alignment - 1U) & ~(alignment - 1U);
+		return (sizeof(T) + mem::alloc_header_size + alignment - 1U) & ~(alignment - 1U);
 	}
 
 	static inline constexpr uint32_t get_pmr_stride(uint32_t bytes, uint32_t alignment)

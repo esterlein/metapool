@@ -1,6 +1,7 @@
 #pragma once
 
 
+#include "alloc_header.hpp"
 namespace hpr {
 
 
@@ -11,7 +12,7 @@ void* Allocator<Config>::do_allocate(std::size_t bytes_ul, std::size_t alignment
 	const uint32_t alignment = static_cast<uint32_t>(alignment_ul);
 
 	auto alignment_mpool = (alignment + Config::alignment_quantum - 1U) & ~(Config::alignment_quantum - 1U);
-	auto stride = (bytes + Config::alignment_shift + alignment_mpool - 1U) & ~(alignment_mpool - 1U);
+	auto stride = (bytes + mem::alloc_header_size + alignment_mpool - 1U) & ~(alignment_mpool - 1U);
 
 	if (stride < Config::min_stride || stride > Config::max_stride) [[unlikely]]
 		throw std::bad_alloc{};
