@@ -23,7 +23,19 @@ public:
 
 	using TupleType           = std::tuple<Metapools...>;
 	using VariantPtr          = std::variant<Metapools*...>;
-	using AllocatorConfigType = mem::AllocatorConfig<registry_size>;
+
+	static inline constexpr auto range_metadata_array =
+		[]<std::size_t... Is>(
+			std::index_sequence<Is...>) -> std::array<mem::RangeMetadata, sizeof...(Is)> {
+				return {{ 
+					mem::RangeMetadata {
+						.stride_min   = std::tuple_element_t<Is, TupleType>::MetapoolTraits::stride_min,
+						.stride_max   = std::tuple_element_t<Is, TupleType>::MetapoolTraits::stride_max,
+						.stride_step  = std::tuple_element_t<Is, TupleType>::MetapoolTraits::stride_step,
+						.stride_count = std::tuple_element_t<Is, TupleType>::MetapoolTraits::stride_count
+					}...
+				}};
+			}(std::make_index_sequence<registry_size>{});
 
 private:
 
@@ -87,32 +99,14 @@ private:
 		return true;
 	}
 
-
-	static constexpr auto create_range_metadata()
-	{
-		return []<std::size_t... Is>(std::index_sequence<Is...>)
-			-> std::array<mem::RangeMetadata, sizeof...(Is)>
-		{
-			return {{ 
-				mem::RangeMetadata{
-					.stride_min   = std::tuple_element_t<Is, TupleType>::MetapoolTraits::stride_min,
-					.stride_max   = std::tuple_element_t<Is, TupleType>::MetapoolTraits::stride_max,
-					.stride_step  = std::tuple_element_t<Is, TupleType>::MetapoolTraits::stride_step,
-					.stride_count = std::tuple_element_t<Is, TupleType>::MetapoolTraits::stride_count
-				}...
-			}};
-		}(std::make_index_sequence<registry_size>{});
-	}
-
 public:
 
-	static constexpr auto range_metadata_array = create_range_metadata();
+	using AllocatorConfigType = mem::AllocatorConfig<range_metadata_array>;
 
 
 	static constexpr auto create_allocator_config()
 	{
-		constexpr auto metadata = create_range_metadata();
-		return mem::AllocatorConfig<registry_size>(metadata);
+		return mem::AllocatorConfig<range_metadata_array>();
 	}
 
 	static_assert(
