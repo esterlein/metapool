@@ -25,23 +25,35 @@ public:
 
 private:
 
+
+
+
 	template <std::size_t I>
 	static constexpr uint32_t get_min_stride()
 	{
-		return std::tuple_element_t<I, tuple_type>::config_type::stride_min;
+		return std::tuple_element_t<I, tuple_type>::MetapoolTraits::stride_min;
 	}
-
+	
 	template <std::size_t I>
 	static constexpr uint32_t get_max_stride()
 	{
-		return std::tuple_element_t<I, tuple_type>::config_type::stride_max;
+		return std::tuple_element_t<I, tuple_type>::MetapoolTraits::stride_max;
 	}
-
+	
 	template <std::size_t I>
 	static constexpr uint32_t get_stride_step()
 	{
-		return std::tuple_element_t<I, tuple_type>::config_type::stride_step;
+		return std::tuple_element_t<I, tuple_type>::MetapoolTraits::stride_step;
 	}
+
+
+
+
+
+
+
+
+
 
 	template <std::size_t... Is>
 	static constexpr uint32_t compute_model_min_stride(std::index_sequence<Is...>)
@@ -97,10 +109,12 @@ public:
 	static constexpr auto create_allocator_config()
 	{
 		constexpr auto metadata = create_range_metadata();
-		return AllocatorConfig<registry_size>(metadata);
+		return mem::AllocatorConfig<registry_size>(metadata);
 	}
 
 private:
+
+
 
 	static constexpr auto create_range_metadata()
 	{
@@ -108,14 +122,16 @@ private:
 			return std::array<mem::RangeMetadata, sizeof...(Is)> {
 				{
 					mem::RangeMetadata {
-						std::tuple_element_t<Is, tuple_type>::traits::stride_min,
-						std::tuple_element_t<Is, tuple_type>::traits::stride_max,
-						std::tuple_element_t<Is, tuple_type>::traits::stride_step
+						std::tuple_element_t<Is, tuple_type>::MetapoolTraits::stride_min,
+						std::tuple_element_t<Is, tuple_type>::MetapoolTraits::stride_max,
+						std::tuple_element_t<Is, tuple_type>::MetapoolTraits::stride_step
 					}...
 				}
 			};
 		}(std::make_index_sequence<registry_size>{});
 	}
+
+
 
 	static_assert(
 		[]() constexpr {
