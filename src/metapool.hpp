@@ -29,6 +29,9 @@ public:
 	Metapool(const Metapool& other) = delete;
 	Metapool& operator=(const Metapool& other) = delete;
 
+	Metapool(Metapool&& other) noexcept = default;
+	Metapool& operator=(Metapool&& other) noexcept = default;
+
 	struct MetapoolTraits
 	{
 		static constexpr uint32_t stride_min = []() constexpr {
@@ -90,24 +93,31 @@ private:
 
 	static inline constexpr auto& compute_pools()
 	{
-		constexpr uint32_t num_pools = compute_number_of_pools();
-		constexpr auto& pool_strides = compute_pool_strides();
-		constexpr auto& block_count = compute_block_count();
-
+		constexpr std::size_t num_pools = compute_number_of_pools();
+	
 		static constexpr std::array<Pool, num_pools> pools =
-			[&pool_strides, &block_count]<uint32_t... Is>(std::index_sequence<Is...>)
-			{
-				return std::array<Pool, num_pools> {
-					Pool {
-						pool_strides[Is],
-						block_count[Is],
-						&freelist_typed_fetch<pool_strides[Is], block_count[Is]>,
-						&freelist_typed_release<pool_strides[Is], block_count[Is]>,
-						Freelist<pool_strides[Is], block_count[Is]>{}
-					}...
-				};
-			}(std::make_index_sequence<num_pools>{});
+			[]<std::size_t... Is>(std::index_sequence<Is...>) constexpr {
+				return std::array<Pool, num_pools> {{
 
+					Pool {
+
+						compute_pool_strides()[Is],
+						compute_block_count()[Is],
+
+						&freelist_typed_fetch <
+							compute_pool_strides()[Is], compute_block_count()[Is]
+						>,
+						&freelist_typed_release <
+							compute_pool_strides()[Is], compute_block_count()[Is]
+						>,
+
+						Freelist <
+							compute_pool_strides()[Is], compute_block_count()[Is]
+						>{}
+					}...
+				}};
+			}(std::make_index_sequence<num_pools>{});
+	
 		return pools;
 	}
 
