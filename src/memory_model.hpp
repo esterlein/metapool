@@ -60,12 +60,9 @@ private:
 		template <std::size_t... Is>
 		static auto create_storage(MonotonicArena* upstream, std::index_sequence<Is...>)
 		{
-			using Tuple = typename MetapoolRegistryType::tuple_type;
-			using std::tuple_element_t;
-
-			return typename MetapoolRegistryType::tuple_type {
-				(tuple_element_t<Is, Tuple>(upstream))...
-			};
+			return std::make_tuple(
+				std::tuple_element_t<Is, typename MetapoolRegistryType::TupleType>(upstream)...
+			);
 		}
 
 		auto get_proxies()

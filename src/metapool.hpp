@@ -28,8 +28,6 @@ public:
 
 	Metapool(const Metapool& other) = delete;
 	Metapool& operator=(const Metapool& other) = delete;
-	Metapool(Metapool&& other) = delete;
-	Metapool& operator=(Metapool&& other) = delete;
 
 	struct MetapoolTraits
 	{

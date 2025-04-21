@@ -21,7 +21,7 @@ public:
 	using ProxyArray = typename Config::ProxyArrayType;
 
 	constexpr Allocator(ProxyArray proxies)
-		: m_proxies      {std::move(proxies)}
+		: m_proxies {std::move(proxies)}
 	{}
 
 	Allocator() = delete;
