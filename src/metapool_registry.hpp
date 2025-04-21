@@ -19,15 +19,15 @@ class MetapoolRegistry final
 {
 public:
 
-	static inline constexpr std::size_t registry_size = sizeof...(Metapools);
+	using TupleType  = std::tuple<Metapools...>;
+	using VariantPtr = std::variant<Metapools*...>;
 
-	using TupleType           = std::tuple<Metapools...>;
-	using VariantPtr          = std::variant<Metapools*...>;
+	static inline constexpr std::size_t registry_size = sizeof...(Metapools);
 
 	static inline constexpr auto range_metadata_array =
 		[]<std::size_t... Is>(
 			std::index_sequence<Is...>) -> std::array<mem::RangeMetadata, sizeof...(Is)> {
-				return {{ 
+				return {{
 					mem::RangeMetadata {
 						.stride_min   = std::tuple_element_t<Is, TupleType>::MetapoolTraits::stride_min,
 						.stride_max   = std::tuple_element_t<Is, TupleType>::MetapoolTraits::stride_max,
