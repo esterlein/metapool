@@ -98,6 +98,7 @@ private:
 		thread_local static auto proxies = container.get_proxies();
 		
 		constexpr auto allocator_config = MetapoolRegistryType::create_allocator_config();
+
 		thread_local static Allocator<decltype(allocator_config)> allocator {proxies};
 		return allocator;
 	}

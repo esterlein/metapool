@@ -41,6 +41,11 @@ namespace mem {
 
 		static constexpr uint32_t min_stride = range_metadata[0].stride_min;
 		static constexpr uint32_t max_stride = range_metadata[range_count - 1].stride_max;
+
+		static_assert(range_count > 0,
+			"empty range");
+		static_assert(range_metadata[0].stride_step > 0,
+			"invalid stride step");
 	};
 
 
