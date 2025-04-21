@@ -70,10 +70,13 @@ namespace mem {
 			return false;
 		}
 		for (std::size_t i = 0; i < range_count; ++i) {
+
 			const auto& this_range = ranges[i];
+
 			if (this_range.stride_step == 0) {
 				return false;
 			}
+
 			if ((this_range.stride_step & (this_range.stride_step - 1)) == 0) {
 				uint32_t mask = this_range.stride_step - 1;
 				if ((this_range.stride_min & mask) ||
@@ -89,6 +92,7 @@ namespace mem {
 					return false;
 				}
 			}
+
 			if (i + 1 < range_count) {
 				const auto& next_range = ranges[i + 1];
 				if (this_range.stride_max + this_range.stride_step

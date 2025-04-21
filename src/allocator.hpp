@@ -21,14 +21,8 @@ public:
 	using ProxyArray = typename Config::ProxyArrayType;
 
 	constexpr Allocator(ProxyArray proxies)
-		: m_proxies {std::move(proxies)}
-	{
-		if (!validate_descriptor_array(m_proxies)) {
-			throw std::runtime_error {"invalid descriptor array"};
-		}
-
-		m_lookup_table = fill_lookup_table(m_proxies);
-	}
+		: m_proxies      {std::move(proxies)}
+	{}
 
 	Allocator() = delete;
 	virtual ~Allocator() = default;
