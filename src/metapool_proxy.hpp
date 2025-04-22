@@ -15,20 +15,20 @@ public:
 
 	MetapoolProxy() = delete;
 
-	std::byte* fetch(std::size_t stride) const
+	std::byte* fetch(uint8_t pool_index) const
 	{
-		return fn_fetch(m_metapool_ptr, stride);
+		return fn_fetch(m_metapool_ptr, pool_index);
 	}
 
-	void release(std::byte* location) const
+	void release(uint8_t pool_index, std::byte* block) const
 	{
-		fn_release(m_metapool_ptr, location);
+		fn_release(m_metapool_ptr, pool_index, block);
 	}
 
 private:
 
-	using MetapoolFetch = std::byte* (*)(void*, std::size_t);
-	using MetapoolRelease = void (*)(void*, std::byte*);
+	using MetapoolFetch = std::byte* (*)(void*, uint8_t);
+	using MetapoolRelease = void (*)(void*, uint8_t, std::byte*);
 
 	void* m_metapool_ptr       {nullptr};
 	MetapoolFetch fn_fetch     {nullptr};
