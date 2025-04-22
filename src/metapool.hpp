@@ -71,20 +71,26 @@ private:
 		static constexpr auto& pool_strides = compute_pool_strides();
 
 		static constexpr std::array<uint32_t, num_pools> block_counts = []() {
+
 			std::array<uint32_t, num_pools> counts {};
 			uint32_t curr_count = Config::base_block_count;
 
 			for (std::size_t i = 0; i < num_pools; ++i) {
+				counts[i] = curr_count;
+
 				if (i > 0 &&
 					std::find(
 						Config::stride_pivots.begin() + 1,
-						Config::stride_pivots.end() - 1,
-						pool_strides[i])
-							!= Config::stride_pivots.end()) {
-								curr_count /= 2;
-							}
-				counts[i] = curr_count;
+						Config::stride_pivots.end(),
+						pool_strides[i]
+					) != Config::stride_pivots.end()) {
+						curr_count = std::max(
+							curr_count / 2U,
+							mem::MetapoolConstraints::min_last_block_count
+						);
+					}
 			}
+
 			return counts;
 		}();
 
