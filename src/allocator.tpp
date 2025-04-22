@@ -6,20 +6,17 @@ namespace hpr {
 
 
 template <mem::IsAllocatorConfig Config>
-void* Allocator<Config>::do_allocate(std::size_t bytes_ul, std::size_t alignment_ul)
+void* Allocator<Config>::do_allocate(std::size_t size, std::size_t alignment_min)
 {
-	const uint32_t bytes = static_cast<uint32_t>(bytes_ul);
-	const uint32_t alignment = static_cast<uint32_t>(alignment_ul);
-
-	auto alignment_mpool = (alignment + Config::alignment_quantum - 1U) & ~(Config::alignment_quantum - 1U);
-	auto stride = (bytes + mem::alloc_header_size + alignment_mpool - 1U) & ~(alignment_mpool - 1U);
+	constexpr uint32_t alignment = compute_alignment(static_cast<uint32_t>(alignment_min));
+	constexpr uint32_t stride    = compute_stride(static_cast<uint32_t>(size), alignment);
 
 	if constexpr (std::is_constant_evaluated()) {
-		static_assert(stride < Config::min_stride || stride > Config::max_stride,
+		static_assert(stride >= Config::min_stride || stride <= Config::max_stride,
 			"stride is out of bounds in allocate");
 	}
 	else {
-		assert((stride < Config::min_stride || stride > Config::max_stride) &&
+		assert((stride >= Config::min_stride || stride <= Config::max_stride) &&
 			"stride is out of bounds" && __func__);
 	}
 
@@ -28,14 +25,8 @@ void* Allocator<Config>::do_allocate(std::size_t bytes_ul, std::size_t alignment
 	auto& proxy = m_proxies[lookup_entry.mpool_index];
 	std::byte* block = proxy.fetch(lookup_entry.flist_index);
 
-	if constexpr (std::is_constant_evaluated()) {
-		static_assert(block != nullptr,
-			"block is nullptr in allocate");
-	}
-	else {
-		assert(block != nullptr &&
-			"block is nullptr"   && __func__);
-	}
+	assert(block != nullptr &&
+		"block is nullptr"  && __func__);
 
 	auto* header = reinterpret_cast<mem::AllocHeader*>(block);
 	*header = mem::AllocHeader::make(lookup_entry.mpool_index, lookup_entry.flist_index);

@@ -68,6 +68,7 @@ public:
 		return object;
 	}
 
+
 	template <typename T>
 	void destruct(T* object)
 	{
@@ -100,11 +101,13 @@ private:
 	static_assert(Config::range_metadata.size() <= 256,
 		"too many metapools for a 1 byte lookup index");
 
+
 	struct LookupEntry
 	{
 		uint8_t mpool_index;
 		uint8_t flist_index;
 	};
+
 
 	static constexpr std::size_t compute_number_of_entries()
 	{
@@ -168,6 +171,20 @@ private:
 			static_cast<uint8_t>(fl_index)
 		};
 	}
+
+
+	constexpr uint32_t compute_alignment(uint32_t alignment_min) noexcept
+	{
+		return (alignment_min + Config::alignment_quantum - 1U)
+			& ~(Config::alignment_quantum - 1U);
+	}
+	
+	constexpr uint32_t compute_stride(uint32_t size, uint32_t alignment) noexcept
+	{
+		return (size + mem::alloc_header_size + alignment - 1U)
+			& ~(alignment - 1U);
+	}
+
 
 	template <typename T>
 	static inline constexpr uint32_t get_type_stride()
