@@ -23,6 +23,7 @@ file(GLOB_RECURSE METAPOOL_SOURCES
 	"${CMAKE_SOURCE_DIR}/main.cpp"
 )
 
+
 add_executable(metapool)
 
 target_sources(metapool PRIVATE
@@ -78,8 +79,12 @@ add_custom_target(analyze
 )
 
 add_custom_target(analyze-web
-	COMMAND ${CMAKE_COMMAND} -E env DYLD_LIBRARY_PATH=/usr/local/opt/llvm/lib:/usr/local/opt/llvm/lib/c++ \
-		pprof --web $<TARGET_FILE:metapool> ${CMAKE_CURRENT_BINARY_DIR}/metapool.prof
+	COMMAND ${CMAKE_COMMAND} -E env
+		DYLD_LIBRARY_PATH=/usr/local/opt/llvm/lib:/usr/local/opt/llvm/lib/c++
+		pprof
+		--web
+		$<TARGET_FILE:metapool>
+		${CMAKE_CURRENT_BINARY_DIR}/metapool.prof
 	DEPENDS profile
 	WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
 	VERBATIM
