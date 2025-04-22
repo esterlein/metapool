@@ -44,8 +44,8 @@ private:
 
 		auto start = std::chrono::high_resolution_clock::now();
 		for (int i = 0; i < 1000000000; ++i) {
-			void* ptr = allocator.allocate(256, 64);
-			allocator.deallocate(ptr, 256, 64);
+			void* ptr = allocator.allocate(128, 64);
+			allocator.deallocate(ptr, 128, 64);
 		}
 		auto end = std::chrono::high_resolution_clock::now();
 
@@ -62,8 +62,8 @@ private:
 
 		auto start = std::chrono::high_resolution_clock::now();
 		for (int i = 0; i < 1000000000; ++i) {
-			void* ptr = allocator.resource()->allocate(256, 64);
-			allocator.resource()->deallocate(ptr, 256, 64);
+			void* ptr = allocator.resource()->allocate(128, 64);
+			allocator.resource()->deallocate(ptr, 128, 64);
 		}
 		auto end = std::chrono::high_resolution_clock::now();
 
@@ -79,8 +79,8 @@ private:
 
 		auto start = std::chrono::high_resolution_clock::now();
 		for (int i = 0; i < 1000000000; ++i) {
-			char* ptr = allocator.allocate(256);
-			allocator.deallocate(ptr, 256);
+			char* ptr = allocator.allocate(128);
+			allocator.deallocate(ptr, 128);
 		}
 		auto end = std::chrono::high_resolution_clock::now();
 
