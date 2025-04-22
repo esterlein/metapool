@@ -100,8 +100,8 @@ private:
 
 	struct LookupEntry
 	{
-		uint8_t metapool_index;
-		uint8_t freelist_index;
+		uint8_t mpool_index;
+		uint8_t flist_index;
 	};
 
 	static constexpr std::size_t compute_number_of_entries()
