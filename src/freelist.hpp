@@ -18,7 +18,7 @@ public:
 	Freelist() = default;
 
 	void initialize(std::byte* memory);
-	[[nodiscard]] std::byte* fetch();
+	[[nodiscard]] std::byte* fetch() noexcept;
 	void release(std::byte* block) noexcept;
 
 	inline void reset() noexcept { m_head = nullptr; }
