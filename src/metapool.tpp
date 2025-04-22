@@ -72,7 +72,8 @@ std::byte* Metapool<Config>::fetch(uint8_t pool_index)
 	if constexpr (std::is_constant_evaluated()) {
 		static_assert(block != nullptr,
 			"block is nullptr in metapool fetch");
-	} else {
+	}
+	else {
 		assert(block != nullptr &&
 			"block is nullptr"  && __func__);
 	}
@@ -89,7 +90,8 @@ void Metapool<Config>::release(uint8_t pool_index, std::byte* block)
 			"block is nullptr in metapool fetch");
 		static_assert(pool_index < m_pools.size(),
 			"pool index out of bounds in metapool fetch");
-	} else {
+	}
+	else {
 		assert(block != nullptr &&
 			"block is nullptr"  && __func__);
 		assert(pool_index < m_pools.size() &&

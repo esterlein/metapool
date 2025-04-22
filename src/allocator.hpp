@@ -32,10 +32,6 @@ public:
 	Allocator& operator=(const Allocator&) = delete;
 	Allocator& operator=(Allocator&&) = delete;
 
-	// transparent interface / replace method calls
-
-	// uint32_t enum class error codes in hot paths
-
 public:
 
 	template <typename T, typename... Types>
@@ -46,16 +42,22 @@ public:
 		constexpr uint32_t stride =
 			(static_cast<uint32_t>(sizeof(T)) + mem::alloc_header_size + alignment - 1U) & ~(alignment - 1U);
 
-		if (stride < Config::min_stride || stride > Config::max_stride) [[unlikely]]
-			throw std::bad_alloc{};
+		if constexpr (std::is_constant_evaluated()) {
+			static_assert(stride >= Config::min_stride || stride <= Config::max_stride,
+				"stride is out of bounds in allocate");
+		}
+		else {
+			assert((stride >= Config::min_stride || stride <= Config::max_stride) &&
+				"stride is out of bounds" && __func__);
+		}
 
 		auto lookup_entry = lookup(stride);
 
 		auto& proxy = m_proxies[lookup_entry.mpool_index];
 		std::byte* block = proxy.fetch(lookup_entry.flist_index);
 
-		if (!block) [[unlikely]]
-			throw std::bad_alloc{};
+		assert(block != nullptr &&
+			"block is nullptr"  && __func__);
 
 		auto* header = reinterpret_cast<mem::AllocHeader*>(block);
 		*header = mem::AllocHeader::make(lookup_entry.mpool_index, lookup_entry.flist_index);
