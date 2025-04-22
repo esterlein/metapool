@@ -37,10 +37,8 @@ public:
 	template <typename T, typename... Types>
 	[[nodiscard]] T* construct(Types&&... args)
 	{
-		constexpr uint32_t alignment =
-			(static_cast<uint32_t>(alignof(T)) + Config::alignment_quantum - 1U) & ~(Config::alignment_quantum - 1U);
-		constexpr uint32_t stride =
-			(static_cast<uint32_t>(sizeof(T)) + mem::alloc_header_size + alignment - 1U) & ~(alignment - 1U);
+		constexpr uint32_t alignment = compute_alignment(static_cast<uint32_t>(alignof(T)));
+		constexpr uint32_t stride    = compute_stride(static_cast<uint32_t>(sizeof(T)), alignment);
 
 		if constexpr (std::is_constant_evaluated()) {
 			static_assert(stride >= Config::min_stride || stride <= Config::max_stride,
@@ -72,8 +70,8 @@ public:
 	template <typename T>
 	void destruct(T* object)
 	{
-		if (!object) [[unlikely]]
-			return;
+		assert(object != nullptr &&
+			"object is nullptr"  && __func__);
 
 		std::byte* block = reinterpret_cast<std::byte*>(object) - sizeof(mem::AllocHeader);
 		auto* header = reinterpret_cast<const mem::AllocHeader*>(block);
