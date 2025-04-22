@@ -171,13 +171,13 @@ private:
 	}
 
 
-	constexpr uint32_t compute_alignment(uint32_t alignment_min) noexcept
+	static constexpr uint32_t compute_alignment(uint32_t alignment_min) noexcept
 	{
 		return (alignment_min + Config::alignment_quantum - 1U)
 			& ~(Config::alignment_quantum - 1U);
 	}
 	
-	constexpr uint32_t compute_stride(uint32_t size, uint32_t alignment) noexcept
+	static constexpr uint32_t compute_stride(uint32_t size, uint32_t alignment) noexcept
 	{
 		return (size + mem::alloc_header_size + alignment - 1U)
 			& ~(alignment - 1U);

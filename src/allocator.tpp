@@ -8,17 +8,11 @@ namespace hpr {
 template <mem::IsAllocatorConfig Config>
 void* Allocator<Config>::do_allocate(std::size_t size, std::size_t alignment_min)
 {
-	constexpr uint32_t alignment = compute_alignment(static_cast<uint32_t>(alignment_min));
-	constexpr uint32_t stride    = compute_stride(static_cast<uint32_t>(size), alignment);
+	const uint32_t alignment = compute_alignment(static_cast<uint32_t>(alignment_min));
+	const uint32_t stride    = compute_stride(static_cast<uint32_t>(size), alignment);
 
-	if constexpr (std::is_constant_evaluated()) {
-		static_assert(stride >= Config::min_stride || stride <= Config::max_stride,
-			"stride is out of bounds in allocate");
-	}
-	else {
-		assert((stride >= Config::min_stride || stride <= Config::max_stride) &&
-			"stride is out of bounds" && __func__);
-	}
+	assert((stride >= Config::min_stride || stride <= Config::max_stride) &&
+		"stride is out of bounds" && __func__);
 
 	auto lookup_entry = lookup(stride);
 
