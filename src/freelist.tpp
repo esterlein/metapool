@@ -57,14 +57,8 @@ void Freelist<Stride, BlockCount>::initialize(std::byte* memory)
 template <uint32_t Stride, uint32_t BlockCount>
 std::byte* Freelist<Stride, BlockCount>::fetch() noexcept
 {
-	if constexpr (std::is_constant_evaluated()) {
-		static_assert(m_head != nullptr,
-			"head is nullptr in freelist fetch");
-	}
-	else {
-		assert(m_head != nullptr &&
-			"head is nullptr"    && __func__);
-	}
+	assert(m_head != nullptr &&
+		"head is nullptr"    && __func__);
 
 	return pop();
 }
@@ -73,18 +67,10 @@ std::byte* Freelist<Stride, BlockCount>::fetch() noexcept
 template <uint32_t Stride, uint32_t BlockCount>
 void Freelist<Stride, BlockCount>::release(std::byte* block) noexcept
 {
-	if constexpr (std::is_constant_evaluated()) {
-		static_assert(block != nullptr,
-			"block is nullptr in freelist release");
-		static_assert(block < m_memory_base || block >= m_memory_end,
-			"block does not belong to this freelist in release");
-	}
-	else {
-		assert(m_head != nullptr &&
-			"block is nullptr"   && __func__);
-		assert(block < m_memory_base || block >= m_memory_end &&
-			"block does not belong to this freelist" && __func__);
-	}
+	assert(block != nullptr &&
+		"block is nullptr"  && __func__);
+	assert(block >= m_memory_base || block < m_memory_end &&
+		"block does not belong to this freelist" && __func__);
 
 	push(block);
 }
