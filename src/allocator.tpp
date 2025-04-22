@@ -40,14 +40,8 @@ void* Allocator<Config>::do_allocate(std::size_t size, std::size_t alignment_min
 template <mem::IsAllocatorConfig Config>
 void Allocator<Config>::do_deallocate(void* location, std::size_t bytes, std::size_t alignment)
 {
-	if constexpr (std::is_constant_evaluated()) {
-		static_assert(location != nullptr,
-			"location is nullptr in allocate");
-	}
-	else {
-		assert(location != nullptr &&
-			"location is nullptr"  && __func__);
-	}
+	assert(location != nullptr &&
+		"location is nullptr"  && __func__);
 
 	std::byte* block = reinterpret_cast<std::byte*>(location) - sizeof(mem::AllocHeader);
 	
