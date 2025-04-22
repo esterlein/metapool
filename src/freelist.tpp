@@ -13,22 +13,43 @@ void Freelist<Stride, BlockCount>::initialize(std::byte* memory)
 {
 	assert(memory != nullptr && BlockCount > 0);
 
+	fprintf(stderr,
+		"Freelist::initialize: memory = %p  stride = %u  blocks = %u  total_bytes = %zu\n",
+		(void*)memory,
+		Stride,
+		BlockCount,
+		size_t(BlockCount) * Stride
+	);
+	fflush(stderr);
+
 	m_memory_base = memory;
-	m_memory_end  = memory + (static_cast<std::size_t>(BlockCount) * Stride);
+	m_memory_end  = memory + (size_t(BlockCount) * Stride);
 
 	m_head = reinterpret_cast<Block*>(memory);
 	Block* current = m_head;
 
-	for (auto i = 1; i < BlockCount; ++i) {
+	for (uint32_t i = 1; i < BlockCount; ++i) {
+
+		size_t offset = size_t(i) * Stride;
+		Block* next = reinterpret_cast<Block*>(memory + offset);
+
+		fprintf(stderr,
+			"  [%2u] this = %p  next_offset = 0x%zx  next = %p\n",
+			i,
+			(void*)current,
+			offset,
+			(void*)next
+		);
+		fflush(stderr);
 
 		if (i > std::numeric_limits<uint32_t>::max() / Stride) { [[unlikely]]
-			throw std::runtime_error {"integer overflow in freelist initialization"};
+			throw std::runtime_error{"integer overflow in freelist initialization"};
 		}
 
-		Block* next = reinterpret_cast<Block*>(memory + i * Stride);
 		current->next = next;
 		current = next;
 	}
+
 	current->next = nullptr;
 }
 
