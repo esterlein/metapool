@@ -30,6 +30,18 @@ namespace mem {
 	};
 
 
+	enum class CapacityFunction
+	{
+		Div8,
+		Div4,
+		Div2,
+		Flat,
+		Mul2,
+		Mul4,
+		Mul8
+	};
+
+
 	struct metapool_config_tag {};
 
 	template <typename T>
@@ -39,7 +51,7 @@ namespace mem {
 	};
 
 
-	template <auto BaseBlockCount, auto StrideStep, auto... StridePivots>
+	template <CapacityFunction Func, auto BaseBlockCount, auto StrideStep, auto... StridePivots>
 	concept ValidMetapoolConfig =
 		BaseBlockCount          >= MetapoolConstraints::min_base_block_count  &&
 		StrideStep              >= MetapoolConstraints::min_stride_step       &&
@@ -63,8 +75,8 @@ namespace mem {
 		}();
 
 
-	template <auto BaseBlockCount, auto StrideStep, auto... StridePivots>
-	requires ValidMetapoolConfig <BaseBlockCount, StrideStep, StridePivots...>
+	template <CapacityFunction Func, auto BaseBlockCount, auto StrideStep, auto... StridePivots>
+	requires ValidMetapoolConfig <Func, BaseBlockCount, StrideStep, StridePivots...>
 	struct MetapoolConfig
 	{
 		using tag = metapool_config_tag;
@@ -88,6 +100,8 @@ namespace mem {
 			constexpr auto& arr = stride_pivots;
 			return (arr.back() - arr.front()) / StrideStep;
 		}();
+
+		static constexpr CapacityFunction capacity_function = Func;
 	};
 
 } // hpr::mem
