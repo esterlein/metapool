@@ -44,8 +44,8 @@ private:
 
 		auto start = std::chrono::high_resolution_clock::now();
 		for (int i = 0; i < 1000000000; ++i) {
-			void* ptr = allocator.allocate(128, 64);
-			allocator.deallocate(ptr, 128, 64);
+			std::byte* ptr = allocator.alloc(128, 64);
+			allocator.free(ptr);
 		}
 		auto end = std::chrono::high_resolution_clock::now();
 
