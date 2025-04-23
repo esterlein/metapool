@@ -116,6 +116,9 @@ private:
 						&freelist_typed_release <
 							compute_pool_strides()[Is], compute_block_count()[Is]
 						>,
+						&freelist_typed_reset <
+							compute_pool_strides()[Is], compute_block_count()[Is]
+						>,
 
 						Freelist <
 							compute_pool_strides()[Is], compute_block_count()[Is]
@@ -147,6 +150,7 @@ private:
 
 	using FreelistFetch = std::byte* (*)(void* freelist);
 	using FreelistRelease = void (*)(void* freelist, std::byte* block);
+	using FreelistReset = void (*)(void* freelist);
 
 	template <uint32_t Stride, uint32_t BlockCount>
 	[[nodiscard]] static inline std::byte* freelist_typed_fetch(void* freelist_ptr)
@@ -164,16 +168,27 @@ private:
 		freelist.release(block);
 	}
 
+	template <uint32_t Stride, uint32_t BlockCount>
+	static inline void freelist_typed_reset(void* freelist_ptr)
+	{
+		assert(freelist_ptr != nullptr);
+		auto& freelist = *static_cast<Freelist<Stride, BlockCount>*>(freelist_ptr);
+		return freelist.reset();
+	}
+
+
 	struct Pool
 	{
-		uint32_t stride;
-		uint32_t block_count;
+		uint32_t stride      {0};
+		uint32_t block_count {0};
 
-		FreelistFetch fl_fetch;
-		FreelistRelease fl_release;
+		FreelistFetch   fl_fetch   {nullptr};
+		FreelistRelease fl_release {nullptr};
+		FreelistReset   fl_reset   {nullptr};
 
 		FreelistVariant freelist;
 	};
+
 
 	MetapoolProxy create_proxy();
 
