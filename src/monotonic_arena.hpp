@@ -12,7 +12,7 @@ class MonotonicArena final
 {
 public:
 
-	explicit MonotonicArena(std::size_t size, std::size_t alignment, std::size_t shift = 0);
+	MonotonicArena(std::size_t size, std::size_t alignment, std::size_t shift = 0);
 	~MonotonicArena();
 
 	MonotonicArena(const MonotonicArena&) = delete;
@@ -31,7 +31,8 @@ public:
 		return this == &other;
 	}
 
-	inline void reset() noexcept { m_offset = 0; }
+	inline void reset() noexcept
+	{ m_offset = 0; }
 
 	[[nodiscard]] inline void* align_pointer(void* ptr, std::size_t alignment)
 	{

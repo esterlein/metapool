@@ -1,4 +1,5 @@
 #include <memory>
+#include <cassert>
 
 #include "monotonic_arena.hpp"
 
@@ -12,9 +13,7 @@ MonotonicArena::MonotonicArena(std::size_t size, std::size_t alignment, std::siz
 {
 	m_arena = allocate(size, alignment, shift);
 
-	if (!m_arena) {
-		throw std::bad_alloc{};
-	}
+	assert(m_arena != nullptr);
 }
 
 
