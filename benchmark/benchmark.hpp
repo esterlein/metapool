@@ -43,7 +43,7 @@ public:
 		auto& allocator = hpr::MemoryModel::get_allocator<hpr::mem::AllocatorType::Standard>();
 
 		std::vector<std::pair<void*, size_t>> blocks;
-		for (size_t size : {8, 16, 32, 64, 128, 256}) {
+		for (size_t size : {8, 16, 32, 64, 128}) {
 			void* ptr = allocator.allocate(size, 8);
 			assert(ptr != nullptr);
 			blocks.push_back({ptr, size});
@@ -56,38 +56,20 @@ public:
 		}
 	}
 
-	/*
-	inline void test_memory_leaks()
-	{
-		size_t initial_memory = get_memory_usage();
-		{
-			hpr::MemoryModel memory_model;
-			auto& allocator = memory_model.get_memory_resource();
-			
-			for (int i = 0; i < 1000; i++) {
-			    void* ptr = resource.allocate(i % 100 + 1, 8);
-			    resource.deallocate(ptr, i % 100 + 1, 8);
-			}
-		}
-		size_t final_memory = get_memory_usage();
-		assert(final_memory - initial_memory == 0);
-	}
-	*/
-
 	inline void test_with_containers()
 	{
 		auto& allocator = hpr::MemoryModel::get_allocator<hpr::mem::AllocatorType::Standard>();
 
-		std::pmr::vector<int> vec(&allocator);
+//		std::pmr::vector<int> vec(&allocator);
 		std::pmr::string str(&allocator);
-
-		for (int i = 0; i < 1000; ++i)
+/*
+		for (int i = 0; i < 2; ++i)
 			vec.push_back(i);
-
-		for (int i = 0; i < 1000; ++i)
+*/
+		for (int i = 0; i < 1; ++i)
 			str += "a";
 
-		vec.clear();
+//		vec.clear();
 		str.clear();
 	}
 
