@@ -36,6 +36,7 @@ public:
 
 	std::byte* alloc(uint32_t size, uint32_t alignment);
 	void free(std::byte* block);
+	void reset();
 
 	template <typename T, typename... Types>
 	[[nodiscard]] T* construct(Types&&... args)
@@ -45,11 +46,11 @@ public:
 
 		if constexpr (std::is_constant_evaluated()) {
 			static_assert(stride >= Config::min_stride || stride <= Config::max_stride,
-				"stride is out of bounds in allocate");
+				"stride out of bounds in allocate");
 		}
 		else {
 			assert((stride >= Config::min_stride || stride <= Config::max_stride) &&
-				"stride is out of bounds" && __func__);
+				"stride out of bounds" && __func__);
 		}
 
 		auto lookup_entry = lookup(stride);

@@ -46,6 +46,14 @@ void Allocator<Config>::free(std::byte* location)
 }
 
 
+template <mem::IsAllocatorConfig Config>
+void Allocator<Config>::reset()
+{
+	for (auto& proxy : m_proxies) {
+		proxy.reset();
+	}
+}
+
 
 template <mem::IsAllocatorConfig Config>
 void* Allocator<Config>::do_allocate(std::size_t size, std::size_t alignment_min)
