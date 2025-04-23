@@ -199,6 +199,7 @@ public:
 
 	[[nodiscard]] std::byte* fetch(uint8_t pool_index);
 	void release(uint8_t pool_index, std::byte* block);
+	void reset() noexcept;
 
 	[[nodiscard]] static inline constexpr auto bounds()
 	{

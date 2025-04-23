@@ -89,10 +89,10 @@ void Metapool<Config>::release(uint8_t pool_index, std::byte* block)
 
 
 template <mem::IsMetapoolConfig Config>
-void Metapool<Config>::reset()
+void Metapool<Config>::reset() noexcept
 {
 	for (auto& pool : m_pools) {
-		pool->fl_reset();
+		pool.fl_reset(&pool.freelist);
 	}
 }
 
@@ -110,7 +110,7 @@ MetapoolProxy Metapool<Config>::create_proxy()
 
 		[](void* mpool_this, uint8_t pool_index, std::byte* block) {
 			static_cast<Metapool*>(mpool_this)->release(pool_index, block);
-		}
+		},
 
 		[](void* mpool_this) {
 			static_cast<Metapool*>(mpool_this)->reset();

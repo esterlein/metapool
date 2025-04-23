@@ -47,7 +47,7 @@ void Allocator<Config>::free(std::byte* location)
 
 
 template <mem::IsAllocatorConfig Config>
-void Allocator<Config>::reset()
+void Allocator<Config>::reset() noexcept
 {
 	for (auto& proxy : m_proxies) {
 		proxy.reset();
