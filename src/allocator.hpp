@@ -34,6 +34,9 @@ public:
 
 public:
 
+	std::byte* alloc(uint32_t size, uint32_t alignment);
+	void free(std::byte* block);
+
 	template <typename T, typename... Types>
 	[[nodiscard]] T* construct(Types&&... args)
 	{
