@@ -65,37 +65,56 @@ private:
 		return strides;
 	}
 
+
 	static inline constexpr const auto& compute_block_count()
 	{
 		static constexpr uint32_t num_pools = compute_number_of_pools();
 		static constexpr auto& pool_strides = compute_pool_strides();
 
+		static constexpr auto& pivots = Config::stride_pivots;
+		static constexpr auto func = Config::capacity_function;
+	
 		static constexpr std::array<uint32_t, num_pools> block_counts = []() {
-
 			std::array<uint32_t, num_pools> counts {};
 			uint32_t curr_count = Config::base_block_count;
-
+	
 			for (std::size_t i = 0; i < num_pools; ++i) {
 				counts[i] = curr_count;
-
-				if (i > 0 &&
-					std::find(
-						Config::stride_pivots.begin() + 1,
-						Config::stride_pivots.end(),
-						pool_strides[i]
-					) != Config::stride_pivots.end()) {
-						curr_count = std::max(
-							curr_count / 2U,
-							mem::MetapoolConstraints::min_last_block_count
-						);
+	
+				if (i + 1 < num_pools &&
+					std::find(pivots.begin() + 1, pivots.end(), pool_strides[i + 1]) != pivots.end())
+				{
+					switch (func) {
+						case mem::CapacityFunction::Div8:
+							curr_count = std::max(curr_count / 8U, mem::MetapoolConstraints::min_last_block_count);
+							break;
+						case mem::CapacityFunction::Div4:
+							curr_count = std::max(curr_count / 4U, mem::MetapoolConstraints::min_last_block_count);
+							break;
+						case mem::CapacityFunction::Div2:
+							curr_count = std::max(curr_count / 2U, mem::MetapoolConstraints::min_last_block_count);
+							break;
+						case mem::CapacityFunction::Flat:
+							break;
+						case mem::CapacityFunction::Mul2:
+							curr_count *= 2U;
+							break;
+						case mem::CapacityFunction::Mul4:
+							curr_count *= 4U;
+							break;
+						case mem::CapacityFunction::Mul8:
+							curr_count *= 8U;
+							break;
 					}
+				}
 			}
-
+	
 			return counts;
 		}();
-
+	
 		return block_counts;
 	}
+
 
 	static inline constexpr auto& compute_pools()
 	{

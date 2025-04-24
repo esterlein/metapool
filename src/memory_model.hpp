@@ -18,7 +18,7 @@ namespace mem {
 
 	using StandardMetapoolRegistry =
 		MetapoolRegistry <
-			Metapool<mem::MetapoolConfig<mem::CapacityFunction::Div2, 1024, 8, 16, 32, 64, 128, 256>>
+			Metapool<mem::MetapoolConfig<mem::CapacityFunction::Flat, 1024, 8, 16, 32, 64, 128, 256, 512, 1024>>
 		>;
 
 
