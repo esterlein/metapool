@@ -30,16 +30,6 @@ Metapool<Config>::Metapool(MonotonicArena* upstream)
 
 		std::byte* pool_memory = m_upstream->fetch(pool_size, mem::cacheline);
 
-		fprintf(stderr,
-			"init pool %zu: ptr = %p  stride = %u  blocks = %u  end = %p\n",
-			pool_index,
-			(void*)pool_memory,
-			pool.stride,
-			pool.block_count,
-			(void*)(pool_memory + pool_size)
-		);
-		fflush(stderr);
-
 		std::visit(
 			[pool_memory](auto& freelist) {
 				freelist.initialize(pool_memory);

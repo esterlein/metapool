@@ -13,12 +13,12 @@ namespace hpr {
 namespace mem {
 
 
-	static inline constexpr std::size_t arena_size = 268435456; // 256 MB
+	static inline constexpr std::size_t arena_size = 1073741824; // 256 MB
 
 
 	using StandardMetapoolRegistry =
 		MetapoolRegistry <
-			Metapool<mem::MetapoolConfig<mem::CapacityFunction::Flat, 1024, 8, 16, 32, 64, 128, 256, 512, 1024>>
+			Metapool<mem::MetapoolConfig<mem::CapacityFunction::Flat, 2048, 8, 8, 2048>>
 		>;
 
 

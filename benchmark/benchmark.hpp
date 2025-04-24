@@ -32,6 +32,9 @@ public:
 
 		for (size_t alignment : {1, 2, 4, 8, 16, 32, 64}) {
 			void* ptr = allocator.allocate(64, alignment);
+
+			std::cout << alignment << " " << ptr << std::endl;
+
 			assert(ptr != nullptr);
 			assert(reinterpret_cast<uintptr_t>(ptr) % alignment == 0);
 			allocator.deallocate(ptr, 64, alignment);
@@ -63,10 +66,10 @@ public:
 		std::pmr::vector<int> vec(&allocator);
 		std::pmr::string str(&allocator);
 
-		for (int i = 0; i < 10; ++i)
+		for (int i = 0; i < 1000; ++i)
 			vec.push_back(i);
 
-		for (int i = 0; i < 10; ++i)
+		for (int i = 0; i < 1000; ++i)
 			str += "a";
 
 		vec.clear();
