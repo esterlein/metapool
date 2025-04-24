@@ -28,7 +28,7 @@ Metapool<Config>::Metapool(MonotonicArena* upstream)
 
 		std::size_t pool_size = pool.stride * pool.block_count;
 
-		std::byte* pool_memory = m_upstream->fetch(pool_size, mem::cacheline);
+		std::byte* pool_memory = m_upstream->fetch(pool_size, mem::cacheline, mem::alloc_header_size);
 
 		std::visit(
 			[pool_memory](auto& freelist) {

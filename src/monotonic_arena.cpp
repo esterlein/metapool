@@ -7,11 +7,10 @@
 namespace hpr {
 
 
-MonotonicArena::MonotonicArena(std::size_t size, std::size_t alignment, std::size_t shift)
-	: m_size  {size}
-	, m_shift {shift}
+MonotonicArena::MonotonicArena(std::size_t size, std::size_t alignment)
+	: m_size {size}
 {
-	m_arena = allocate(size, alignment, shift);
+	m_arena = allocate(size, alignment, 0);
 
 	assert(m_arena != nullptr);
 }
@@ -50,24 +49,33 @@ std::byte* MonotonicArena::allocate(std::size_t alloc_size, std::size_t alignmen
 }
 
 
-std::byte* MonotonicArena::fetch(std::size_t alloc_size, std::size_t alignment)
+std::byte* MonotonicArena::fetch(std::size_t alloc_size, std::size_t alignment, std::size_t shift)
 {
 	if (alloc_size == 0) { [[unlikely]]
 		return nullptr;
 	}
+
 	std::byte* current = m_arena + m_offset;
 	std::size_t available = m_size - m_offset;
-	void* aligned_ptr = current;
+
+	void* aligned_ptr = current + shift;
 	if (std::align(alignment, alloc_size, aligned_ptr, available) == nullptr) { [[unlikely]]
-		throw std::bad_alloc{};
+		throw std::bad_alloc {};
 	}
-	std::size_t adjustment = static_cast<std::size_t>(static_cast<std::byte*>(aligned_ptr) - current);
+
+	std::byte* data_ptr = static_cast<std::byte*>(aligned_ptr);
+	std::byte* base_ptr = data_ptr - shift;
+
+	std::size_t adjustment = static_cast<std::size_t>(data_ptr - current);
 	std::size_t allocation_total = adjustment + alloc_size;
+
 	if (m_offset + allocation_total > m_size) { [[unlikely]]
-		throw std::bad_alloc{};
+		throw std::bad_alloc {};
 	}
+
 	m_offset += allocation_total;
-	return static_cast<std::byte*>(aligned_ptr);
+
+	return base_ptr;
 }
 
 

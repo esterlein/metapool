@@ -12,7 +12,7 @@ class MonotonicArena final
 {
 public:
 
-	MonotonicArena(std::size_t size, std::size_t alignment, std::size_t shift = 0);
+	MonotonicArena(std::size_t size, std::size_t alignment);
 	~MonotonicArena();
 
 	MonotonicArena(const MonotonicArena&) = delete;
@@ -23,7 +23,7 @@ public:
 public:
 
 	std::byte* allocate(std::size_t size, std::size_t alignment, std::size_t shift);
-	std::byte* fetch(std::size_t size, std::size_t alignment);
+	std::byte* fetch(std::size_t size, std::size_t alignment, std::size_t shift);
 	void deallocate(std::byte* aligned_ptr);
 
 	inline bool is_equal(const MonotonicArena& other) const noexcept
@@ -46,6 +46,5 @@ private:
 	std::byte*  m_arena  {nullptr};
 	std::size_t m_size   {0};
 	std::size_t m_offset {0};
-	std::size_t m_shift  {0};
 };
 } // hpr
