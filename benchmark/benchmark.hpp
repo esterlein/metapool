@@ -60,16 +60,16 @@ public:
 	{
 		auto& allocator = hpr::MemoryModel::get_allocator<hpr::mem::AllocatorType::Standard>();
 
-//		std::pmr::vector<int> vec(&allocator);
+		std::pmr::vector<int> vec(&allocator);
 		std::pmr::string str(&allocator);
-/*
-		for (int i = 0; i < 2; ++i)
+
+		for (int i = 0; i < 10; ++i)
 			vec.push_back(i);
-*/
-		for (int i = 0; i < 1; ++i)
+
+		for (int i = 0; i < 10; ++i)
 			str += "a";
 
-//		vec.clear();
+		vec.clear();
 		str.clear();
 	}
 
