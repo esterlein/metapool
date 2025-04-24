@@ -53,25 +53,49 @@ namespace mem {
 
 	template <CapacityFunction Func, auto BaseBlockCount, auto StrideStep, auto... StridePivots>
 	concept ValidMetapoolConfig =
-		BaseBlockCount          >= MetapoolConstraints::min_base_block_count  &&
-		StrideStep              >= MetapoolConstraints::min_stride_step       &&
-		StrideStep              <= MetapoolConstraints::max_stride_step       &&
-		sizeof...(StridePivots) >= 2                                          &&
-		((StridePivots          %  MetapoolConstraints::min_stride_step == 0) && ...) &&
-		(
-			(sizeof...(StridePivots) > 1)
-				? (BaseBlockCount * math::int_pow<int32_t>(2, static_cast<int32_t>(-(sizeof...(StridePivots) - 2))) >= MetapoolConstraints::min_last_block_count)
-				: true
-		) &&
+		BaseBlockCount >= MetapoolConstraints::min_base_block_count &&
+		StrideStep >= MetapoolConstraints::min_stride_step &&
+		StrideStep <= MetapoolConstraints::max_stride_step &&
+		sizeof...(StridePivots) >= 2 &&
+		((StridePivots % MetapoolConstraints::min_stride_step == 0) && ...) &&
 		[]() constexpr {
-			constexpr auto arr = std::array{ StridePivots... };
-			if (arr[0] < MetapoolConstraints::min_stride || arr[0] % StrideStep != 0)
+			constexpr auto pivots = std::array{StridePivots...};
+
+			if (pivots[0] < MetapoolConstraints::min_stride || pivots[0] % StrideStep != 0)
 				return false;
-			for (std::size_t i = 1; i < arr.size(); ++i) {
-				if (arr[i] <= 0 || arr[i] <= arr[i - 1])
+			for (std::size_t i = 1; i < pivots.size(); ++i) {
+				if (pivots[i] <= pivots[i - 1])
 					return false;
 			}
-			return true;
+
+			uint32_t count = BaseBlockCount;
+
+			for (std::size_t i = 1; i < pivots.size() - 1; ++i) {
+				switch (Func) {
+					case CapacityFunction::Div8:
+						count = std::max(count / 8U, mem::MetapoolConstraints::min_last_block_count);
+						break;
+					case CapacityFunction::Div4:
+						count = std::max(count / 4U, mem::MetapoolConstraints::min_last_block_count);
+						break;
+					case CapacityFunction::Div2:
+						count = std::max(count / 2U, mem::MetapoolConstraints::min_last_block_count);
+						break;
+					case CapacityFunction::Flat:
+						break;
+					case CapacityFunction::Mul2:
+						count *= 2U;
+						break;
+					case CapacityFunction::Mul4:
+						count *= 4U;
+						break;
+					case CapacityFunction::Mul8:
+						count *= 8U;
+						break;
+				}
+			}
+
+			return count >= MetapoolConstraints::min_last_block_count;
 		}();
 
 
