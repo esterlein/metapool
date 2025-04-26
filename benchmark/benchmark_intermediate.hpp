@@ -55,15 +55,21 @@ public:
 		std::cout << "\n";
 		run_pattern_raw_alloc("ui", 48, 1, 256, 1000);
 
+		hpr::MemoryModel::get_allocator<hpr::mem::AllocatorType::Intermediate>().reset();
+
 		std::cout << "\n\n";
 		run_pattern_dummy_alloc<DummySmall>("ecs", 5000, 100);
 		std::cout << "\n";
 		run_pattern_dummy_construct<DummySmall>("ecs", 5000, 100);
 
+		hpr::MemoryModel::get_allocator<hpr::mem::AllocatorType::Intermediate>().reset();
+
 		std::cout << "\n\n";
 		run_pattern_dummy_alloc<DummyMedium>("renderer", 500, 100);
 		std::cout << "\n";
 		run_pattern_dummy_construct<DummyMedium>("renderer", 500, 100);
+
+		hpr::MemoryModel::get_allocator<hpr::mem::AllocatorType::Intermediate>().reset();
 
 		std::cout << "\n\n";
 		run_pattern_dummy_alloc<DummyBig>("ui", 256, 1000);
