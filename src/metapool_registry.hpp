@@ -80,21 +80,23 @@ private:
 	template <std::size_t... Is>
 	static constexpr bool validate_registry_sequence(std::index_sequence<Is...>)
 	{
-		constexpr auto mins   = std::array<uint32_t, registry_size>{ get_min_stride<Is>()... };
-		constexpr auto maxs   = std::array<uint32_t, registry_size>{ get_max_stride<Is>()... };
-		constexpr auto steps  = std::array<uint32_t, registry_size>{ get_stride_step<Is>()... };
+		constexpr auto min_stride = std::array<uint32_t, registry_size>{ get_min_stride<Is>()... };
+		constexpr auto max_stride = std::array<uint32_t, registry_size>{ get_max_stride<Is>()... };
+		constexpr auto steps      = std::array<uint32_t, registry_size>{ get_stride_step<Is>()... };
 
 		constexpr uint32_t model_min = compute_model_min_stride(std::index_sequence<Is...>{});
 		constexpr uint32_t model_max = compute_model_max_stride(std::index_sequence<Is...>{});
 
-		for (uint32_t stride = model_min; stride <= model_max; ++stride) {
-			auto coverage = 0;
-			for (std::size_t i = 0; i < registry_size; ++i) {
-				if (stride >= mins[i] && stride <= maxs[i] && ((stride - mins[i]) % steps[i] == 0))
-					++coverage;
+		for (std::size_t i = 0; i < registry_size; ++i) {
+			for (uint32_t stride = min_stride[i]; stride <= max_stride[i]; stride += steps[i]) {
+				auto coverage = 0;
+				for (std::size_t j = 0; j < registry_size; ++j) {
+					if (stride >= min_stride[j] && stride <= max_stride[j] && ((stride - min_stride[j]) % steps[j] == 0))
+						++coverage;
+				}
+				if (coverage != 1)
+					return false;
 			}
-			if (coverage != 1)
-				return false;
 		}
 		return true;
 	}
