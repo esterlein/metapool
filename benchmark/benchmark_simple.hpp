@@ -4,6 +4,7 @@
 #include <iostream>
 
 #include "benchmark.hpp"
+#include "memory_model.hpp"
 
 
 class BenchmarkSimple : public Benchmark
@@ -14,16 +15,21 @@ public:
 	{
 		std::cout << "\n--- metapool memory model simple benchmark ---\n";;
 		std::cout << "\nrunning basic metapool tests...\n";
-		Benchmark::basic_tests();
+
+		Benchmark::basic_tests<hpr::mem::AllocatorType::Simple>();
 	}
 
 	inline void run() override
 	{
 		std::cout << "\n";
 		run_metapool();
+		std::cout << "\n";
 		run_pmr();
+		std::cout << "\n";
 		run_std();
+		std::cout << "\n";
 		print_summary();
+		std::cout << "\n";
 	}
 
 	inline void teardown() override

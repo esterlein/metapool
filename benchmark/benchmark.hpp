@@ -16,9 +16,10 @@ public:
 
 	virtual ~Benchmark() {}
 
+	template <hpr::mem::AllocatorType Type>
 	inline void test_basic_allocation()
 	{
-		auto& allocator = hpr::MemoryModel::get_allocator<hpr::mem::AllocatorType::Simple>();
+		auto& allocator = hpr::MemoryModel::get_allocator<Type>();
 
 		void* ptr = allocator.allocate(100, 8);
 		assert(ptr != nullptr);
@@ -26,9 +27,10 @@ public:
 		allocator.deallocate(ptr, 100, 8);
 	}
 
+	template <hpr::mem::AllocatorType Type>
 	inline void test_alignment()
 	{
-		auto& allocator = hpr::MemoryModel::get_allocator<hpr::mem::AllocatorType::Simple>();
+		auto& allocator = hpr::MemoryModel::get_allocator<Type>();
 
 		for (size_t alignment : {1, 2, 4, 8, 16, 32, 64}) {
 			void* ptr = allocator.allocate(64, alignment);
@@ -38,9 +40,10 @@ public:
 		}
 	}
 
+	template <hpr::mem::AllocatorType Type>
 	inline void test_multiple_allocations()
 	{
-		auto& allocator = hpr::MemoryModel::get_allocator<hpr::mem::AllocatorType::Simple>();
+		auto& allocator = hpr::MemoryModel::get_allocator<Type>();
 
 		std::vector<std::pair<void*, size_t>> blocks;
 		for (size_t size : {8, 16, 32, 64, 128}) {
@@ -56,9 +59,10 @@ public:
 		}
 	}
 
+	template <hpr::mem::AllocatorType Type>
 	inline void test_with_containers()
 	{
-		auto& allocator = hpr::MemoryModel::get_allocator<hpr::mem::AllocatorType::Simple>();
+		auto& allocator = hpr::MemoryModel::get_allocator<Type>();
 
 		std::pmr::vector<int> vec(&allocator);
 		std::pmr::string str(&allocator);
@@ -73,20 +77,22 @@ public:
 		str.clear();
 	}
 
+	template <hpr::mem::AllocatorType Type>
 	inline void basic_tests()
 	{
 		std::cout << "testing basic allocation... " << std::flush;
-		test_basic_allocation();
+		test_basic_allocation<Type>();
 		std::cout << "OK" << std::endl;
 		std::cout << "testing alignment... " << std::flush;
-		test_alignment();
+		test_alignment<Type>();
 		std::cout << "OK" << std::endl;
 		std::cout << "testing multiple allocations... " << std::flush;
-		test_multiple_allocations();
+		test_multiple_allocations<Type>();
 		std::cout << "OK" << std::endl;
 		std::cout << "testing with containers... " << std::flush;
-		test_with_containers();
+		test_with_containers<Type>();
 		std::cout << "OK" << std::endl;
+		std::cout << std::endl;
 	}
 
 	virtual void setup() = 0;

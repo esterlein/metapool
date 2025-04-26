@@ -42,25 +42,37 @@ public:
 	{
 		std::cout << "\n--- metapool memory model intermediate benchmark ---\n";
 		std::cout << "\nrunning basic metapool tests...\n";
-		Benchmark::basic_tests();
+
+		Benchmark::basic_tests<hpr::mem::AllocatorType::Intermediate>();
 	}
 
 	inline void run() override
 	{
+		std::cout << "\n";
 		run_pattern_raw_alloc("ecs", 32, 4, 5000, 100);
+		std::cout << "\n";
 		run_pattern_raw_alloc("renderer", 64, 4, 500, 100);
+		std::cout << "\n";
 		run_pattern_raw_alloc("ui", 48, 1, 256, 1000);
 
+		std::cout << "\n\n";
 		run_pattern_dummy_alloc<DummySmall>("ecs", 5000, 100);
+		std::cout << "\n";
 		run_pattern_dummy_construct<DummySmall>("ecs", 5000, 100);
 
+		std::cout << "\n\n";
 		run_pattern_dummy_alloc<DummyMedium>("renderer", 500, 100);
+		std::cout << "\n";
 		run_pattern_dummy_construct<DummyMedium>("renderer", 500, 100);
 
+		std::cout << "\n\n";
 		run_pattern_dummy_alloc<DummyBig>("ui", 256, 1000);
+		std::cout << "\n";
 		run_pattern_dummy_construct<DummyBig>("ui", 256, 1000);
 
+		std::cout << "\n\n";
 		print_summary();
+		std::cout << "\n";
 	}
 
 	inline void teardown() override
@@ -90,8 +102,11 @@ private:
 	void run_pattern_raw_alloc(const char* label, int base_size, int var_factor, int count, int frames)
 	{
 		run_raw_alloc_mpool(label, base_size, var_factor, count, frames);
+		std::cout << "\n";
 		run_raw_alloc_pmr(label, base_size, var_factor, count, frames);
+		std::cout << "\n";
 		run_raw_alloc_std(label, base_size, var_factor, count, frames);
+		std::cout << "\n";
 	}
 
 
@@ -176,8 +191,11 @@ private:
 	{
 		std::cout << "--- " << label << " dummy alloc/free pattern ---" << std::endl;
 
+		std::cout << "\n";
 		run_dummy_alloc_mpool<T>(count, frames);
+		std::cout << "\n";
 		run_dummy_alloc_pmr<T>(count, frames);
+		std::cout << "\n";
 		run_dummy_alloc_std<T>(count, frames);
 	}
 
@@ -266,8 +284,11 @@ private:
 	{
 		std::cout << "--- " << label << " dummy construct/destruct pattern ---" << std::endl;
 
+		std::cout << "\n";
 		run_construct_mpool<T>(count, frames);
+		std::cout << "\n";
 		run_construct_pmr<T>(count, frames);
+		std::cout << "\n";
 		run_construct_std<T>(count, frames);
 	}
 
