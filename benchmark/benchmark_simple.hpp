@@ -12,14 +12,14 @@ public:
 
 	inline void setup() override
 	{
-		std::cout << "\n--- metapool memory model benchmark ---\n";
+		std::cout << "\n--- metapool memory model simple benchmark ---\n";;
 		std::cout << "\nrunning basic metapool tests...\n";
 		Benchmark::basic_tests();
 	}
 
 	inline void run() override
 	{
-		std::cout << '\n';
+		std::cout << "\n";
 		run_metapool();
 		run_pmr();
 		run_std();
@@ -29,6 +29,7 @@ public:
 	inline void teardown() override
 	{
 		std::cout << "\n";
+		hpr::MemoryModel::get_allocator<hpr::mem::AllocatorType::Simple>().reset();
 	}
 
 private:
@@ -41,7 +42,7 @@ private:
 	{
 		auto& allocator = hpr::MemoryModel::get_allocator<hpr::mem::AllocatorType::Simple>();
 
-		std::cout << "starting metapool benchmark...\n";
+		std::cout << "run metapool benchmark..." << std::endl;
 
 		auto start = std::chrono::high_resolution_clock::now();
 		for (int i = 0; i < 1000000000; ++i) {
@@ -51,7 +52,7 @@ private:
 		auto end = std::chrono::high_resolution_clock::now();
 
 		m_mpool_time = std::chrono::duration<double, std::milli>(end - start).count();
-		std::cout << "metapool benchmark time: " << m_mpool_time << " ms\n";
+		std::cout << "metapool benchmark time: " << m_mpool_time << " ms" << std::endl;
 	}
 
 	inline void run_pmr()
@@ -59,7 +60,7 @@ private:
 		std::pmr::monotonic_buffer_resource upstream(std::pmr::get_default_resource());
 		std::pmr::polymorphic_allocator<char> allocator(&upstream);
 
-		std::cout << "starting default pmr benchmark...\n";
+		std::cout << "run default pmr benchmark..." << std::endl;
 
 		auto start = std::chrono::high_resolution_clock::now();
 		for (int i = 0; i < 1000000000; ++i) {
@@ -69,14 +70,14 @@ private:
 		auto end = std::chrono::high_resolution_clock::now();
 
 		m_pmr_time = std::chrono::duration<double, std::milli>(end - start).count();
-		std::cout << "default pmr benchmark time: " << m_pmr_time << " ms\n";
+		std::cout << "default pmr benchmark time: " << m_pmr_time << " ms" << std::endl;
 	}
 
 	inline void run_std()
 	{
 		std::allocator<char> allocator;
 
-		std::cout << "starting standard allocator benchmark...\n";
+		std::cout << "run standard allocator benchmark..." << std::endl;
 
 		auto start = std::chrono::high_resolution_clock::now();
 		for (int i = 0; i < 1000000000; ++i) {
@@ -86,7 +87,7 @@ private:
 		auto end = std::chrono::high_resolution_clock::now();
 
 		m_std_time = std::chrono::duration<double, std::milli>(end - start).count();
-		std::cout << "standard allocator benchmark time: " << m_std_time << " ms\n";
+		std::cout << "standard allocator benchmark time: " << m_std_time << " ms" << std::endl;
 	}
 	
 	void print_summary()

@@ -40,7 +40,8 @@ public:
 
 	inline void setup() override
 	{
-		std::cout << "\n--- metapool intermediate benchmark ---\n";
+		std::cout << "\n--- metapool memory model intermediate benchmark ---\n";
+		std::cout << "\nrunning basic metapool tests...\n";
 		Benchmark::basic_tests();
 	}
 
@@ -64,6 +65,7 @@ public:
 
 	inline void teardown() override
 	{
+		std::cout << "\n";
 		hpr::MemoryModel::get_allocator<hpr::mem::AllocatorType::Intermediate>().reset();
 	}
 
@@ -95,10 +97,12 @@ private:
 
 	void run_raw_alloc_mpool(const char* label, int base_size, int var_factor, int count, int frames)
 	{
+		std::cout << "run metapool raw allocation..." << std::endl;
+
 		auto& allocator = hpr::MemoryModel::get_allocator<hpr::mem::AllocatorType::Intermediate>();
 		std::vector<std::byte*> objects;
 		objects.reserve(count);
-		
+
 		auto start = std::chrono::high_resolution_clock::now();
 		for (int frame = 0; frame < frames; ++frame) {
 			for (int i = 0; i < count; ++i) {
@@ -118,6 +122,8 @@ private:
 
 	void run_raw_alloc_pmr(const char* label, int base_size, int var_factor, int count, int frames)
 	{
+		std::cout << "run pmr raw allocation..." << std::endl;
+
 		std::pmr::monotonic_buffer_resource upstream(std::pmr::get_default_resource());
 		std::pmr::polymorphic_allocator<std::byte> allocator(&upstream);
 		std::vector<std::byte*> objects;
@@ -142,6 +148,8 @@ private:
 
 	void run_raw_alloc_std(const char* label, int base_size, int var_factor, int count, int frames)
 	{
+		std::cout << "run std raw allocation..." << std::endl;
+
 		std::allocator<std::byte> allocator;
 		std::vector<std::byte*> objects;
 		objects.reserve(count);
@@ -168,25 +176,17 @@ private:
 	{
 		std::cout << "--- " << label << " dummy alloc/free pattern ---" << std::endl;
 
-		run_alloc_mpool<T>(count, frames);
-		run_alloc_pmr<T>(count, frames);
-		run_alloc_std<T>(count, frames);
-	}
-
-	template<typename T>
-	void run_pattern_dummy_construct(const char* label, int count, int frames)
-	{
-		std::cout << "--- " << label << " dummy construct/destruct pattern ---" << std::endl;
-
-		run_construct_mpool<T>(count, frames);
-		run_construct_pmr<T>(count, frames);
-		run_construct_std<T>(count, frames);
+		run_dummy_alloc_mpool<T>(count, frames);
+		run_dummy_alloc_pmr<T>(count, frames);
+		run_dummy_alloc_std<T>(count, frames);
 	}
 
 
 	template<typename T>
-	void run_alloc_mpool(int count, int frames)
+	void run_dummy_alloc_mpool(int count, int frames)
 	{
+		std::cout << "run metapool dummy allocation..." << std::endl;
+
 		auto& allocator = hpr::MemoryModel::get_allocator<hpr::mem::AllocatorType::Intermediate>();
 		std::vector<std::byte*> objects;
 		objects.reserve(count);
@@ -209,8 +209,10 @@ private:
 
 
 	template<typename T>
-	void run_alloc_pmr(int count, int frames)
+	void run_dummy_alloc_pmr(int count, int frames)
 	{
+		std::cout << "run pmr dummy allocation..." << std::endl;
+
 		std::pmr::monotonic_buffer_resource upstream(std::pmr::get_default_resource());
 		std::pmr::polymorphic_allocator<std::byte> allocator(&upstream);
 		std::vector<std::byte*> objects;
@@ -234,8 +236,10 @@ private:
 
 
 	template<typename T>
-	void run_alloc_std(int count, int frames)
+	void run_dummy_alloc_std(int count, int frames)
 	{
+		std::cout << "run std dummy allocation..." << std::endl;
+
 		std::allocator<std::byte> allocator;
 		std::vector<std::byte*> objects;
 		objects.reserve(count);
@@ -258,8 +262,21 @@ private:
 
 
 	template<typename T>
+	void run_pattern_dummy_construct(const char* label, int count, int frames)
+	{
+		std::cout << "--- " << label << " dummy construct/destruct pattern ---" << std::endl;
+
+		run_construct_mpool<T>(count, frames);
+		run_construct_pmr<T>(count, frames);
+		run_construct_std<T>(count, frames);
+	}
+
+
+	template<typename T>
 	void run_construct_mpool(int count, int frames)
 	{
+		std::cout << "run mpool dummy construct/destruct..." << std::endl;
+
 		auto& allocator = hpr::MemoryModel::get_allocator<hpr::mem::AllocatorType::Intermediate>();
 		std::vector<T*> objects;
 		objects.reserve(count);
@@ -275,7 +292,7 @@ private:
 		auto end = std::chrono::high_resolution_clock::now();
 
 		std::cout
-			<< "metapool construct time: "
+			<< "metapool construct/destruct time: "
 			<< std::chrono::duration<double, std::milli>(end - start).count()
 			<< " ms" << std::endl;
 	}
@@ -284,6 +301,8 @@ private:
 	template<typename T>
 	void run_construct_pmr(int count, int frames)
 	{
+		std::cout << "run pmr dummy construct/destruct..." << std::endl;
+
 		std::pmr::monotonic_buffer_resource upstream(std::pmr::get_default_resource());
 		std::pmr::polymorphic_allocator<std::byte> allocator(&upstream);
 		std::vector<T*> objects;
@@ -305,7 +324,7 @@ private:
 		auto end = std::chrono::high_resolution_clock::now();
 
 		std::cout
-			<< "pmr construct time: "
+			<< "pmr construct/destruct time: "
 			<< std::chrono::duration<double, std::milli>(end - start).count()
 			<< " ms" << std::endl;
 	}
@@ -314,6 +333,8 @@ private:
 	template<typename T>
 	void run_construct_std(int count, int frames)
 	{
+		std::cout << "run std dummy construct/destruct..." << std::endl;
+
 		std::allocator<T> allocator;
 		std::vector<T*> objects;
 		objects.reserve(count);
@@ -334,7 +355,7 @@ private:
 		auto end = std::chrono::high_resolution_clock::now();
 	
 		std::cout
-			<< "std construct time: "
+			<< "std construct/destruct time: "
 			<< std::chrono::duration<double, std::milli>(end - start).count()
 			<< " ms\n";
 	}
