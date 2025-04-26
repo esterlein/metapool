@@ -2,6 +2,8 @@
 
 #include <tuple>
 
+#include "benchmark_intermediate.hpp"
+#include "benchmark_simple.hpp"
 #include "metapool.hpp"
 #include "metapool_config.hpp"
 #include "metapool_registry.hpp"
@@ -16,15 +18,24 @@ namespace mem {
 	static inline constexpr std::size_t arena_size = 1073741824; // 1GB
 
 
-	using StandardMetapoolRegistry =
+	using BenchmarkSimpleRegistry =
 		MetapoolRegistry <
 			Metapool<mem::MetapoolConfig<mem::CapacityFunction::Flat, 2048, 8, 8, 2048>>
+		>;
+
+	using BenchmarkIntermediateRegistry =
+		MetapoolRegistry <
+			Metapool<mem::MetapoolConfig<mem::CapacityFunction::Flat, 6144,   8,     8,   128>>,
+			Metapool<mem::MetapoolConfig<mem::CapacityFunction::Flat, 1024,   8,   128,  2048>>,
+			Metapool<mem::MetapoolConfig<mem::CapacityFunction::Flat,  256, 256,  2048, 16384>>,
+			Metapool<mem::MetapoolConfig<mem::CapacityFunction::Flat,  512, 256, 16384, 32768>>
 		>;
 
 
 	enum class AllocatorType
 	{
-		Standard
+		Simple,
+		Intermediate
 	};
 
 } // hpr::mem

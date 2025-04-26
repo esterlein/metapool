@@ -33,13 +33,13 @@ public:
 
 private:
 
-	double m_metapool_time = 0.0;
-	double m_pmr_time = 0.0;
-	double m_std_time = 0.0;
+	double m_mpool_time {0.0};
+	double m_pmr_time   {0.0};
+	double m_std_time   {0.0};
 
 	inline void run_metapool()
 	{
-		auto& allocator = hpr::MemoryModel::get_allocator<hpr::mem::AllocatorType::Standard>();
+		auto& allocator = hpr::MemoryModel::get_allocator<hpr::mem::AllocatorType::Simple>();
 
 		std::cout << "starting metapool benchmark...\n";
 
@@ -50,8 +50,8 @@ private:
 		}
 		auto end = std::chrono::high_resolution_clock::now();
 
-		m_metapool_time = std::chrono::duration<double, std::milli>(end - start).count();
-		std::cout << "metapool benchmark time: " << m_metapool_time << " ms\n";
+		m_mpool_time = std::chrono::duration<double, std::milli>(end - start).count();
+		std::cout << "metapool benchmark time: " << m_mpool_time << " ms\n";
 	}
 
 	inline void run_pmr()
@@ -93,12 +93,12 @@ private:
 	{
 		std::cout << "\n--- benchmark summary ---\n";
 
-		std::cout << "metapool: " << m_metapool_time << " ms\n";
+		std::cout << "metapool: " << m_mpool_time << " ms\n";
 		std::cout << "default pmr: " << m_pmr_time << " ms\n";
 		std::cout << "standard allocator: " << m_std_time << " ms\n";
 
-		double metapool_vs_pmr = m_pmr_time / m_metapool_time;
-		double metapool_vs_std = m_std_time / m_metapool_time;
+		double metapool_vs_pmr = m_pmr_time / m_mpool_time;
+		double metapool_vs_std = m_std_time / m_mpool_time;
 
 		std::cout << "\n--- performance comparison ---\n";
 
