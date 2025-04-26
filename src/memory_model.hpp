@@ -13,7 +13,7 @@ namespace hpr {
 namespace mem {
 
 
-	static inline constexpr std::size_t arena_size = 1073741824; // 1GB
+	static inline constexpr std::size_t arena_size = 1265162035; // 1.178 GB
 
 
 	using BenchmarkSimpleRegistry =
