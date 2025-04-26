@@ -2,8 +2,6 @@
 
 #include <tuple>
 
-#include "benchmark_intermediate.hpp"
-#include "benchmark_simple.hpp"
 #include "metapool.hpp"
 #include "metapool_config.hpp"
 #include "metapool_registry.hpp"
@@ -50,8 +48,11 @@ public:
 	template <mem::AllocatorType Type>
 	static auto& get_allocator()
 	{
-		if constexpr (Type == mem::AllocatorType::Standard) {
-			return create_thread_local_allocator<mem::StandardMetapoolRegistry>();
+		if constexpr (Type == mem::AllocatorType::Simple) {
+			return create_thread_local_allocator<mem::BenchmarkSimpleRegistry>();
+		}
+		else if constexpr (Type == mem::AllocatorType::Intermediate) {
+			return create_thread_local_allocator<mem::BenchmarkIntermediateRegistry>();
 		}
 	}
 
