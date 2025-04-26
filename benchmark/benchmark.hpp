@@ -4,7 +4,6 @@
 #include <cstring>
 #include <utility>
 #include <iostream>
-#include <memory_resource>
 
 #include "memory_model.hpp"
 
@@ -18,7 +17,7 @@ public:
 
 	inline void test_basic_allocation()
 	{
-		auto& allocator = hpr::MemoryModel::get_allocator<hpr::mem::AllocatorType::Standard>();
+		auto& allocator = hpr::MemoryModel::get_allocator<hpr::mem::AllocatorType::Simple>();
 
 		void* ptr = allocator.allocate(100, 8);
 		assert(ptr != nullptr);
@@ -28,7 +27,7 @@ public:
 
 	inline void test_alignment()
 	{
-		auto& allocator = hpr::MemoryModel::get_allocator<hpr::mem::AllocatorType::Standard>();
+		auto& allocator = hpr::MemoryModel::get_allocator<hpr::mem::AllocatorType::Simple>();
 
 		for (size_t alignment : {1, 2, 4, 8, 16, 32, 64}) {
 			void* ptr = allocator.allocate(64, alignment);
@@ -40,7 +39,7 @@ public:
 
 	inline void test_multiple_allocations()
 	{
-		auto& allocator = hpr::MemoryModel::get_allocator<hpr::mem::AllocatorType::Standard>();
+		auto& allocator = hpr::MemoryModel::get_allocator<hpr::mem::AllocatorType::Simple>();
 
 		std::vector<std::pair<void*, size_t>> blocks;
 		for (size_t size : {8, 16, 32, 64, 128}) {
@@ -58,7 +57,7 @@ public:
 
 	inline void test_with_containers()
 	{
-		auto& allocator = hpr::MemoryModel::get_allocator<hpr::mem::AllocatorType::Standard>();
+		auto& allocator = hpr::MemoryModel::get_allocator<hpr::mem::AllocatorType::Simple>();
 
 		std::pmr::vector<int> vec(&allocator);
 		std::pmr::string str(&allocator);
@@ -76,7 +75,7 @@ public:
 	inline void basic_tests()
 	{
 		std::cout << "testing basic allocation... ";
-//		test_basic_allocation();
+		test_basic_allocation();
 		std::cout << "OK\n";
 		std::cout << "testing alignment... ";
 		test_alignment();
