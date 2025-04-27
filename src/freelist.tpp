@@ -37,6 +37,22 @@ void Freelist<Stride, BlockCount>::initialize(std::byte* memory)
 
 
 template <uint32_t Stride, uint32_t BlockCount>
+void Freelist<Stride, BlockCount>::reset() noexcept
+{
+	m_head = reinterpret_cast<Block*>(m_memory_base);
+	Block* current = m_head;
+
+	std::byte* ptr = m_memory_base + Stride;
+	for (uint32_t i = 1; i < BlockCount; ++i, ptr += Stride) {
+		current->next = reinterpret_cast<Block*>(ptr);
+		current = current->next;
+	}
+
+	current->next = nullptr;
+}
+
+
+template <uint32_t Stride, uint32_t BlockCount>
 std::byte* Freelist<Stride, BlockCount>::fetch() noexcept
 {
 	assert(m_head != nullptr &&
