@@ -32,7 +32,8 @@ public:
 						.stride_min   = std::tuple_element_t<Is, TupleType>::MetapoolTraits::stride_min,
 						.stride_max   = std::tuple_element_t<Is, TupleType>::MetapoolTraits::stride_max,
 						.stride_step  = std::tuple_element_t<Is, TupleType>::MetapoolTraits::stride_step,
-						.stride_count = std::tuple_element_t<Is, TupleType>::MetapoolTraits::stride_count
+						.stride_count = std::tuple_element_t<Is, TupleType>::MetapoolTraits::stride_count,
+						.stride_shift = math::log2_exact(std::tuple_element_t<Is, TupleType>::MetapoolTraits::stride_step)
 					}...
 				}};
 			}(std::make_index_sequence<registry_size>{});
