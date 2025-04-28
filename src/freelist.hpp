@@ -21,7 +21,7 @@ public:
 	[[nodiscard]] std::byte* fetch() noexcept;
 	void release(std::byte* block) noexcept;
 
-	inline void reset() noexcept { m_head = nullptr; }
+	inline void reset() noexcept;
 	[[nodiscard]] inline bool empty() const noexcept
 	{ return m_head == nullptr; }
 	[[nodiscard]] inline constexpr uint32_t stride() const noexcept
