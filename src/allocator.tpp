@@ -7,7 +7,7 @@ namespace hpr {
 
 
 template <mem::IsAllocatorConfig Config>
-std::byte* Allocator<Config>::alloc(uint32_t size, uint32_t alignment_min)
+std::byte* AllocatorCore<Config>::alloc(uint32_t size, uint32_t alignment_min)
 {
 	const uint32_t alignment = compute_alignment(alignment_min);
 	const uint32_t stride    = compute_stride(size, alignment);
@@ -33,7 +33,7 @@ std::byte* Allocator<Config>::alloc(uint32_t size, uint32_t alignment_min)
 
 
 template <mem::IsAllocatorConfig Config>
-void Allocator<Config>::free(std::byte* location)
+void AllocatorCore<Config>::free(std::byte* location)
 {
 	assert(location != nullptr &&
 		"location is nullptr"  && __func__);
@@ -47,7 +47,7 @@ void Allocator<Config>::free(std::byte* location)
 
 
 template <mem::IsAllocatorConfig Config>
-void Allocator<Config>::reset() noexcept
+void AllocatorCore<Config>::reset() noexcept
 {
 	for (auto& proxy : m_proxies) {
 		proxy.reset();
@@ -56,7 +56,7 @@ void Allocator<Config>::reset() noexcept
 
 
 template <mem::IsAllocatorConfig Config>
-void* Allocator<Config>::do_allocate(std::size_t size, std::size_t alignment_min)
+void* AllocatorCore<Config>::do_allocate(std::size_t size, std::size_t alignment_min)
 {
 	const uint32_t alignment = compute_alignment(static_cast<uint32_t>(alignment_min));
 	const uint32_t stride    = compute_stride(static_cast<uint32_t>(size), alignment);
@@ -82,7 +82,7 @@ void* Allocator<Config>::do_allocate(std::size_t size, std::size_t alignment_min
 
 
 template <mem::IsAllocatorConfig Config>
-void Allocator<Config>::do_deallocate(void* location, std::size_t bytes, std::size_t alignment)
+void AllocatorCore<Config>::do_deallocate(void* location, std::size_t bytes, std::size_t alignment)
 {
 	assert(location != nullptr &&
 		"location is nullptr"  && __func__);
