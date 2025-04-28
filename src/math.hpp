@@ -6,6 +6,7 @@
 namespace hpr {
 namespace math {
 
+
 	template <std::integral T>
 	constexpr auto int_pow(T base, T exp) -> std::enable_if_t<std::is_signed_v<T> || exp >= 0,
 		std::conditional_t<std::is_signed_v<T>, double, T>>
@@ -41,10 +42,7 @@ namespace math {
 	}
 
 
-	template<typename T>
-	concept Integral = std::is_integral_v<T>;
-
-	template<Integral T>
+	template<std::integral T>
 	constexpr T ceil_div(T n, T d)
 	{
 		if constexpr (std::is_signed_v<T>) {
@@ -53,6 +51,18 @@ namespace math {
 		else {
 			return (n + d - T(1)) / d;
 		}
+	}
+
+
+	template<std::unsigned_integral T>
+	constexpr T log2_exact(T n)
+	{
+		T result = 0;
+		while (n > 1) {
+			n >>= 1;
+			++result;
+		}
+		return result;
 	}
 
 } // hpr::math
