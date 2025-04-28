@@ -22,6 +22,7 @@ namespace mem {
 		uint32_t stride_max   {0};
 		uint32_t stride_step  {0};
 		uint32_t stride_count {0};
+		uint32_t stride_shift {0};
 	};
 
 
