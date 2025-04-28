@@ -46,7 +46,7 @@ public:
 
 		if constexpr (std::is_constant_evaluated()) {
 			static_assert(stride >= Config::min_stride || stride <= Config::max_stride,
-				"stride out of bounds in allocate");
+				"stride out of bounds in construct");
 		}
 		else {
 			assert((stride >= Config::min_stride || stride <= Config::max_stride) &&
@@ -162,7 +162,8 @@ private:
 		}
 	
 		auto const& mp_range = range_meta[mpool_index];
-		uint32_t flist_index = (stride - mp_range.stride_min) >> mp_range.stride_shift;
+		uint32_t flist_index =
+			(stride - mp_range.stride_min + (1U << mp_range.stride_shift) - 1U) >> mp_range.stride_shift;
 	
 		return LookupEntry {
 			static_cast<uint8_t>(mpool_index),
