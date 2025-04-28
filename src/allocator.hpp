@@ -148,29 +148,25 @@ private:
 
 private:
 
-	static constexpr LookupEntry lookup(uint32_t stride)
+	static inline constexpr LookupEntry lookup(uint32_t stride)
 	{
 		constexpr auto& range_meta = Config::range_metadata;
-
-		std::size_t low = 0;
-		std::size_t high = range_meta.size() - 1;
-
-		while (low < high) {
-			std::size_t mid = (low + high + 1) >> 1;
-			if (stride >= range_meta[mid].stride_min) {
-				low = mid;
-			}
-			else {
-				high = mid - 1;
+		constexpr std::size_t metapool_count = range_meta.size();
+	
+		uint32_t mpool_index = 0;
+	
+		for (std::size_t i = 1; i < metapool_count; ++i) {
+			if (stride >= range_meta[i].stride_min) {
+				mpool_index = static_cast<uint32_t>(i);
 			}
 		}
-
-		auto const& mp_range = range_meta[low];
-		uint32_t fl_index = (stride - mp_range.stride_min) / mp_range.stride_step;
-
+	
+		auto const& mp_range = range_meta[mpool_index];
+		uint32_t flist_index = (stride - mp_range.stride_min) >> mp_range.stride_shift;
+	
 		return LookupEntry {
-			static_cast<uint8_t>(low),
-			static_cast<uint8_t>(fl_index)
+			static_cast<uint8_t>(mpool_index),
+			static_cast<uint8_t>(flist_index)
 		};
 	}
 
