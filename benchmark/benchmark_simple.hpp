@@ -2,6 +2,8 @@
 
 #include <chrono>
 #include <iostream>
+#include <vector>
+#include <memory_resource>
 
 #include "benchmark.hpp"
 #include "memory_model.hpp"
@@ -13,111 +15,152 @@ public:
 
 	inline void setup() override
 	{
-		std::cout << "\n--- metapool memory model simple benchmark ---\n";;
-		std::cout << "\nrunning basic metapool tests...\n";
+		std::cout << "\n--- metapool memory model simple benchmark ---\n" << std::endl;
+		std::cout << "running basic metapool tests...\n" << std::endl;
 
-		Benchmark::basic_tests<hpr::mem::AllocatorType::Simple>();
+		Benchmark::basic_tests<hpr::mem::AllocatorType::simple>();
 	}
 
 	inline void run() override
 	{
-		std::cout << "\n";
-		run_metapool();
-		std::cout << "\n";
-		run_pmr();
-		std::cout << "\n";
+		std::cout << std::endl;
+		run_native();
+		std::cout << std::endl;
 		run_std();
-		std::cout << "\n";
+		std::cout << std::endl;
+		run_pmr();
+		std::cout << std::endl;
+
 		print_summary();
-		std::cout << "\n";
+		std::cout << std::endl;
 	}
 
 	inline void teardown() override
 	{
-		std::cout << "\n";
-		hpr::MemoryModel::get_allocator<hpr::mem::AllocatorType::Simple>().reset();
+		std::cout << std::endl;
+
+		hpr::MemoryModel::get_allocator <
+			hpr::mem::AllocatorType::simple,
+			hpr::mem::AllocatorInterface::std_adapter
+		>().reset();
 	}
 
 private:
 
-	double m_mpool_time {0.0};
-	double m_pmr_time   {0.0};
-	double m_std_time   {0.0};
+	double m_native_time {0.0};
+	double m_std_time    {0.0};
+	double m_pmr_time    {0.0};
 
-	inline void run_metapool()
+	static constexpr std::size_t k_allocation_count = 8192;
+
+	void run_native()
 	{
-		auto& allocator = hpr::MemoryModel::get_allocator<hpr::mem::AllocatorType::Simple>();
+		auto& allocator = hpr::MemoryModel::get_allocator <
+			hpr::mem::AllocatorType::simple,
+			hpr::mem::AllocatorInterface::std_adapter
+		>();
 
-		std::cout << "run metapool benchmark..." << std::endl;
+		std::cout << "--- native metapool allocator ---\n" << std::endl;
+
+		std::size_t sizes[] = {32, 64, 128, 256, 512, 1024};
+		std::size_t align = 64;
+
+		std::vector<std::byte*> blocks;
+		blocks.reserve(k_allocation_count);
 
 		auto start = std::chrono::high_resolution_clock::now();
-		for (int i = 0; i < 1000000000; ++i) {
-			std::byte* ptr = allocator.alloc(256, 64);
+		for (std::size_t i = 0; i < k_allocation_count; ++i) {
+			std::size_t size = sizes[i % (sizeof(sizes) / sizeof(sizes[0]))];
+			std::byte* ptr = allocator.alloc(static_cast<uint32_t>(size), static_cast<uint32_t>(align));
+			blocks.push_back(ptr);
+		}
+		for (std::byte* ptr : blocks) {
 			allocator.free(ptr);
 		}
 		auto end = std::chrono::high_resolution_clock::now();
 
-		m_mpool_time = std::chrono::duration<double, std::milli>(end - start).count();
-		std::cout << "metapool benchmark time: " << m_mpool_time << " ms" << std::endl;
+		m_native_time = std::chrono::duration<double, std::milli>(end - start).count();
+		std::cout << "native time: " << m_native_time << " ms\n" << std::endl;
 	}
 
-	inline void run_pmr()
+	void run_std()
 	{
-		std::pmr::monotonic_buffer_resource upstream(std::pmr::get_default_resource());
-		std::pmr::polymorphic_allocator<char> allocator(&upstream);
+		std::cout << "--- std::allocator benchmark ---\n" << std::endl;
 
-		std::cout << "run default pmr benchmark..." << std::endl;
+		using BlockAlloc = std::allocator<std::byte*>;
+		using DataAlloc = std::allocator<std::byte>;
+
+		BlockAlloc block_allocator;
+		DataAlloc data_allocator;
+
+		std::vector<std::byte*, BlockAlloc> blocks {block_allocator};
+		blocks.reserve(k_allocation_count);
+
+		std::size_t sizes[] = {32, 64, 128, 256, 512, 1024};
 
 		auto start = std::chrono::high_resolution_clock::now();
-		for (int i = 0; i < 1000000000; ++i) {
-			void* ptr = allocator.resource()->allocate(256, 64);
-			allocator.resource()->deallocate(ptr, 256, 64);
+		for (std::size_t i = 0; i < k_allocation_count; ++i) {
+			std::size_t size = sizes[i % (sizeof(sizes) / sizeof(sizes[0]))];
+			std::byte* ptr = data_allocator.allocate(size);
+			blocks.push_back(ptr);
 		}
-		auto end = std::chrono::high_resolution_clock::now();
-
-		m_pmr_time = std::chrono::duration<double, std::milli>(end - start).count();
-		std::cout << "default pmr benchmark time: " << m_pmr_time << " ms" << std::endl;
-	}
-
-	inline void run_std()
-	{
-		std::allocator<char> allocator;
-
-		std::cout << "run standard allocator benchmark..." << std::endl;
-
-		auto start = std::chrono::high_resolution_clock::now();
-		for (int i = 0; i < 1000000000; ++i) {
-			char* ptr = allocator.allocate(256);
-			allocator.deallocate(ptr, 256);
+		for (std::byte* ptr : blocks) {
+			data_allocator.deallocate(ptr, 0);
 		}
 		auto end = std::chrono::high_resolution_clock::now();
 
 		m_std_time = std::chrono::duration<double, std::milli>(end - start).count();
-		std::cout << "standard allocator benchmark time: " << m_std_time << " ms" << std::endl;
+		std::cout << "std allocator time: " << m_std_time << " ms\n" << std::endl;
 	}
-	
+
+	void run_pmr()
+	{
+		std::cout << "--- std::pmr benchmark ---\n" << std::endl;
+
+		std::pmr::monotonic_buffer_resource upstream(std::pmr::get_default_resource());
+		std::pmr::polymorphic_allocator<std::byte> data_allocator(&upstream);
+		std::pmr::polymorphic_allocator<std::byte*> block_allocator(&upstream);
+
+		std::pmr::vector<std::byte*> blocks {block_allocator};
+		blocks.reserve(k_allocation_count);
+
+		std::size_t sizes[] = {32, 64, 128, 256, 512, 1024};
+		std::size_t align = 64;
+
+		auto start = std::chrono::high_resolution_clock::now();
+		for (std::size_t i = 0; i < k_allocation_count; ++i) {
+			std::size_t size = sizes[i % (sizeof(sizes) / sizeof(sizes[0]))];
+			void* ptr = data_allocator.allocate(size);
+			blocks.push_back(reinterpret_cast<std::byte*>(ptr));
+		}
+		for (std::byte* ptr : blocks) {
+			data_allocator.deallocate(ptr, 0);
+		}
+		auto end = std::chrono::high_resolution_clock::now();
+
+		m_pmr_time = std::chrono::duration<double, std::milli>(end - start).count();
+		std::cout << "pmr time: " << m_pmr_time << " ms\n" << std::endl;
+	}
+
 	void print_summary()
 	{
-		std::cout << "\n--- benchmark summary ---\n";
+		std::cout << "\n--- benchmark summary ---\n" << std::endl;
 
-		std::cout << "metapool: " << m_mpool_time << " ms\n";
-		std::cout << "default pmr: " << m_pmr_time << " ms\n";
-		std::cout << "standard allocator: " << m_std_time << " ms\n";
+		std::cout << "native: " << m_native_time << " ms\n";
+		std::cout << "std:    " << m_std_time    << " ms\n";
+		std::cout << "pmr:    " << m_pmr_time    << " ms\n";
 
-		double metapool_vs_pmr = m_pmr_time / m_mpool_time;
-		double metapool_vs_std = m_std_time / m_mpool_time;
+		auto ratio = [](double base, double val) {
+			double r = val / base;
+			std::cout << r << "x " << (r > 1.0 ? "slower" : "faster");
+		};
 
-		std::cout << "\n--- performance comparison ---\n";
+		std::cout << "\n--- comparison vs native ---\n" << std::endl;
 
-		(std::cout)
-			<< "metapool vs pmr: " << metapool_vs_pmr << "x "
-			<< (metapool_vs_pmr > 1.0 ? "faster" : "slower") << "\n";
-		(std::cout)
-			<< "metapool vs std: " << metapool_vs_std << "x "
-			<< (metapool_vs_std > 1.0 ? "faster" : "slower") << "\n";
+		std::cout << "std: "; ratio(m_native_time, m_std_time); std::cout << "\n";
+		std::cout << "pmr: "; ratio(m_native_time, m_pmr_time); std::cout << "\n";
 	}
 };
-
 
 std::unique_ptr<Benchmark> create_benchmark_simple()
 {
