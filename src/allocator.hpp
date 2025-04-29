@@ -16,7 +16,7 @@ namespace hpr {
 struct Native {};
 struct StdAdapter {};
 struct PmrAdapter {};
-struct StdAndPmrAdapter {};
+struct StdPmrAdapter {};
 
 
 template <mem::IsAllocatorConfig Config>
@@ -274,7 +274,7 @@ protected:
 
 
 template <mem::IsAllocatorConfig Config>
-class Allocator<Config, StdAndPmrAdapter> : public AllocatorCore<Config>, public std::pmr::memory_resource
+class Allocator<Config, StdPmrAdapter> : public AllocatorCore<Config>, public std::pmr::memory_resource
 {
 public:
 
@@ -285,7 +285,7 @@ public:
 	template <typename ObjType>
 	struct rebind
 	{
-		using other = Allocator<Config, StdAndPmrAdapter>;
+		using other = Allocator<Config, StdPmrAdapter>;
 	};
 
 	template <typename ObjType>
