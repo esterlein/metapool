@@ -224,25 +224,25 @@ public:
 
 	using value_type = void;
 
-	template <typename StdAllocType>
+	template <typename ObjType>
 	struct rebind
 	{
 		using other = Allocator<Config, StdAdapter>;
 	};
 
 	template <typename ObjType>
-	ObjType* allocate(std::size_t n)
+	ObjType* allocate(std::size_t bytes)
 	{
 		return reinterpret_cast<ObjType*>(this->alloc(
-			static_cast<uint32_t>(n * sizeof(ObjType)),
+			static_cast<uint32_t>(bytes * sizeof(ObjType)),
 			static_cast<uint32_t>(alignof(ObjType))
 		));
 	}
 
 	template <typename ObjType>
-	void deallocate(ObjType* p, std::size_t)
+	void deallocate(ObjType* obj, std::size_t)
 	{
-		this->free(reinterpret_cast<std::byte*>(p));
+		this->free(reinterpret_cast<std::byte*>(obj));
 	}
 };
 
@@ -289,18 +289,18 @@ public:
 	};
 
 	template <typename ObjType>
-	ObjType* allocate(std::size_t n)
+	ObjType* allocate(std::size_t bytes)
 	{
 		return reinterpret_cast<ObjType*>(this->alloc(
-			static_cast<uint32_t>(n * sizeof(ObjType)),
+			static_cast<uint32_t>(bytes * sizeof(ObjType)),
 			static_cast<uint32_t>(alignof(ObjType))
 		));
 	}
 
 	template <typename ObjType>
-	void deallocate(ObjType* p, std::size_t)
+	void deallocate(ObjType* obj, std::size_t)
 	{
-		this->free(reinterpret_cast<std::byte*>(p));
+		this->free(reinterpret_cast<std::byte*>(obj));
 	}
 
 protected:
