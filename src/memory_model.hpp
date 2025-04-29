@@ -33,8 +33,16 @@ namespace mem {
 
 	enum class AllocatorType
 	{
-		Simple,
-		Intermediate
+		simple,
+		intermediate
+	};
+	
+	enum class AllocatorInterface
+	{
+		native,
+		std_adapter,
+		pmr_adapter,
+		std_pmr_adapter
 	};
 
 } // hpr::mem
@@ -49,10 +57,10 @@ public:
 	template <mem::AllocatorType Type>
 	static auto& get_allocator()
 	{
-		if constexpr (Type == mem::AllocatorType::Simple) {
+		if constexpr (Type == mem::AllocatorType::simple) {
 			return create_thread_local_allocator<mem::BenchmarkSimpleRegistry>();
 		}
-		else if constexpr (Type == mem::AllocatorType::Intermediate) {
+		else if constexpr (Type == mem::AllocatorType::intermediate) {
 			return create_thread_local_allocator<mem::BenchmarkIntermediateRegistry>();
 		}
 	}
