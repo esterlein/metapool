@@ -54,14 +54,14 @@ public:
 
 	MemoryModel() = delete;
 
-	template <mem::AllocatorType Type>
+	template <mem::AllocatorType Type, mem::AllocatorInterface Interface>
 	static auto& get_allocator()
 	{
 		if constexpr (Type == mem::AllocatorType::simple) {
-			return create_thread_local_allocator<mem::BenchmarkSimpleRegistry>();
+			return create_thread_local_allocator<mem::BenchmarkSimpleRegistry, Interface>();
 		}
 		else if constexpr (Type == mem::AllocatorType::intermediate) {
-			return create_thread_local_allocator<mem::BenchmarkIntermediateRegistry>();
+			return create_thread_local_allocator<mem::BenchmarkIntermediateRegistry, Interface>();
 		}
 	}
 
@@ -106,17 +106,31 @@ private:
 	}; // MemoryModel::MetapoolContainer<typename MetapoolRegistryType>
 
 
-	template <typename MetapoolRegistryType>
+	template <typename MetapoolRegistryType, mem::AllocatorInterface Interface>
 	static auto& create_thread_local_allocator()
 	{
 		thread_local static MonotonicArena arena {mem::arena_size, mem::cacheline};
 		thread_local static MetapoolContainer<MetapoolRegistryType> container {&arena};
 
 		thread_local static auto proxies = container.get_proxies();
-		
 		constexpr auto allocator_config = MetapoolRegistryType::create_allocator_config();
-		thread_local static Allocator<decltype(allocator_config)> allocator {proxies};
-		return allocator;
+
+		if constexpr (Interface == mem::AllocatorInterface::native) {
+			thread_local static Allocator<decltype(allocator_config), Native> alloc {proxies};
+			return alloc;
+		}
+		else if constexpr (Interface == mem::AllocatorInterface::std_adapter) {
+			thread_local static Allocator<decltype(allocator_config), StdAdapter> alloc {proxies};
+			return alloc;
+		}
+		else if constexpr (Interface == mem::AllocatorInterface::pmr_adapter) {
+			thread_local static Allocator<decltype(allocator_config), PmrAdapter> alloc {proxies};
+			return alloc;
+		}
+		else if constexpr (Interface == mem::AllocatorInterface::std_pmr_adapter) {
+			thread_local static Allocator<decltype(allocator_config), StdPmrAdapter> alloc {proxies};
+			return alloc;
+		}
 	}
 };
 
