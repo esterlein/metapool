@@ -16,7 +16,6 @@ namespace hpr {
 struct Native {};
 struct StdAdapter {};
 struct PmrAdapter {};
-struct StdPmrAdapter {};
 
 
 template <mem::IsAllocatorConfig Config>
@@ -202,7 +201,7 @@ protected:
 
 
 
-template <mem::IsAllocatorConfig Config, typename AdapterPolicy = Native>
+template <mem::IsAllocatorConfig Config, typename AdapterPolicy = Native, typename T = void>
 class Allocator;
 
 
@@ -215,19 +214,25 @@ public:
 };
 
 
-template <mem::IsAllocatorConfig Config>
-class Allocator<Config, StdAdapter> : public AllocatorCore<Config>
+template <mem::IsAllocatorConfig Config, typename T>
+class Allocator<Config, StdAdapter, T> : public AllocatorCore<Config>
 {
 public:
 
-	using AllocatorCore<Config>::AllocatorCore;
+	using value_type = T;
+	using pointer = T*;
+	using const_pointer = const T*;
+	using reference = T&;
+	using const_reference = const T&;
+	using size_type = std::size_t;
+	using difference_type = std::ptrdiff_t;
 
-	using value_type = void;
+	using AllocatorCore<Config>::AllocatorCore;
 
 	template <typename ObjType>
 	struct rebind
 	{
-		using other = Allocator<Config, StdAdapter>;
+		using other = Allocator<Config, StdAdapter, ObjType>;
 	};
 
 	template <typename ObjType>
@@ -244,6 +249,22 @@ public:
 	{
 		this->free(reinterpret_cast<std::byte*>(obj));
 	}
+};
+
+template <mem::IsAllocatorConfig Config>
+class Allocator<Config, StdAdapter, void> : public AllocatorCore<Config>
+{
+public:
+
+	using value_type = void;
+
+	using AllocatorCore<Config>::AllocatorCore;
+
+	template <typename ObjType>
+	struct rebind
+	{
+		using other = Allocator<Config, StdAdapter, ObjType>;
+	};
 };
 
 
@@ -271,56 +292,6 @@ protected:
 		return this == &other;
 	}
 };
-
-
-template <mem::IsAllocatorConfig Config>
-class Allocator<Config, StdPmrAdapter> : public AllocatorCore<Config>, public std::pmr::memory_resource
-{
-public:
-
-	using AllocatorCore<Config>::AllocatorCore;
-
-	using value_type = void;
-
-	template <typename ObjType>
-	struct rebind
-	{
-		using other = Allocator<Config, StdPmrAdapter>;
-	};
-
-	template <typename ObjType>
-	ObjType* allocate(std::size_t bytes)
-	{
-		return reinterpret_cast<ObjType*>(this->alloc(
-			static_cast<uint32_t>(bytes * sizeof(ObjType)),
-			static_cast<uint32_t>(alignof(ObjType))
-		));
-	}
-
-	template <typename ObjType>
-	void deallocate(ObjType* obj, std::size_t)
-	{
-		this->free(reinterpret_cast<std::byte*>(obj));
-	}
-
-protected:
-
-	void* do_allocate(std::size_t bytes, std::size_t alignment) override
-	{
-		return this->alloc(static_cast<uint32_t>(bytes), static_cast<uint32_t>(alignment));
-	}
-
-	void do_deallocate(void* ptr, std::size_t, std::size_t) override
-	{
-		this->free(reinterpret_cast<std::byte*>(ptr));
-	}
-
-	bool do_is_equal(const std::pmr::memory_resource& other) const noexcept override
-	{
-		return this == &other;
-	}
-};
-
 
 
 template <mem::IsAllocatorConfig Config>
