@@ -20,7 +20,7 @@ struct StdPmrAdapter {};
 
 
 template <mem::IsAllocatorConfig Config>
-class AllocatorCore : public std::pmr::memory_resource
+class AllocatorCore
 {
 public:
 
@@ -183,7 +183,7 @@ private:
 	template <typename T>
 	static inline constexpr uint32_t get_type_stride()
 	{
-		constexpr uint32_t  alignment = ((alignof(T) + Config::alignment_quantum - 1U) & ~(Config::alignment_quantum - 1U));
+		constexpr uint32_t alignment = ((alignof(T) + Config::alignment_quantum - 1U) & ~(Config::alignment_quantum - 1U));
 		return (sizeof(T) + mem::alloc_header_size + alignment - 1U) & ~(alignment - 1U);
 	}
 
