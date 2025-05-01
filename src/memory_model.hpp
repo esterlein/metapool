@@ -16,7 +16,6 @@ namespace mem {
 	static inline constexpr std::size_t arena_size = 4294967296; // 4GB
 
 
-
 	using BenchmarkSimpleRegistry =
 		MetapoolRegistry <
 			Metapool<mem::MetapoolConfig<mem::CapacityFunction::Flat, 2048, 8, 8, 2048>>

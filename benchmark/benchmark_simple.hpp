@@ -13,13 +13,18 @@ class BenchmarkSimple : public Benchmark
 {
 private:
 
-	inline auto& allocator_simple()
+	inline auto& allocator_simple_std()
 	{
 		return hpr::MemoryModel::get_allocator <
 			hpr::mem::AllocatorType::simple,
 			hpr::mem::AllocatorInterface::std_adapter
 		>();
 	}
+
+	template <typename T>
+	using AdapterStd = std::allocator_traits <
+		std::remove_reference_t<decltype(allocator_simple_std())>
+	>::template rebind_alloc<T>;
 
 public:
 
@@ -66,12 +71,13 @@ private:
 	{
 		auto& allocator = allocator_simple();
 
-		std::cout << "--- native metapool allocator ---\n" << std::endl;
+		std::cout << "--- metapool through std benchmark ---\n" << std::endl;
 
 		std::size_t sizes[] = {32, 64, 128, 256, 512, 1024};
 		std::size_t align = 64;
 
-		std::vector<std::byte*> blocks;
+		std::vector<std::byte*, AdapterStd> blocks(allocator);
+
 		blocks.reserve(k_allocation_count);
 
 		auto start = std::chrono::high_resolution_clock::now();
@@ -91,7 +97,7 @@ private:
 
 	void run_std()
 	{
-		std::cout << "--- std::allocator benchmark ---\n" << std::endl;
+		std::cout << "--- std benchmark ---\n" << std::endl;
 
 		using BlockAlloc = std::allocator<std::byte*>;
 		using DataAlloc = std::allocator<std::byte>;
@@ -121,7 +127,7 @@ private:
 
 	void run_pmr()
 	{
-		std::cout << "--- std::pmr benchmark ---\n" << std::endl;
+		std::cout << "--- pmr benchmark ---\n" << std::endl;
 
 		std::pmr::monotonic_buffer_resource upstream(std::pmr::get_default_resource());
 		std::pmr::polymorphic_allocator<std::byte> data_allocator(&upstream);
