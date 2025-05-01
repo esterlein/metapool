@@ -11,26 +11,30 @@
 
 class BenchmarkSimple : public Benchmark
 {
-public:
+private:
 
-	using SimpleMetapoolAllocator =
-		decltype(hpr::MemoryModel::get_allocator <
+	inline auto& allocator_simple()
+	{
+		return hpr::MemoryModel::get_allocator <
 			hpr::mem::AllocatorType::simple,
 			hpr::mem::AllocatorInterface::std_adapter
-		>());
+		>();
+	}
+
+public:
 
 	inline void setup() override
 	{
 		std::cout << "\n--- metapool memory model simple benchmark ---\n" << std::endl;
 		std::cout << "running basic metapool tests...\n" << std::endl;
 
-		Benchmark::basic_tests<hpr::mem::AllocatorType::simple>();
+		Benchmark::basic_tests();
 	}
 
 	inline void run() override
 	{
 		std::cout << std::endl;
-		run_native();
+		run_mpool();
 		std::cout << std::endl;
 		run_std();
 		std::cout << std::endl;
@@ -45,7 +49,7 @@ public:
 	{
 		std::cout << std::endl;
 
-		SimpleMetapoolAllocator allocator;
+		auto& allocator = allocator_simple();
 		allocator.reset();
 	}
 
@@ -57,9 +61,10 @@ private:
 
 	static constexpr std::size_t k_allocation_count = 8192;
 
-	void run_native()
+
+	void run_mpool()
 	{
-		SimpleMetapoolAllocator allocator;
+		auto& allocator = allocator_simple();
 
 		std::cout << "--- native metapool allocator ---\n" << std::endl;
 
