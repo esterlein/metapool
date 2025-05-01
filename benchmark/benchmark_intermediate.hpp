@@ -61,13 +61,23 @@ class BenchmarkIntermediate : public Benchmark
 {
 private:
 
-	inline auto& allocator_intermediate()
+	static inline auto& adapter_intermediate_std()
 	{
 		return hpr::MemoryModel::get_allocator <
 			hpr::mem::AllocatorType::intermediate,
 			hpr::mem::AllocatorInterface::std_adapter
 		>();
 	}
+
+	using AdapterSimpleStdType = std::remove_reference_t<decltype(
+		hpr::MemoryModel::get_allocator<
+			hpr::mem::AllocatorType::simple,
+			hpr::mem::AllocatorInterface::std_adapter
+		>()
+	)>;
+
+	template <typename T>
+	using AdapterStd = std::allocator_traits<AdapterSimpleStdType>::template rebind_alloc<T>;
 
 public:
 
@@ -111,7 +121,7 @@ public:
 	inline void teardown() override
 	{
 		std::cout << "\n";
-		allocator_intermediate().reset();
+		adapter_intermediate_std().reset();
 	}
 
 private:
@@ -146,15 +156,17 @@ private:
 	void run_raw_alloc_mpool(const char* label, int base_size, int var_factor, int count, int frames)
 	{
 		std::cout << "run metapool raw allocation..." << std::endl;
-		auto& allocator = allocator_intermediate();
-		std::vector<std::byte*> objects;
+
+		auto& adapter_std = adapter_intermediate_std();
+		std::vector<std::byte*, AdapterStd<std::byte*>> objects(adapter_std);
 		objects.reserve(count);
 
 		auto start = std::chrono::high_resolution_clock::now();
 		for (int frame = 0; frame < frames; ++frame) {
 			for (int i = 0; i < count; ++i)
-				objects.push_back(allocator.alloc(base_size + (i % var_factor) * k_var_base, k_alignment));
-			for (auto* ptr : objects) allocator.free(ptr);
+				objects.push_back(adapter_std.alloc(base_size + (i % var_factor) * k_var_base, k_alignment));
+			for (auto* ptr : objects)
+				adapter_std.free(ptr);
 			objects.clear();
 		}
 		auto end = std::chrono::high_resolution_clock::now();
@@ -177,7 +189,8 @@ private:
 			for (int i = 0; i < count; ++i) {
 				objects.push_back(allocator.allocate(base_size + (i % var_factor) * k_var_base));
 			}
-			for (auto* ptr : objects) allocator.deallocate(ptr, base_size);
+			for (auto* ptr : objects)
+				allocator.deallocate(ptr, base_size);
 			objects.clear();
 		}
 		auto end = std::chrono::high_resolution_clock::now();
@@ -202,7 +215,8 @@ private:
 				objects.push_back(static_cast<std::byte*>(
 					allocator.allocate(base_size + (i % var_factor) * k_var_base)));
 			}
-			for (auto* ptr : objects) allocator.deallocate(ptr, 0);
+			for (auto* ptr : objects)
+				allocator.deallocate(ptr, 0);
 			objects.clear();
 		}
 		auto end = std::chrono::high_resolution_clock::now();
@@ -229,15 +243,17 @@ private:
 	void run_dummy_alloc_mpool(int count, int frames)
 	{
 		std::cout << "run metapool dummy allocation..." << std::endl;
-		auto& allocator = allocator_intermediate();
-		std::vector<std::byte*> objects;
+
+		auto& adapter_std = adapter_intermediate_std();
+		std::vector<std::byte*, AdapterStd<std::byte*>> objects(adapter_std);
 		objects.reserve(count);
 
 		auto start = std::chrono::high_resolution_clock::now();
 		for (int frame = 0; frame < frames; ++frame) {
 			for (int i = 0; i < count; ++i)
-				objects.push_back(allocator.alloc(sizeof(T), k_alignment));
-			for (auto* ptr : objects) allocator.free(ptr);
+				objects.push_back(adapter_std.alloc(sizeof(T), k_alignment));
+			for (auto* ptr : objects)
+				adapter_std.free(ptr);
 			objects.clear();
 		}
 		auto end = std::chrono::high_resolution_clock::now();
@@ -259,7 +275,8 @@ private:
 		for (int frame = 0; frame < frames; ++frame) {
 			for (int i = 0; i < count; ++i)
 				objects.push_back(allocator.allocate(sizeof(T)));
-			for (auto* ptr : objects) allocator.deallocate(ptr, sizeof(T));
+			for (auto* ptr : objects)
+				allocator.deallocate(ptr, sizeof(T));
 			objects.clear();
 		}
 		auto end = std::chrono::high_resolution_clock::now();
@@ -282,7 +299,8 @@ private:
 		for (int frame = 0; frame < frames; ++frame) {
 			for (int i = 0; i < count; ++i)
 				objects.push_back(static_cast<std::byte*>(allocator.allocate(sizeof(T))));
-			for (auto* ptr : objects) allocator.deallocate(ptr, 0);
+			for (auto* ptr : objects)
+				allocator.deallocate(ptr, 0);
 			objects.clear();
 		}
 		auto end = std::chrono::high_resolution_clock::now();
@@ -309,15 +327,17 @@ private:
 	void run_construct_mpool(int count, int frames)
 	{
 		std::cout << "run mpool dummy construct/destruct..." << std::endl;
-		auto& allocator = allocator_intermediate();
-		std::vector<T*> objects;
+
+		auto& adapter_std = adapter_intermediate_std();
+		std::vector<T*, AdapterStd<T*>> objects(adapter_std);
 		objects.reserve(count);
 
 		auto start = std::chrono::high_resolution_clock::now();
 		for (int frame = 0; frame < frames; ++frame) {
 			for (int i = 0; i < count; ++i)
-				objects.push_back(allocator.construct<T>());
-			for (auto* ptr : objects) allocator.destruct(ptr);
+				objects.push_back(adapter_std.construct<T>());
+			for (auto* ptr : objects)
+				adapter_std.destruct(ptr);
 			objects.clear();
 		}
 		auto end = std::chrono::high_resolution_clock::now();

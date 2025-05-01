@@ -13,7 +13,7 @@ class BenchmarkSimple : public Benchmark
 {
 private:
 
-	inline auto& allocator_simple_std()
+	static inline auto& adapter_simple_std()
 	{
 		return hpr::MemoryModel::get_allocator <
 			hpr::mem::AllocatorType::simple,
@@ -21,10 +21,15 @@ private:
 		>();
 	}
 
+	using AdapterSimpleStdType = std::remove_reference_t<decltype(
+		hpr::MemoryModel::get_allocator<
+			hpr::mem::AllocatorType::simple,
+			hpr::mem::AllocatorInterface::std_adapter
+		>()
+	)>;
+
 	template <typename T>
-	using AdapterStd = std::allocator_traits <
-		std::remove_reference_t<decltype(allocator_simple_std())>
-	>::template rebind_alloc<T>;
+	using AdapterStd = std::allocator_traits<AdapterSimpleStdType>::template rebind_alloc<T>;
 
 public:
 
@@ -54,8 +59,8 @@ public:
 	{
 		std::cout << std::endl;
 
-		auto& allocator = allocator_simple();
-		allocator.reset();
+		auto& adapter_std = adapter_simple_std();
+		adapter_std.reset();
 	}
 
 private:
@@ -69,25 +74,25 @@ private:
 
 	void run_mpool()
 	{
-		auto& allocator = allocator_simple();
+		auto& adapter_std = adapter_simple_std();
 
 		std::cout << "--- metapool through std benchmark ---\n" << std::endl;
 
 		std::size_t sizes[] = {32, 64, 128, 256, 512, 1024};
 		std::size_t align = 64;
 
-		std::vector<std::byte*, AdapterStd> blocks(allocator);
+		std::vector<std::byte*, AdapterStd<std::byte*>> blocks(adapter_std);
 
 		blocks.reserve(k_allocation_count);
 
 		auto start = std::chrono::high_resolution_clock::now();
 		for (std::size_t i = 0; i < k_allocation_count; ++i) {
 			std::size_t size = sizes[i % (sizeof(sizes) / sizeof(sizes[0]))];
-			std::byte* ptr = allocator.alloc(static_cast<uint32_t>(size), static_cast<uint32_t>(align));
+			std::byte* ptr = adapter_std.alloc(static_cast<uint32_t>(size), static_cast<uint32_t>(align));
 			blocks.push_back(ptr);
 		}
 		for (std::byte* ptr : blocks) {
-			allocator.free(ptr);
+			adapter_std.free(ptr);
 		}
 		auto end = std::chrono::high_resolution_clock::now();
 
@@ -99,13 +104,10 @@ private:
 	{
 		std::cout << "--- std benchmark ---\n" << std::endl;
 
-		using BlockAlloc = std::allocator<std::byte*>;
-		using DataAlloc = std::allocator<std::byte>;
+		std::allocator<std::byte*> block_allocator;
+		std::allocator<std::byte> data_allocator;
 
-		BlockAlloc block_allocator;
-		DataAlloc data_allocator;
-
-		std::vector<std::byte*, BlockAlloc> blocks {block_allocator};
+		std::vector<std::byte*, std::allocator<std::byte*> blocks {block_allocator};
 		blocks.reserve(k_allocation_count);
 
 		std::size_t sizes[] = {32, 64, 128, 256, 512, 1024};

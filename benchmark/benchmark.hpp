@@ -20,7 +20,7 @@ public:
 
 private:
 
-	inline auto& allocator_simple_std()
+	static inline auto& adapter_simple_std()
 	{
 		return hpr::MemoryModel::get_allocator <
 			hpr::mem::AllocatorType::simple,
@@ -28,12 +28,7 @@ private:
 		>();
 	}
 
-	template <typename T>
-	using AdapterStd = std::allocator_traits <
-		std::remove_reference_t<decltype(allocator_simple_std())>
-	>::template rebind_alloc<T>;
-
-	inline auto& allocator_simple_pmr()
+	static inline auto& adapter_simple_pmr()
 	{
 		return hpr::MemoryModel::get_allocator <
 			hpr::mem::AllocatorType::simple,
@@ -41,17 +36,27 @@ private:
 		>();
 	}
 
+	using AdapterSimpleStdType = std::remove_reference_t<decltype(
+		hpr::MemoryModel::get_allocator<
+			hpr::mem::AllocatorType::simple,
+			hpr::mem::AllocatorInterface::std_adapter
+		>()
+	)>;
+
+	template <typename T>
+	using AdapterStd = std::allocator_traits<AdapterSimpleStdType>::template rebind_alloc<T>;
+
 
 	inline void test_basic_allocation()
 	{
 		std::cout << "testing basic allocation..." << std::flush;
 
-		auto& allocator = allocator_simple_std();
+		auto& adapter_std = adapter_simple_std();
 
-		std::byte* ptr = allocator.allocate<std::byte>(100);
+		std::byte* ptr = adapter_std.allocate<std::byte>(100);
 		assert(ptr != nullptr);
 		std::memset(ptr, 0xAB, 100);
-		allocator.deallocate<std::byte>(ptr, 100);
+		adapter_std.deallocate<std::byte>(ptr, 100);
 
 		std::cout << "OK" << std::endl;
 	}
@@ -60,13 +65,13 @@ private:
 	{
 		std::cout << "testing alignment..." << std::flush;
 
-		auto& allocator = allocator_simple_pmr();
+		auto& adapter_pmr = adapter_simple_pmr();
 
 		for (size_t alignment : {1, 2, 4, 8, 16, 32, 64}) {
-			void* ptr = allocator.allocate(64, alignment);
+			void* ptr = adapter_pmr.allocate(64, alignment);
 			assert(ptr != nullptr);
 			assert(reinterpret_cast<uintptr_t>(ptr) % alignment == 0);
-			allocator.deallocate(ptr, 64, alignment);
+			adapter_pmr.deallocate(ptr, 64, alignment);
 		}
 
 		std::cout << "OK" << std::endl;
@@ -76,19 +81,19 @@ private:
 	{
 		std::cout << "testing multiple allocations..." << std::flush;
 
-		auto& allocator = allocator_simple_std();
+		auto& adapter_std = adapter_simple_std();
 
 		std::vector<std::byte*> blocks;
 		std::size_t sizes[] = {8, 16, 32, 64, 128, 256};
 
 		for (std::size_t size : sizes) {
-			std::byte* ptr = allocator.allocate<std::byte>(size);
+			std::byte* ptr = adapter_std.allocate<std::byte>(size);
 			assert(ptr != nullptr);
 			blocks.push_back(ptr);
 		}
 
 		for (std::byte* ptr : blocks) {
-			allocator.deallocate<std::byte>(ptr, 0);
+			adapter_std.deallocate<std::byte>(ptr, 0);
 		}
 
 		std::cout << "OK" << std::endl;
@@ -98,14 +103,14 @@ private:
 	{
 		std::cout << "testing with containers..." << std::flush;
 
-		auto& allocator_std = allocator_simple_std();
+		auto& adapter_std = adapter_simple_std();
 
-		std::vector<int, AdapterStd> vec_std(allocator_std);
+		std::vector<int, AdapterStd<int>> vec_std(adapter_std);
 		std::basic_string <
 			char,
 			std::char_traits<char>,
-			AdapterStd
-		> str_std(allocator_std);
+			AdapterStd<char>
+		> str_std(adapter_std);
 	
 		for (int i = 0; i < 1000; ++i)
 			vec_std.push_back(i);
@@ -116,10 +121,10 @@ private:
 		vec_std.clear();
 		str_std.clear();
 
-		auto& allocator_pmr = allocator_simple_pmr();
+		auto& adapter_pmr = adapter_simple_pmr();
 
-		std::pmr::polymorphic_allocator<int> int_alloc(&allocator_pmr);
-		std::pmr::polymorphic_allocator<char> char_alloc(&allocator_pmr);
+		std::pmr::polymorphic_allocator<int> int_alloc(&adapter_pmr);
+		std::pmr::polymorphic_allocator<char> char_alloc(&adapter_pmr);
 
 		std::pmr::vector<int> vec_pmr(int_alloc);
 		std::pmr::string str_pmr(char_alloc);
