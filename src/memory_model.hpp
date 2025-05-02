@@ -74,17 +74,6 @@ public:
 
 	MemoryModel() = delete;
 
-	template <mem::AllocatorType Type, mem::AllocatorInterface Interface>
-	static auto& get_allocator()
-	{
-		if constexpr (Type == mem::AllocatorType::simple) {
-			return create_thread_local_allocator<mem::BenchmarkSimpleRegistry, Interface>();
-		}
-		else if constexpr (Type == mem::AllocatorType::intermediate) {
-			return create_thread_local_allocator<mem::BenchmarkIntermediateRegistry, Interface>();
-		}
-	}
-
 	template <typename System>
 	static auto& get_system_allocator()
 	{
@@ -101,6 +90,25 @@ public:
 		using Rebound = typename Base::template rebind<T>::other;
 
 		return Rebound {base};
+	}
+
+
+	template <typename System>
+	using SysAlloc = decltype(get_system_allocator<System>());
+
+	template <typename T, typename System>
+	using SysAdapter = decltype(get_adapter_std<T, System>());
+
+
+	template <mem::AllocatorType Type, mem::AllocatorInterface Interface>
+	static auto& get_allocator()
+	{
+		if constexpr (Type == mem::AllocatorType::simple) {
+			return create_thread_local_allocator<mem::BenchmarkSimpleRegistry, Interface>();
+		}
+		else if constexpr (Type == mem::AllocatorType::intermediate) {
+			return create_thread_local_allocator<mem::BenchmarkIntermediateRegistry, Interface>();
+		}
 	}
 
 private:
