@@ -15,7 +15,6 @@ namespace mem {
 
 	static inline constexpr std::size_t arena_size = 4294967296; // 4GB
 
-
 	using BenchmarkSimpleRegistry =
 		MetapoolRegistry <
 			Metapool<mem::MetapoolConfig<mem::CapacityFunction::Flat, 2048, 8, 8, 2048>>
@@ -40,9 +39,10 @@ namespace mem {
 	{
 		native,
 		std_adapter,
-		pmr_adapter,
-		std_pmr_adapter
+		pmr_adapter
 	};
+
+	static inline constexpr AllocatorType k_default_allocator_type = mem::AllocatorType::simple;
 
 } // hpr::mem
 
@@ -62,6 +62,17 @@ public:
 		else if constexpr (Type == mem::AllocatorType::intermediate) {
 			return create_thread_local_allocator<mem::BenchmarkIntermediateRegistry, Interface>();
 		}
+	}
+
+	template <typename T>
+	auto get_std_adapter()
+	{
+		auto& base = get_allocator<k_default_allocator_type, mem::AllocatorInterface::std_adapter>();
+
+		using Base = std::remove_reference_t<decltype(base)>;
+		using Rebound = typename Base::template rebind<T>::other;
+
+		return Rebound{base};
 	}
 
 private:
@@ -119,15 +130,11 @@ private:
 			return alloc;
 		}
 		else if constexpr (Interface == mem::AllocatorInterface::std_adapter) {
-			thread_local static Allocator<decltype(allocator_config), StdAdapter> alloc {proxies};
+			thread_local static Allocator<decltype(allocator_config), StdAdapter, void> alloc {proxies};
 			return alloc;
 		}
 		else if constexpr (Interface == mem::AllocatorInterface::pmr_adapter) {
 			thread_local static Allocator<decltype(allocator_config), PmrAdapter> alloc {proxies};
-			return alloc;
-		}
-		else if constexpr (Interface == mem::AllocatorInterface::std_pmr_adapter) {
-			thread_local static Allocator<decltype(allocator_config), StdPmrAdapter> alloc {proxies};
 			return alloc;
 		}
 	}
