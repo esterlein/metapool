@@ -20,33 +20,6 @@ public:
 
 private:
 
-	static inline auto& adapter_simple_std()
-	{
-		return hpr::MemoryModel::get_allocator <
-			hpr::mem::AllocatorType::simple,
-			hpr::mem::AllocatorInterface::std_adapter
-		>();
-	}
-
-	static inline auto& adapter_simple_pmr()
-	{
-		return hpr::MemoryModel::get_allocator <
-			hpr::mem::AllocatorType::simple,
-			hpr::mem::AllocatorInterface::pmr_adapter
-		>();
-	}
-
-	using AdapterSimpleStdType = std::remove_reference_t<decltype(
-		hpr::MemoryModel::get_allocator<
-			hpr::mem::AllocatorType::simple,
-			hpr::mem::AllocatorInterface::std_adapter
-		>()
-	)>;
-
-	template <typename T>
-	using AdapterStd = std::allocator_traits<AdapterSimpleStdType>::template rebind_alloc<T>;
-
-
 	inline void test_basic_allocation()
 	{
 		std::cout << "testing basic allocation..." << std::flush;

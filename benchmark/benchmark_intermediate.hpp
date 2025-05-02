@@ -59,26 +59,6 @@ struct DummyBig
 
 class BenchmarkIntermediate : public Benchmark
 {
-private:
-
-	static inline auto& adapter_intermediate_std()
-	{
-		return hpr::MemoryModel::get_allocator <
-			hpr::mem::AllocatorType::intermediate,
-			hpr::mem::AllocatorInterface::std_adapter
-		>();
-	}
-
-	using AdapterSimpleStdType = std::remove_reference_t<decltype(
-		hpr::MemoryModel::get_allocator<
-			hpr::mem::AllocatorType::simple,
-			hpr::mem::AllocatorInterface::std_adapter
-		>()
-	)>;
-
-	template <typename T>
-	using AdapterStd = std::allocator_traits<AdapterSimpleStdType>::template rebind_alloc<T>;
-
 public:
 
 	inline void setup() override
