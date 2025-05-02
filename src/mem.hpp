@@ -16,25 +16,25 @@ namespace mem {
 
 	template <> struct SystemAllocatorTraits<BasicTestsSystem>
 	{
-		static constexpr mem::AllocatorType type = mem::AllocatorType::simple;
+		static constexpr AllocatorType type = AllocatorType::simple;
 	};
 
 	template <> struct SystemAllocatorTraits<BenchmarkSimpleSystem>
 	{
-		static constexpr mem::AllocatorType type = mem::AllocatorType::simple;
+		static constexpr AllocatorType type = AllocatorType::simple;
 	};
 
 	template <> struct SystemAllocatorTraits<BenchmarkIntermediateSystem>
 	{
-		static constexpr mem::AllocatorType type = mem::AllocatorType::intermediate;
+		static constexpr AllocatorType type = AllocatorType::intermediate;
 	};
 
 
 	template <typename System>
 	static auto& get_system_allocator()
 	{
-		constexpr auto type = mem::SystemAllocatorTraits<System>::type;
-		return MemoryModel::get_allocator<type, mem::AllocatorInterface::std_adapter>();
+		constexpr auto type = SystemAllocatorTraits<System>::type;
+		return MemoryModel::get_allocator<type, AllocatorInterface::std_adapter>();
 	}
 
 	template <typename T, typename System>
