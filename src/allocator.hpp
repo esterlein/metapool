@@ -246,19 +246,17 @@ public:
 		using other = Allocator<Config, StdAdapter, ObjType>;
 	};
 
-	template <typename ObjType>
-	ObjType* allocate(std::size_t bytes)
+	pointer allocate(size_type bytes)
 	{
-		return reinterpret_cast<ObjType*>(this->alloc(
-			static_cast<uint32_t>(bytes * sizeof(ObjType)),
-			static_cast<uint32_t>(alignof(ObjType))
+		return reinterpret_cast<pointer>(this->alloc(
+			static_cast<uint32_t>(bytes * sizeof(value_type)),
+			static_cast<uint32_t>(alignof(value_type))
 		));
 	}
 
-	template <typename ObjType>
-	void deallocate(ObjType* obj, std::size_t)
+	void deallocate(pointer ptr, size_type)
 	{
-		this->free(reinterpret_cast<std::byte*>(obj));
+		this->free(reinterpret_cast<std::byte*>(ptr));
 	}
 };
 
