@@ -20,8 +20,29 @@ auto make_string()
 	return std::basic_string <
 		char,
 		std::char_traits<char>,
-		mem::SysAdapter<char, System>
-	>{mem::get_adapter_std<char, System>()};
+		mem::SysAdapter<char, System>> {
+			mem::get_adapter_std<char, System>()
+		};
+}
+
+
+template <typename T, typename System>
+auto make_pmr_vector()
+{
+	return std::pmr::vector<T> {
+		std::pmr::polymorphic_allocator<T> {
+			mem::get_adapter_pmr<System>()
+		}
+	};
+}
+
+template <typename System>
+auto make_pmr_string()
+{
+	return std::pmr::string {
+		std::pmr::polymorphic_allocator<char> {
+			mem::get_adapter_pmr<System>()
+		}
+	};
 }
 } // hpr::cntr
-
