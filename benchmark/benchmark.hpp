@@ -76,7 +76,7 @@ private:
 
 	inline void test_with_containers()
 	{
-		std::cout << "testing with containers..." << std::flush;
+		std::cout << "testing containers..." << std::flush;
 
 		auto vec_std = hpr::cntr::make_vector<int, System>();
 

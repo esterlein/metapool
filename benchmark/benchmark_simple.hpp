@@ -59,14 +59,14 @@ private:
 
 	void run_mpool()
 	{
-		std::cout << "--- metapool through std benchmark ---\n" << std::endl;
+		std::cout << "--- metapool benchmark ---\n" << std::endl;
 
 		auto& allocator = hpr::mem::get_system_allocator<System>();
 		auto blocks = hpr::cntr::make_vector<std::byte*, System>();
 
 		blocks.reserve(k_allocation_count);
 
-		const uint32_t align = 64;
+		const uint32_t align = 8;
 
 		auto start = std::chrono::high_resolution_clock::now();
 		for (std::size_t i = 0; i < k_allocation_count; ++i) {
@@ -80,7 +80,7 @@ private:
 		auto end = std::chrono::high_resolution_clock::now();
 
 		m_native_time = std::chrono::duration<double, std::milli>(end - start).count();
-		std::cout << "native time: " << m_native_time << " ms\n" << std::endl;
+		std::cout << "native time (std container): " << m_native_time << " ms\n" << std::endl;
 	}
 
 
@@ -106,7 +106,7 @@ private:
 		auto end = std::chrono::high_resolution_clock::now();
 
 		m_std_time = std::chrono::duration<double, std::milli>(end - start).count();
-		std::cout << "std allocator time: " << m_std_time << " ms\n" << std::endl;
+		std::cout << "std time (std container): " << m_std_time << " ms\n" << std::endl;
 	}
 
 
@@ -133,7 +133,7 @@ private:
 		auto end = std::chrono::high_resolution_clock::now();
 
 		m_pmr_time = std::chrono::duration<double, std::milli>(end - start).count();
-		std::cout << "pmr time: " << m_pmr_time << " ms\n" << std::endl;
+		std::cout << "pmr time (pmr container): " << m_pmr_time << " ms\n" << std::endl;
 	}
 
 
