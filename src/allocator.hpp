@@ -32,7 +32,8 @@ public:
 	AllocatorCore() = delete;
 	virtual ~AllocatorCore() = default;
 
-	AllocatorCore(const AllocatorCore&) = delete;
+	AllocatorCore(const AllocatorCore&) = default;
+
 	AllocatorCore(AllocatorCore&&) = delete;
 	AllocatorCore& operator=(const AllocatorCore&) = delete;
 	AllocatorCore& operator=(AllocatorCore&&) = delete;
@@ -229,6 +230,16 @@ public:
 
 	using AllocatorCore<Config>::AllocatorCore;
 
+	Allocator(const Allocator& other) noexcept = default;
+	Allocator(Allocator&& other) noexcept = default;
+	Allocator& operator=(const Allocator& other) noexcept = default;
+	Allocator& operator=(Allocator&& other) noexcept = default;
+
+	template <typename = void>
+	Allocator(const Allocator<Config, StdAdapter, void>& other)
+		: AllocatorCore<Config>(other)
+	{}
+
 	template <typename ObjType>
 	struct rebind
 	{
@@ -259,6 +270,14 @@ public:
 	using value_type = void;
 
 	using AllocatorCore<Config>::AllocatorCore;
+
+	Allocator() = delete;
+	~Allocator() = default;
+
+	Allocator(const Allocator&) noexcept = default;
+	Allocator(Allocator&&) noexcept = default;
+	Allocator& operator=(const Allocator&) noexcept = default;
+	Allocator& operator=(Allocator&&) noexcept = default;
 
 	template <typename ObjType>
 	struct rebind
