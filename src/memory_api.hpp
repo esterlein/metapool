@@ -1,5 +1,7 @@
 #pragma once
 
+#include <memory_resource>
+
 #include "memory_model.hpp"
 
 
@@ -46,6 +48,13 @@ namespace mem {
 		using Rebound = typename Base::template rebind<T>::other;
 
 		return Rebound {base};
+	}
+
+	template <typename System>
+	static inline std::pmr::memory_resource* get_adapter_pmr()
+	{
+		constexpr auto type = mem::SystemAllocatorTraits<System>::type;
+		return &MemoryModel::get_allocator<type, AllocatorInterface::pmr_adapter>();
 	}
 
 
