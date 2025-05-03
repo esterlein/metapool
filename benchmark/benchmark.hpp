@@ -3,11 +3,11 @@
 #include <ostream>
 #include <vector>
 #include <cstring>
-#include <utility>
 #include <iostream>
 #include <memory_resource>
 
-#include "memory_model.hpp"
+#include "memory_api.hpp"
+#include "container_factory.hpp"
 
 
 
@@ -18,92 +18,85 @@ public:
 	virtual ~Benchmark()
 	{}
 
+	using System = hpr::mem::BenchmarkSimpleSystem;
+
 private:
 
 	inline void test_basic_allocation()
 	{
 		std::cout << "testing basic allocation..." << std::flush;
 
-		auto& adapter_std = adapter_simple_std();
+		auto& allocator = hpr::mem::get_system_allocator<System>();
 
-		std::byte* ptr = adapter_std.allocate<std::byte>(100);
+		std::byte* ptr = allocator.alloc(100, alignof(int));
 		assert(ptr != nullptr);
 		std::memset(ptr, 0xAB, 100);
-		adapter_std.deallocate<std::byte>(ptr, 100);
+		allocator.free(ptr);
 
-		std::cout << "OK" << std::endl;
+		std::cout << "ok" << std::endl;
 	}
 
 	inline void test_alignment()
 	{
 		std::cout << "testing alignment..." << std::flush;
 
-		auto& adapter_pmr = adapter_simple_pmr();
+		auto& allocator = hpr::mem::get_system_allocator<System>();
 
 		for (size_t alignment : {1, 2, 4, 8, 16, 32, 64}) {
-			void* ptr = adapter_pmr.allocate(64, alignment);
+			std::byte* ptr = allocator.alloc(64, alignment);
 			assert(ptr != nullptr);
 			assert(reinterpret_cast<uintptr_t>(ptr) % alignment == 0);
-			adapter_pmr.deallocate(ptr, 64, alignment);
+			allocator.free(ptr);
 		}
 
-		std::cout << "OK" << std::endl;
+		std::cout << "ok" << std::endl;
 	}
 
 	inline void test_multiple_allocations()
 	{
 		std::cout << "testing multiple allocations..." << std::flush;
 
-		auto& adapter_std = adapter_simple_std();
+		auto& allocator = hpr::mem::get_system_allocator<System>();
 
 		std::vector<std::byte*> blocks;
 		std::size_t sizes[] = {8, 16, 32, 64, 128, 256};
 
 		for (std::size_t size : sizes) {
-			std::byte* ptr = adapter_std.allocate<std::byte>(size);
+			std::byte* ptr = allocator.alloc(size, alignof(int));
 			assert(ptr != nullptr);
 			blocks.push_back(ptr);
 		}
 
 		for (std::byte* ptr : blocks) {
-			adapter_std.deallocate<std::byte>(ptr, 0);
+			allocator.free(ptr);
 		}
 
-		std::cout << "OK" << std::endl;
+		std::cout << "ok" << std::endl;
 	}
 
 	inline void test_with_containers()
 	{
 		std::cout << "testing with containers..." << std::flush;
 
-		auto& adapter_std = adapter_simple_std();
+		auto vec_std = hpr::cntr::make_vector<int, System>();
 
-		std::vector<int, AdapterStd<int>> vec_std(adapter_std);
-		std::basic_string <
-			char,
-			std::char_traits<char>,
-			AdapterStd<char>
-		> str_std(adapter_std);
-	
 		for (int i = 0; i < 1000; ++i)
 			vec_std.push_back(i);
 	
+		auto str_std = hpr::cntr::make_string<System>();
+
 		for (int i = 0; i < 1000; ++i)
 			str_std += 'a';
 	
 		vec_std.clear();
 		str_std.clear();
 
-		auto& adapter_pmr = adapter_simple_pmr();
-
-		std::pmr::polymorphic_allocator<int> int_alloc(&adapter_pmr);
-		std::pmr::polymorphic_allocator<char> char_alloc(&adapter_pmr);
-
-		std::pmr::vector<int> vec_pmr(int_alloc);
-		std::pmr::string str_pmr(char_alloc);
+		auto vec_pmr = hpr::cntr::make_pmr_vector<int, System>();
 
 		for (int i = 0; i < 1000; ++i)
 			vec_pmr.push_back(i);
+
+		auto str_pmr = hpr::cntr::make_pmr_string<System>();
 
 		for (int i = 0; i < 1000; ++i)
 			str_pmr += 'a';
@@ -111,7 +104,7 @@ private:
 		vec_pmr.clear();
 		str_pmr.clear();
 
-		std::cout << "OK" << std::endl;
+		std::cout << "ok" << std::endl;
 	}
 
 public:
