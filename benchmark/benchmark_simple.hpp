@@ -62,9 +62,7 @@ private:
 		std::cout << "--- metapool benchmark ---\n" << std::endl;
 
 		auto& allocator = hpr::mem::get_system_allocator<System>();
-		auto blocks = hpr::cntr::make_vector<std::byte*, System>();
-
-		blocks.reserve(k_allocation_count);
+		auto vec = hpr::cntr::make_vector<std::byte*, System>(k_allocation_count);
 
 		const uint32_t align = 8;
 
@@ -72,9 +70,9 @@ private:
 		for (std::size_t i = 0; i < k_allocation_count; ++i) {
 			std::size_t size = k_sizes[i % k_sizes.size()];
 			std::byte* ptr = allocator.alloc(static_cast<uint32_t>(size), align);
-			blocks.push_back(ptr);
+			vec.push_back(ptr);
 		}
-		for (std::byte* ptr : blocks) {
+		for (std::byte* ptr : vec) {
 			allocator.free(ptr);
 		}
 		auto end = std::chrono::high_resolution_clock::now();
@@ -91,16 +89,16 @@ private:
 		std::allocator<std::byte*> block_allocator;
 		std::allocator<std::byte> data_allocator;
 
-		std::vector<std::byte*, std::allocator<std::byte*>> blocks {block_allocator};
-		blocks.reserve(k_allocation_count);
+		std::vector<std::byte*, std::allocator<std::byte*>> vec {block_allocator};
+		vec.reserve(k_allocation_count);
 
 		auto start = std::chrono::high_resolution_clock::now();
 		for (std::size_t i = 0; i < k_allocation_count; ++i) {
 			std::size_t size = k_sizes[i % k_sizes.size()];
 			std::byte* ptr = data_allocator.allocate(size);
-			blocks.push_back(ptr);
+			vec.push_back(ptr);
 		}
-		for (std::byte* ptr : blocks) {
+		for (std::byte* ptr : vec) {
 			data_allocator.deallocate(ptr, 0);
 		}
 		auto end = std::chrono::high_resolution_clock::now();
@@ -115,19 +113,19 @@ private:
 		std::cout << "--- pmr benchmark ---\n" << std::endl;
 
 		std::pmr::monotonic_buffer_resource upstream(std::pmr::get_default_resource());
-		std::pmr::polymorphic_allocator<std::byte> data_allocator(&upstream);
 		std::pmr::polymorphic_allocator<std::byte*> block_allocator(&upstream);
+		std::pmr::polymorphic_allocator<std::byte> data_allocator(&upstream);
 
-		std::pmr::vector<std::byte*> blocks {block_allocator};
-		blocks.reserve(k_allocation_count);
+		std::pmr::vector<std::byte*> vec {block_allocator};
+		vec.reserve(k_allocation_count);
 
 		auto start = std::chrono::high_resolution_clock::now();
 		for (std::size_t i = 0; i < k_allocation_count; ++i) {
 			std::size_t size = k_sizes[i % k_sizes.size()];
 			void* ptr = data_allocator.allocate(size);
-			blocks.push_back(reinterpret_cast<std::byte*>(ptr));
+			vec.push_back(reinterpret_cast<std::byte*>(ptr));
 		}
-		for (std::byte* ptr : blocks) {
+		for (std::byte* ptr : vec) {
 			data_allocator.deallocate(ptr, 0);
 		}
 		auto end = std::chrono::high_resolution_clock::now();

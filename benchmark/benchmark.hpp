@@ -58,16 +58,16 @@ private:
 
 		auto& allocator = hpr::mem::get_system_allocator<System>();
 
-		std::vector<std::byte*> blocks;
-		std::size_t sizes[] = {8, 16, 32, 64, 128, 256};
+		std::vector<std::byte*> vec;
+		std::array<std::size_t, 6> sizes {8, 16, 32, 64, 128, 256};
 
 		for (std::size_t size : sizes) {
 			std::byte* ptr = allocator.alloc(size, alignof(int));
 			assert(ptr != nullptr);
-			blocks.push_back(ptr);
+			vec.push_back(ptr);
 		}
 
-		for (std::byte* ptr : blocks) {
+		for (std::byte* ptr : vec) {
 			allocator.free(ptr);
 		}
 

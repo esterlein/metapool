@@ -1,14 +1,18 @@
 #pragma once
 
 #include <array>
+#include <cstdint>
 #include <vector>
 #include <chrono>
 #include <cstring>
 #include <iostream>
+#include <string_view>
 #include <memory_resource>
 
 #include "benchmark.hpp"
-#include "memory_model.hpp"
+#include "memory_api.hpp"
+#include "container_factory.hpp"
+
 
 
 struct DummySmall
@@ -61,6 +65,8 @@ class BenchmarkIntermediate : public Benchmark
 {
 public:
 
+	using System = hpr::mem::BenchmarkIntermediateSystem;
+
 	inline void setup() override
 	{
 		std::cout << "\n--- metapool memory model intermediate benchmark ---\n" << std::endl;
@@ -101,7 +107,8 @@ public:
 	inline void teardown() override
 	{
 		std::cout << "\n";
-		adapter_intermediate_std().reset();
+		auto& allocator = hpr::mem::get_system_allocator<System>();
+		allocator.reset();
 	}
 
 private:
@@ -122,7 +129,7 @@ private:
 	double m_std_dummy_construct_time   {0.0};
 
 
-	void run_pattern_raw_alloc(const char* label, int base_size, int var_factor, int count, int frames)
+	void run_pattern_raw_alloc(std::string_view label, uint32_t base_size, uint32_t var_factor, std::size_t count, uint32_t frames)
 	{
 		run_raw_alloc_mpool(label, base_size, var_factor, count, frames);
 		std::cout << std::endl;
@@ -133,21 +140,20 @@ private:
 	}
 
 
-	void run_raw_alloc_mpool(const char* label, int base_size, int var_factor, int count, int frames)
+	void run_raw_alloc_mpool(std::string_view label, uint32_t base_size, uint32_t var_factor, std::size_t count, uint32_t frames)
 	{
 		std::cout << "run metapool raw allocation..." << std::endl;
 
-		auto& adapter_std = adapter_intermediate_std();
-		std::vector<std::byte*, AdapterStd<std::byte*>> objects(adapter_std);
-		objects.reserve(count);
+		auto& allocator = hpr::mem::get_system_allocator<System>();
+		auto vec = hpr::cntr::make_vector<std::byte*, System>(count);
 
 		auto start = std::chrono::high_resolution_clock::now();
 		for (int frame = 0; frame < frames; ++frame) {
 			for (int i = 0; i < count; ++i)
-				objects.push_back(adapter_std.alloc(base_size + (i % var_factor) * k_var_base, k_alignment));
-			for (auto* ptr : objects)
-				adapter_std.free(ptr);
-			objects.clear();
+				vec.push_back(allocator.alloc(base_size + (i % var_factor) * k_var_base, k_alignment));
+			for (auto* ptr : vec)
+				allocator.free(ptr);
+			vec.clear();
 		}
 		auto end = std::chrono::high_resolution_clock::now();
 
@@ -156,22 +162,25 @@ private:
 	}
 
 
-	void run_raw_alloc_std(const char* label, int base_size, int var_factor, int count, int frames)
+	void run_raw_alloc_std(std::string_view label, std::size_t base_size, std::size_t var_factor, std::size_t count, uint32_t frames)
 	{
 		std::cout << "run std raw allocation..." << std::endl;
 
-		std::allocator<std::byte> allocator;
-		std::vector<std::byte*> objects;
-		objects.reserve(count);
+		std::allocator<std::byte*> block_allocator;
+		std::allocator<std::byte> data_allocator;
+
+		std::vector<std::byte*, std::allocator<std::byte*>> vec {block_allocator};
+		vec.reserve(count);
 
 		auto start = std::chrono::high_resolution_clock::now();
 		for (int frame = 0; frame < frames; ++frame) {
 			for (int i = 0; i < count; ++i) {
-				objects.push_back(allocator.allocate(base_size + (i % var_factor) * k_var_base));
+				vec.push_back(data_allocator.allocate(base_size + (i % var_factor) * k_var_base));
 			}
-			for (auto* ptr : objects)
-				allocator.deallocate(ptr, base_size);
-			objects.clear();
+			for (auto* ptr : vec) {
+				data_allocator.deallocate(ptr, base_size);
+			}
+			vec.clear();
 		}
 		auto end = std::chrono::high_resolution_clock::now();
 	
@@ -180,24 +189,27 @@ private:
 	}
 
 
-	void run_raw_alloc_pmr(const char* label, int base_size, int var_factor, int count, int frames)
+	void run_raw_alloc_pmr(std::string_view label, std::size_t base_size, std::size_t var_factor, std::size_t count, uint32_t frames)
 	{
 		std::cout << "run pmr raw allocation..." << std::endl;
 
 		std::pmr::monotonic_buffer_resource upstream(std::pmr::get_default_resource());
-		std::pmr::polymorphic_allocator<std::byte> allocator(&upstream);
-		std::vector<std::byte*> objects;
-		objects.reserve(count);
+		std::pmr::polymorphic_allocator<std::byte*> block_allocator(&upstream);
+		std::pmr::polymorphic_allocator<std::byte> data_allocator(&upstream);
+
+		std::pmr::vector<std::byte*> vec {block_allocator};
+		vec.reserve(count);
 
 		auto start = std::chrono::high_resolution_clock::now();
 		for (int frame = 0; frame < frames; ++frame) {
 			for (int i = 0; i < count; ++i) {
-				objects.push_back(static_cast<std::byte*>(
-					allocator.allocate(base_size + (i % var_factor) * k_var_base)));
+				vec.push_back(static_cast<std::byte*>(
+					data_allocator.allocate(base_size + (i % var_factor) * k_var_base)));
 			}
-			for (auto* ptr : objects)
-				allocator.deallocate(ptr, 0);
-			objects.clear();
+			for (auto* ptr : vec) {
+				data_allocator.deallocate(ptr, 0);
+			}
+			vec.clear();
 		}
 		auto end = std::chrono::high_resolution_clock::now();
 	
@@ -207,10 +219,9 @@ private:
 
 
 	template <typename T>
-	void run_pattern_dummy_alloc(const char* label, int count, int frames)
+	void run_pattern_dummy_alloc(std::string_view label, std::size_t count, uint32_t frames)
 	{
 		std::cout << "--- " << label << " dummy alloc/free pattern ---" << std::endl;
-
 		std::cout << "\n";
 		run_dummy_alloc_mpool<T>(count, frames);
 		std::cout << "\n";
@@ -220,80 +231,91 @@ private:
 	}
 
 	template <typename T>
-	void run_dummy_alloc_mpool(int count, int frames)
+	void run_dummy_alloc_mpool(std::size_t count, uint32_t frames)
 	{
 		std::cout << "run metapool dummy allocation..." << std::endl;
 
-		auto& adapter_std = adapter_intermediate_std();
-		std::vector<std::byte*, AdapterStd<std::byte*>> objects(adapter_std);
-		objects.reserve(count);
+		auto& allocator = hpr::mem::get_system_allocator<System>();
+		auto vec = hpr::cntr::make_vector<std::byte*, System>(count);
 
 		auto start = std::chrono::high_resolution_clock::now();
 		for (int frame = 0; frame < frames; ++frame) {
-			for (int i = 0; i < count; ++i)
-				objects.push_back(adapter_std.alloc(sizeof(T), k_alignment));
-			for (auto* ptr : objects)
-				adapter_std.free(ptr);
-			objects.clear();
+			for (int i = 0; i < count; ++i) {
+				vec.push_back(allocator.alloc(sizeof(T), k_alignment));
+			}
+			for (auto* ptr : vec) {
+				allocator.free(ptr);
+			}
+			vec.clear();
 		}
 		auto end = std::chrono::high_resolution_clock::now();
+
 		m_mpool_dummy_alloc_time = std::chrono::duration<double, std::milli>(end - start).count();
 		std::cout << "metapool alloc time: " << m_mpool_dummy_alloc_time << " ms" << std::endl;
 	}
 
 
 	template <typename T>
-	void run_dummy_alloc_std(int count, int frames)
+	void run_dummy_alloc_std(std::size_t count, uint32_t frames)
 	{
 		std::cout << "run std dummy allocation..." << std::endl;
 
-		std::allocator<std::byte> allocator;
-		std::vector<std::byte*> objects;
-		objects.reserve(count);
+		std::allocator<std::byte*> block_allocator;
+		std::allocator<std::byte> data_allocator;
+
+		std::vector<std::byte*, std::allocator<std::byte*>> vec {block_allocator};
+		vec.reserve(count);
 
 		auto start = std::chrono::high_resolution_clock::now();
 		for (int frame = 0; frame < frames; ++frame) {
-			for (int i = 0; i < count; ++i)
-				objects.push_back(allocator.allocate(sizeof(T)));
-			for (auto* ptr : objects)
-				allocator.deallocate(ptr, sizeof(T));
-			objects.clear();
+			for (int i = 0; i < count; ++i) {
+				vec.push_back(data_allocator.allocate(sizeof(T)));
+			}
+			for (auto* ptr : vec) {
+				data_allocator.deallocate(ptr, sizeof(T));
+			}
+			vec.clear();
 		}
 		auto end = std::chrono::high_resolution_clock::now();
+
 		m_std_dummy_alloc_time = std::chrono::duration<double, std::milli>(end - start).count();
 		std::cout << "std alloc time: " << m_std_dummy_alloc_time << " ms" << std::endl;
 	}
 
 
 	template <typename T>
-	void run_dummy_alloc_pmr(int count, int frames)
+	void run_dummy_alloc_pmr(std::size_t count, uint32_t frames)
 	{
 		std::cout << "run pmr dummy allocation..." << std::endl;
 
 		std::pmr::monotonic_buffer_resource upstream(std::pmr::get_default_resource());
-		std::pmr::polymorphic_allocator<std::byte> allocator(&upstream);
-		std::vector<std::byte*> objects;
-		objects.reserve(count);
+		std::pmr::polymorphic_allocator<std::byte*> block_allocator(&upstream);
+		std::pmr::polymorphic_allocator<std::byte> data_allocator(&upstream);
+
+		std::pmr::vector<std::byte*> vec {block_allocator};
+		vec.reserve(count);
 
 		auto start = std::chrono::high_resolution_clock::now();
 		for (int frame = 0; frame < frames; ++frame) {
-			for (int i = 0; i < count; ++i)
-				objects.push_back(static_cast<std::byte*>(allocator.allocate(sizeof(T))));
-			for (auto* ptr : objects)
-				allocator.deallocate(ptr, 0);
-			objects.clear();
+			for (int i = 0; i < count; ++i) {
+				vec.push_back(static_cast<std::byte*>(data_allocator.allocate(sizeof(T))));
+			}
+			for (auto* ptr : vec) {
+				data_allocator.deallocate(ptr, 0);
+			}
+			vec.clear();
 		}
 		auto end = std::chrono::high_resolution_clock::now();
+
 		m_pmr_dummy_alloc_time = std::chrono::duration<double, std::milli>(end - start).count();
 		std::cout << "pmr alloc time: " << m_pmr_dummy_alloc_time << " ms" << std::endl;
 	}
 
 
 	template <typename T>
-	void run_pattern_dummy_construct(const char* label, int count, int frames)
+	void run_pattern_dummy_construct(std::string_view label, std::size_t count, uint32_t frames)
 	{
 		std::cout << "--- " << label << " dummy construct/destruct pattern ---" << std::endl;
-
 		std::cout << "\n";
 		run_construct_mpool<T>(count, frames);
 		std::cout << "\n";
@@ -304,80 +326,88 @@ private:
 
 
 	template <typename T>
-	void run_construct_mpool(int count, int frames)
+	void run_construct_mpool(std::size_t count, uint32_t frames)
 	{
 		std::cout << "run mpool dummy construct/destruct..." << std::endl;
 
-		auto& adapter_std = adapter_intermediate_std();
-		std::vector<T*, AdapterStd<T*>> objects(adapter_std);
-		objects.reserve(count);
+		auto& allocator = hpr::mem::get_system_allocator<System>();
+		auto vec = hpr::cntr::make_vector<T*, System>(count);
 
 		auto start = std::chrono::high_resolution_clock::now();
 		for (int frame = 0; frame < frames; ++frame) {
-			for (int i = 0; i < count; ++i)
-				objects.push_back(adapter_std.construct<T>());
-			for (auto* ptr : objects)
-				adapter_std.destruct(ptr);
-			objects.clear();
+			for (int i = 0; i < count; ++i) {
+				vec.push_back(allocator.construct<T>());
+			}
+			for (auto* ptr : vec) {
+				allocator.destruct(ptr);
+			}
+			vec.clear();
 		}
 		auto end = std::chrono::high_resolution_clock::now();
+
 		m_mpool_dummy_construct_time = std::chrono::duration<double, std::milli>(end - start).count();
 		std::cout << "metapool construct/destruct time: " << m_mpool_dummy_construct_time << " ms" << std::endl;
 	}
 
 
 	template <typename T>
-	void run_construct_std(int count, int frames)
+	void run_construct_std(std::size_t count, uint32_t frames)
 	{
 		std::cout << "run std dummy construct/destruct..." << std::endl;
 
-		std::allocator<T> allocator;
-		std::vector<T*> objects;
-		objects.reserve(count);
+		std::allocator<T*> block_allocator;
+		std::allocator<T> data_allocator;
+
+		std::vector<T*, std::allocator<T*>> vec {block_allocator};
+		vec.reserve(count);
 
 		auto start = std::chrono::high_resolution_clock::now();
 		for (int frame = 0; frame < frames; ++frame) {
 			for (int i = 0; i < count; ++i) {
-				T* ptr = allocator.allocate(1);
+				T* ptr = data_allocator.allocate(1);
 				::new (static_cast<void*>(ptr)) T();
-				objects.push_back(ptr);
+				vec.push_back(ptr);
 			}
-			for (auto* ptr : objects) {
+			for (auto* ptr : vec) {
 				ptr->~T();
-				allocator.deallocate(ptr, 1);
+				data_allocator.deallocate(ptr, 1);
 			}
-			objects.clear();
+			vec.clear();
 		}
 		auto end = std::chrono::high_resolution_clock::now();
+
 		m_std_dummy_construct_time = std::chrono::duration<double, std::milli>(end - start).count();
 		std::cout << "std construct/destruct time: " << m_std_dummy_construct_time << " ms" << std::endl;
 	}
 
 
 	template <typename T>
-	void run_construct_pmr(int count, int frames)
+	void run_construct_pmr(std::size_t count, uint32_t frames)
 	{
 		std::cout << "run pmr dummy construct/destruct..." << std::endl;
 
 		std::pmr::monotonic_buffer_resource upstream(std::pmr::get_default_resource());
-		std::pmr::polymorphic_allocator<std::byte> allocator(&upstream);
-		std::vector<T*> objects;
-		objects.reserve(count);
+		std::pmr::polymorphic_allocator<T*> block_allocator(&upstream);
+		std::pmr::polymorphic_allocator<T> data_allocator(&upstream);
+
+		std::pmr::vector<T*> vec {block_allocator};
+		vec.reserve(count);
 
 		auto start = std::chrono::high_resolution_clock::now();
 		for (int frame = 0; frame < frames; ++frame) {
 			for (int i = 0; i < count; ++i) {
-				std::byte* raw = static_cast<std::byte*>(allocator.allocate(sizeof(T)));
+				T* raw = static_cast<T*>(data_allocator.allocate(sizeof(T)));
 				T* ptr = ::new (raw) T();
-				objects.push_back(ptr);
+				vec.push_back(ptr);
 			}
-			for (auto* ptr : objects) {
+			for (auto* ptr : vec) {
 				ptr->~T();
-				allocator.deallocate(reinterpret_cast<std::byte*>(ptr), 0);
+				data_allocator.deallocate(reinterpret_cast<T*>(ptr), 0);
 			}
-			objects.clear();
+			vec.clear();
 		}
 		auto end = std::chrono::high_resolution_clock::now();
+
 		m_pmr_dummy_construct_time = std::chrono::duration<double, std::milli>(end - start).count();
 		std::cout << "pmr construct/destruct time: " << m_pmr_dummy_construct_time << " ms" << std::endl;
 	}
