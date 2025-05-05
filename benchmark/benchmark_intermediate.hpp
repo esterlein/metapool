@@ -75,34 +75,6 @@ public:
 	//	Benchmark::basic_tests();
 	}
 
-	inline void run() override
-	{
-		std::cout << std::endl;
-		run_pattern_raw_alloc("ecs", 32, 4, 5000, 100);
-		std::cout << std::endl;
-		run_pattern_raw_alloc("renderer", 64, 4, 500, 100);
-		std::cout << std::endl;
-		run_pattern_raw_alloc("ui", 48, 1, 256, 1000);
-
-		std::cout << "\n\n";
-		run_pattern_dummy_alloc<DummySmall>("ecs", 5000, 100);
-		std::cout << "\n";
-		run_pattern_dummy_construct<DummySmall>("ecs", 5000, 100);
-
-		std::cout << "\n\n";
-		run_pattern_dummy_alloc<DummyMedium>("renderer", 500, 100);
-		std::cout << "\n";
-		run_pattern_dummy_construct<DummyMedium>("renderer", 500, 100);
-
-		std::cout << "\n\n";
-		run_pattern_dummy_alloc<DummyBig>("ui", 256, 1000);
-		std::cout << "\n";
-		run_pattern_dummy_construct<DummyBig>("ui", 256, 1000);
-
-		std::cout << "\n\n";
-		print_summary();
-		std::cout << "\n";
-	}
 
 	inline void teardown() override
 	{
@@ -116,31 +88,37 @@ private:
 	const std::size_t k_alignment {16};
 	const std::size_t k_var_base  {16};
 
-	double m_mpool_raw_time {0.0};
-	double m_pmr_raw_time   {0.0};
-	double m_std_raw_time   {0.0};
+	std::array<double, 3> m_raw_time_ecs    {};
+	std::array<double, 3> m_raw_time_render {};
+	std::array<double, 3> m_raw_time_ui     {};
 
-	double m_mpool_dummy_alloc_time {0.0};
-	double m_pmr_dummy_alloc_time   {0.0};
-	double m_std_dummy_alloc_time   {0.0};
+	std::array<double, 3> m_dummy_alloc_time_ecs     {};
+	std::array<double, 3> m_dummy_construct_time_ecs {};
+	std::array<double, 3> m_dummy_emplace_time_ecs   {};
 
-	double m_mpool_dummy_construct_time {0.0};
-	double m_pmr_dummy_construct_time   {0.0};
-	double m_std_dummy_construct_time   {0.0};
+	std::array<double, 3> m_dummy_alloc_time_render     {};
+	std::array<double, 3> m_dummy_construct_time_render {};
+	std::array<double, 3> m_dummy_emplace_time_render   {};
+
+	std::array<double, 3> m_dummy_alloc_time_ui     {};
+	std::array<double, 3> m_dummy_construct_time_ui {};
+	std::array<double, 3> m_dummy_emplace_time_ui   {};
 
 
-	void run_pattern_raw_alloc(std::string_view label, uint32_t base_size, uint32_t var_factor, std::size_t count, uint32_t frames)
+	auto run_pattern_raw_alloc(std::string_view label, uint32_t base_size, uint32_t var_factor, std::size_t count, uint32_t frames)
 	{
-		run_raw_alloc_mpool(label, base_size, var_factor, count, frames);
+		std::array<double, 3> time;
+		time[0] = run_raw_alloc_mtp(label, base_size, var_factor, count, frames);
 		std::cout << std::endl;
-		run_raw_alloc_std(label, base_size, var_factor, count, frames);
+		time[1] = run_raw_alloc_std(label, base_size, var_factor, count, frames);
 		std::cout << std::endl;
-		run_raw_alloc_pmr(label, base_size, var_factor, count, frames);
+		time[2] = run_raw_alloc_pmr(label, base_size, var_factor, count, frames);
 		std::cout << std::endl;
+		return time;
 	}
 
 
-	void run_raw_alloc_mpool(std::string_view label, uint32_t base_size, uint32_t var_factor, std::size_t count, uint32_t frames)
+	double run_raw_alloc_mtp(std::string_view label, uint32_t base_size, uint32_t var_factor, std::size_t count, uint32_t frames)
 	{
 		std::cout << "run metapool raw allocation..." << std::endl;
 
@@ -150,20 +128,23 @@ private:
 
 		auto start = std::chrono::high_resolution_clock::now();
 		for (auto frame = 0; frame < frames; ++frame) {
-			for (auto i = 0; i < count; ++i)
+			for (auto i = 0; i < count; ++i) {
 				vec.push_back(allocator.alloc(base_size + (i % var_factor) * k_var_base, k_alignment));
-			for (auto* ptr : vec)
+			}
+			for (auto* ptr : vec) {
 				allocator.free(ptr);
+			}
 			vec.clear();
 		}
 		auto end = std::chrono::high_resolution_clock::now();
 
-		m_mpool_raw_time = std::chrono::duration<double, std::milli>(end - start).count();
-		std::cout << "metapool raw alloc time (" << label << "): " << m_mpool_raw_time << " ms" << std::endl;
+		double time = std::chrono::duration<double, std::milli>(end - start).count();
+		std::cout << "metapool raw alloc time (" << label << "): " << time << " ms" << std::endl;
+		return time;
 	}
 
 
-	void run_raw_alloc_std(std::string_view label, std::size_t base_size, std::size_t var_factor, std::size_t count, uint32_t frames)
+	double run_raw_alloc_std(std::string_view label, std::size_t base_size, std::size_t var_factor, std::size_t count, uint32_t frames)
 	{
 		std::cout << "run std raw allocation..." << std::endl;
 
@@ -185,12 +166,13 @@ private:
 		}
 		auto end = std::chrono::high_resolution_clock::now();
 	
-		m_std_raw_time = std::chrono::duration<double, std::milli>(end - start).count();
-		std::cout << "std raw alloc time (" << label << "): " << m_std_raw_time << " ms" << std::endl;
+		double time = std::chrono::duration<double, std::milli>(end - start).count();
+		std::cout << "std raw alloc time (" << label << "): " << time << " ms" << std::endl;
+		return time;
 	}
 
 
-	void run_raw_alloc_pmr(std::string_view label, std::size_t base_size, std::size_t var_factor, std::size_t count, uint32_t frames)
+	double run_raw_alloc_pmr(std::string_view label, std::size_t base_size, std::size_t var_factor, std::size_t count, uint32_t frames)
 	{
 		std::cout << "run pmr raw allocation..." << std::endl;
 
@@ -214,25 +196,28 @@ private:
 		}
 		auto end = std::chrono::high_resolution_clock::now();
 	
-		m_pmr_raw_time = std::chrono::duration<double, std::milli>(end - start).count();
-		std::cout << "pmr raw alloc time (" << label << "): " << m_pmr_raw_time << " ms" << std::endl;
+		double time = std::chrono::duration<double, std::milli>(end - start).count();
+		std::cout << "pmr raw alloc time (" << label << "): " << time << " ms" << std::endl;
+		return time;
 	}
 
 
 	template <typename T>
-	void run_pattern_dummy_alloc(std::string_view label, std::size_t count, uint32_t frames)
+	std::array<double, 3> run_pattern_dummy_alloc(std::string_view label, std::size_t count, uint32_t frames)
 	{
 		std::cout << "--- " << label << " dummy alloc/free pattern ---" << std::endl;
+		std::array<double, 3> time;
 		std::cout << "\n";
-		run_dummy_alloc_mpool<T>(count, frames);
+		time[0] = run_dummy_alloc_mtp<T>(count, frames);
 		std::cout << "\n";
-		run_dummy_alloc_std<T>(count, frames);
+		time[1] = run_dummy_alloc_std<T>(count, frames);
 		std::cout << "\n";
-		run_dummy_alloc_pmr<T>(count, frames);
+		time[2] = run_dummy_alloc_pmr<T>(count, frames);
+		return time;
 	}
 
 	template <typename T>
-	void run_dummy_alloc_mpool(std::size_t count, uint32_t frames)
+	double run_dummy_alloc_mtp(std::size_t count, uint32_t frames)
 	{
 		std::cout << "run metapool dummy allocation..." << std::endl;
 
@@ -252,13 +237,14 @@ private:
 		}
 		auto end = std::chrono::high_resolution_clock::now();
 
-		m_mpool_dummy_alloc_time = std::chrono::duration<double, std::milli>(end - start).count();
-		std::cout << "metapool alloc time: " << m_mpool_dummy_alloc_time << " ms" << std::endl;
+		double time = std::chrono::duration<double, std::milli>(end - start).count();
+		std::cout << "metapool alloc time: " << time << " ms" << std::endl;
+		return time;
 	}
 
 
 	template <typename T>
-	void run_dummy_alloc_std(std::size_t count, uint32_t frames)
+	double run_dummy_alloc_std(std::size_t count, uint32_t frames)
 	{
 		std::cout << "run std dummy allocation..." << std::endl;
 
@@ -280,13 +266,14 @@ private:
 		}
 		auto end = std::chrono::high_resolution_clock::now();
 
-		m_std_dummy_alloc_time = std::chrono::duration<double, std::milli>(end - start).count();
-		std::cout << "std alloc time: " << m_std_dummy_alloc_time << " ms" << std::endl;
+		double time = std::chrono::duration<double, std::milli>(end - start).count();
+		std::cout << "std alloc time: " << time << " ms" << std::endl;
+		return time;
 	}
 
 
 	template <typename T>
-	void run_dummy_alloc_pmr(std::size_t count, uint32_t frames)
+	double run_dummy_alloc_pmr(std::size_t count, uint32_t frames)
 	{
 		std::cout << "run pmr dummy allocation..." << std::endl;
 
@@ -309,26 +296,29 @@ private:
 		}
 		auto end = std::chrono::high_resolution_clock::now();
 
-		m_pmr_dummy_alloc_time = std::chrono::duration<double, std::milli>(end - start).count();
-		std::cout << "pmr alloc time: " << m_pmr_dummy_alloc_time << " ms" << std::endl;
+		double time = std::chrono::duration<double, std::milli>(end - start).count();
+		std::cout << "pmr alloc time: " << time << " ms" << std::endl;
+		return time;
 	}
 
 
 	template <typename T>
-	void run_pattern_dummy_construct(std::string_view label, std::size_t count, uint32_t frames)
+	std::array<double, 3> run_pattern_dummy_construct(std::string_view label, std::size_t count, uint32_t frames)
 	{
 		std::cout << "--- " << label << " dummy construct/destruct pattern ---" << std::endl;
+		std::array<double, 3> time;
 		std::cout << "\n";
-		run_construct_mpool<T>(count, frames);
+		time[0] = run_dummy_construct_mtp<T>(count, frames);
 		std::cout << "\n";
-		run_construct_std<T>(count, frames);
+		time[1] = run_dummy_construct_std<T>(count, frames);
 		std::cout << "\n";
-		run_construct_pmr<T>(count, frames);
+		time[2] = run_dummy_construct_pmr<T>(count, frames);
+		return time;
 	}
 
 
 	template <typename T>
-	void run_construct_mpool(std::size_t count, uint32_t frames)
+	double run_dummy_construct_mtp(std::size_t count, uint32_t frames)
 	{
 		std::cout << "run mpool dummy construct/destruct..." << std::endl;
 
@@ -348,13 +338,14 @@ private:
 		}
 		auto end = std::chrono::high_resolution_clock::now();
 
-		m_mpool_dummy_construct_time = std::chrono::duration<double, std::milli>(end - start).count();
-		std::cout << "metapool construct/destruct time: " << m_mpool_dummy_construct_time << " ms" << std::endl;
+		double time = std::chrono::duration<double, std::milli>(end - start).count();
+		std::cout << "metapool construct/destruct time: " << time << " ms" << std::endl;
+		return time;
 	}
 
 
 	template <typename T>
-	void run_construct_std(std::size_t count, uint32_t frames)
+	double run_dummy_construct_std(std::size_t count, uint32_t frames)
 	{
 		std::cout << "run std dummy construct/destruct..." << std::endl;
 
@@ -379,13 +370,14 @@ private:
 		}
 		auto end = std::chrono::high_resolution_clock::now();
 
-		m_std_dummy_construct_time = std::chrono::duration<double, std::milli>(end - start).count();
-		std::cout << "std construct/destruct time: " << m_std_dummy_construct_time << " ms" << std::endl;
+		double time = std::chrono::duration<double, std::milli>(end - start).count();
+		std::cout << "std construct/destruct time: " << time << " ms" << std::endl;
+		return time;
 	}
 
 
 	template <typename T>
-	void run_construct_pmr(std::size_t count, uint32_t frames)
+	double run_dummy_construct_pmr(std::size_t count, uint32_t frames)
 	{
 		std::cout << "run pmr dummy construct/destruct..." << std::endl;
 
@@ -411,20 +403,35 @@ private:
 		}
 		auto end = std::chrono::high_resolution_clock::now();
 
-		m_pmr_dummy_construct_time = std::chrono::duration<double, std::milli>(end - start).count();
-		std::cout << "pmr construct/destruct time: " << m_pmr_dummy_construct_time << " ms" << std::endl;
+		double time = std::chrono::duration<double, std::milli>(end - start).count();
+		std::cout << "pmr construct/destruct time: " << time << " ms" << std::endl;
+		return time;
 	}
 
 
+	template <typename T>
+	std::array<double, 3> run_pattern_dummy_emplace(std::string_view label, std::size_t count, uint32_t frames)
+	{
+		std::cout << "--- " << label << " dummy emplace pattern ---" << std::endl;
+		std::array<double, 3> time;
+		std::cout << "\n";
+		time[0] = run_dummy_emplace_mtp<T>(count, frames);
+		std::cout << "\n";
+		time[1] = run_dummy_emplace_std<T>(count, frames);
+		std::cout << "\n";
+		time[2] = run_dummy_emplace_pmr<T>(count, frames);
+		return time;
+	}
+
 
 	template <typename T>
-	void run_vector_construct_mpool(std::size_t count, uint32_t frames)
+	double run_dummy_emplace_mtp(std::size_t count, uint32_t frames)
 	{
 		std::cout << "run metapool std::vector<T> in-place construction..." << std::endl;
-	
+
 		auto vec = hpr::cntr::make_vector<T*, System>();
 		vec.reserve(count);
-	
+
 		auto start = std::chrono::high_resolution_clock::now();
 		for (auto frame = 0; frame < frames; ++frame) {
 			vec.clear();
@@ -434,20 +441,20 @@ private:
 			}
 		}
 		auto end = std::chrono::high_resolution_clock::now();
-	
-		std::cout << "metapool vector<T> time: "
-			<< std::chrono::duration<double, std::milli>(end - start).count()
-			<< " ms" << std::endl;
+
+		double time = std::chrono::duration<double, std::milli>(end - start).count();
+		std::cout << "metapool std::vector<T>::emplace time: " << time << " ms" << std::endl;
+		return time;
 	}
 
 
 	template <typename T>
-	void run_vector_construct_std(std::size_t count, uint32_t frames)
+	double run_dummy_emplace_std(std::size_t count, uint32_t frames)
 	{
 		std::cout << "run std::allocator vector<T> in-place construction..." << std::endl;
-	
+
 		std::vector<T> vec;
-	
+
 		auto start = std::chrono::high_resolution_clock::now();
 		for (auto frame = 0; frame < frames; ++frame) {
 			vec.clear();
@@ -457,21 +464,21 @@ private:
 			}
 		}
 		auto end = std::chrono::high_resolution_clock::now();
-	
-		std::cout << "std vector<T> time: "
-			<< std::chrono::duration<double, std::milli>(end - start).count()
-			<< " ms" << std::endl;
+
+		double time = std::chrono::duration<double, std::milli>(end - start).count();
+		std::cout << "std vector<T>::emplace time: " << time << " ms" << std::endl;
+		return time;
 	}
 
 
 	template <typename T>
-	void run_vector_construct_pmr(std::size_t count, uint32_t frames)
+	double run_dummy_emplace_pmr(std::size_t count, uint32_t frames)
 	{
 		std::cout << "run pmr::vector<T> in-place construction..." << std::endl;
-	
+
 		std::pmr::monotonic_buffer_resource upstream(std::pmr::get_default_resource());
 		std::pmr::vector<T> vec {&upstream};
-	
+
 		auto start = std::chrono::high_resolution_clock::now();
 		for (auto frame = 0; frame < frames; ++frame) {
 			vec.clear();
@@ -481,50 +488,111 @@ private:
 			}
 		}
 		auto end = std::chrono::high_resolution_clock::now();
-	
-		std::cout << "pmr vector<T> time: "
-			<< std::chrono::duration<double, std::milli>(end - start).count()
-			<< " ms" << std::endl;
+
+		double time = std::chrono::duration<double, std::milli>(end - start).count();
+		std::cout << "pmr vector<T>::emplace time: " << time << " ms" << std::endl;
+		return time;
 	}
 
+public:
+
+	inline void run() override
+	{
+		std::cout << std::endl;
+		m_raw_time_ecs = run_pattern_raw_alloc("ecs", 32, 4, 5000, 100);
+		std::cout << std::endl;
+		m_raw_time_render = run_pattern_raw_alloc("render", 64, 4, 500, 100);
+		std::cout << std::endl;
+		m_raw_time_ui = run_pattern_raw_alloc("ui", 48, 1, 256, 1000);
+
+		std::cout << "\n\n";
+		m_dummy_alloc_time_ecs = run_pattern_dummy_alloc<DummySmall>("ecs", 5000, 100);
+		std::cout << "\n";
+		m_dummy_construct_time_ecs = run_pattern_dummy_construct<DummySmall>("ecs", 5000, 100);
+		std::cout << "\n";
+		m_dummy_emplace_time_ecs = run_pattern_dummy_emplace<DummySmall>("ecs", 5000, 100);
+
+		std::cout << "\n\n";
+		m_dummy_alloc_time_render = run_pattern_dummy_alloc<DummyMedium>("render", 500, 100);
+		std::cout << "\n";
+		m_dummy_construct_time_render = run_pattern_dummy_construct<DummyMedium>("render", 500, 100);
+		std::cout << "\n";
+		m_dummy_emplace_time_render = run_pattern_dummy_emplace<DummyMedium>("render", 500, 100);
+
+		std::cout << "\n\n";
+		m_dummy_alloc_time_ui = run_pattern_dummy_alloc<DummyBig>("ui", 256, 1000);
+		std::cout << "\n";
+		m_dummy_construct_time_ui = run_pattern_dummy_construct<DummyBig>("ui", 256, 1000);
+		std::cout << "\n";
+		m_dummy_emplace_time_ui = run_pattern_dummy_emplace<DummyBig>("ui", 256, 1000);
+
+		std::cout << "\n\n";
+		print_summary();
+		std::cout << "\n";
+	}
+
+private:
 
 	void print_summary() const
 	{
-		std::cout << "\n--- benchmark summary (ecs pattern only) ---\n";
+		std::cout << "\n--- benchmark summary ---\n";
 
-		std::cout << "\nraw alloc:\n";
-		std::cout << "metapool: " << m_mpool_raw_time << " ms\n";
-		std::cout << "pmr:      " << m_pmr_raw_time   << " ms\n";
-		std::cout << "std:      " << m_std_raw_time   << " ms\n";
+		auto print_pattern_results = [this](
+										const std::string& pattern_name,
+										const std::array<double, 3>& raw_times,
+										const std::array<double, 3>& alloc_times,
+										const std::array<double, 3>& construct_times,
+										const std::array<double, 3>& emplace_times
+		){
+			std::cout << "\n=== " << pattern_name << " pattern ===\n";
 
-		std::cout << "\ndummy alloc/free:\n";
-		std::cout << "metapool: " << m_mpool_dummy_alloc_time << " ms\n";
-		std::cout << "pmr:      " << m_pmr_dummy_alloc_time   << " ms\n";
-		std::cout << "std:      " << m_std_dummy_alloc_time   << " ms\n";
+			std::cout << "\nraw alloc:\n";
+			std::cout << "mtp: " << raw_times[0] << " ms\n";
+			std::cout << "std: " << raw_times[1] << " ms\n";
+			std::cout << "pmr: " << raw_times[2] << " ms\n";
 
-		std::cout << "\ndummy construct/destruct:\n";
-		std::cout << "metapool: " << m_mpool_dummy_construct_time << " ms\n";
-		std::cout << "pmr:      " << m_pmr_dummy_construct_time   << " ms\n";
-		std::cout << "std:      " << m_std_dummy_construct_time   << " ms\n";
+			std::cout << "\ndummy alloc/free:\n";
+			std::cout << "mtp: " << alloc_times[0] << " ms\n";
+			std::cout << "std: " << alloc_times[1] << " ms\n";
+			std::cout << "pmr: " << alloc_times[2] << " ms\n";
 
-		std::cout << "\n--- performance comparison (ecs pattern only) ---\n";
+			std::cout << "\ndummy construct/destruct:\n";
+			std::cout << "mtp: " << construct_times[0] << " ms\n";
+			std::cout << "std: " << construct_times[1] << " ms\n";
+			std::cout << "pmr: " << construct_times[2] << " ms\n";
 
-		auto cmp = [](double base, double val) {
-			double r = val / base;
-			std::cout << r << "x " << (r > 1.0 ? "slower" : "faster") << "\n";
+			std::cout << "\ndummy emplace/clear:\n";
+			std::cout << "mtp: " << emplace_times[0] << " ms\n";
+			std::cout << "std: " << emplace_times[1] << " ms\n";
+			std::cout << "pmr: " << emplace_times[2] << " ms\n";
+
+			std::cout << "\n--- performance comparison ---\n";
+
+			auto cmp = [](double base, double val) {
+				double r = val / base;
+				std::cout << r << "x " << (r > 1.0 ? "slower" : "faster") << "\n";
+			};
+
+			std::cout << "\nraw alloc:\n";
+			std::cout << "metapool vs std: "; cmp(raw_times[0], raw_times[1]);
+			std::cout << "metapool vs pmr: "; cmp(raw_times[0], raw_times[2]);
+
+			std::cout << "\ndummy alloc/free:\n";
+			std::cout << "metapool vs std: "; cmp(alloc_times[0], alloc_times[1]);
+			std::cout << "metapool vs pmr: "; cmp(alloc_times[0], alloc_times[2]);
+
+			std::cout << "\ndummy construct/destruct:\n";
+			std::cout << "metapool vs std: "; cmp(construct_times[0], construct_times[1]);
+			std::cout << "metapool vs pmr: "; cmp(construct_times[0], construct_times[2]);
+
+			std::cout << "\ndummy emplace/clear:\n";
+			std::cout << "metapool vs std: "; cmp(emplace_times[0], emplace_times[1]);
+			std::cout << "metapool vs pmr: "; cmp(emplace_times[0], emplace_times[2]);
 		};
 
-		std::cout << "\nraw alloc:\n";
-		std::cout << "metapool vs pmr: "; cmp(m_mpool_raw_time, m_pmr_raw_time);
-		std::cout << "metapool vs std: "; cmp(m_mpool_raw_time, m_std_raw_time);
-
-		std::cout << "\ndummy alloc/free:\n";
-		std::cout << "metapool vs pmr: "; cmp(m_mpool_dummy_alloc_time, m_pmr_dummy_alloc_time);
-		std::cout << "metapool vs std: "; cmp(m_mpool_dummy_alloc_time, m_std_dummy_alloc_time);
-
-		std::cout << "\ndummy construct/destruct:\n";
-		std::cout << "metapool vs pmr: "; cmp(m_mpool_dummy_construct_time, m_pmr_dummy_construct_time);
-		std::cout << "metapool vs std: "; cmp(m_mpool_dummy_construct_time, m_std_dummy_construct_time);
+		print_pattern_results("ecs", m_raw_time_ecs, m_dummy_alloc_time_ecs, m_dummy_construct_time_ecs, m_dummy_emplace_time_ecs);
+		print_pattern_results("render", m_raw_time_render, m_dummy_alloc_time_render, m_dummy_construct_time_render, m_dummy_emplace_time_render);
+		print_pattern_results("ui", m_raw_time_ui, m_dummy_alloc_time_ui, m_dummy_construct_time_ui, m_dummy_emplace_time_ui);
 	}
 };
 
