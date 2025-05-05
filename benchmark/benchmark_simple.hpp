@@ -62,7 +62,8 @@ private:
 		std::cout << "--- metapool benchmark ---\n" << std::endl;
 
 		auto& allocator = hpr::mem::get_system_allocator<System>();
-		auto vec = hpr::cntr::make_vector<std::byte*, System>(k_allocation_count);
+		auto vec = hpr::cntr::make_vector<std::byte*, System>();
+		vec.reserve(k_allocation_count);
 
 		const uint32_t align = 8;
 
