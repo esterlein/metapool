@@ -416,6 +416,78 @@ private:
 	}
 
 
+
+	template <typename T>
+	void run_vector_construct_mpool(std::size_t count, uint32_t frames)
+	{
+		std::cout << "run metapool std::vector<T> in-place construction..." << std::endl;
+	
+		auto vec = hpr::cntr::make_vector<T*, System>();
+		vec.reserve(count);
+	
+		auto start = std::chrono::high_resolution_clock::now();
+		for (auto frame = 0; frame < frames; ++frame) {
+			vec.clear();
+			vec.reserve(count);
+			for (auto i = 0; i < count; ++i) {
+				vec.emplace_back();
+			}
+		}
+		auto end = std::chrono::high_resolution_clock::now();
+	
+		std::cout << "metapool vector<T> time: "
+			<< std::chrono::duration<double, std::milli>(end - start).count()
+			<< " ms" << std::endl;
+	}
+
+
+	template <typename T>
+	void run_vector_construct_std(std::size_t count, uint32_t frames)
+	{
+		std::cout << "run std::allocator vector<T> in-place construction..." << std::endl;
+	
+		std::vector<T> vec;
+	
+		auto start = std::chrono::high_resolution_clock::now();
+		for (auto frame = 0; frame < frames; ++frame) {
+			vec.clear();
+			vec.reserve(count);
+			for (auto i = 0; i < count; ++i) {
+				vec.emplace_back();
+			}
+		}
+		auto end = std::chrono::high_resolution_clock::now();
+	
+		std::cout << "std vector<T> time: "
+			<< std::chrono::duration<double, std::milli>(end - start).count()
+			<< " ms" << std::endl;
+	}
+
+
+	template <typename T>
+	void run_vector_construct_pmr(std::size_t count, uint32_t frames)
+	{
+		std::cout << "run pmr::vector<T> in-place construction..." << std::endl;
+	
+		std::pmr::monotonic_buffer_resource upstream(std::pmr::get_default_resource());
+		std::pmr::vector<T> vec {&upstream};
+	
+		auto start = std::chrono::high_resolution_clock::now();
+		for (auto frame = 0; frame < frames; ++frame) {
+			vec.clear();
+			vec.reserve(count);
+			for (auto i = 0; i < count; ++i) {
+				vec.emplace_back();
+			}
+		}
+		auto end = std::chrono::high_resolution_clock::now();
+	
+		std::cout << "pmr vector<T> time: "
+			<< std::chrono::duration<double, std::milli>(end - start).count()
+			<< " ms" << std::endl;
+	}
+
+
 	void print_summary() const
 	{
 		std::cout << "\n--- benchmark summary (ecs pattern only) ---\n";
