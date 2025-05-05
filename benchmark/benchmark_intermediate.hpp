@@ -72,7 +72,7 @@ public:
 		std::cout << "\n--- metapool memory model intermediate benchmark ---\n" << std::endl;
 		std::cout << "running basic metapool tests..." << std::endl;
 
-		Benchmark::basic_tests();
+	//	Benchmark::basic_tests();
 	}
 
 	inline void run() override
@@ -113,8 +113,8 @@ public:
 
 private:
 
-	const int k_alignment {16};
-	const int k_var_base  {16};
+	const std::size_t k_alignment {16};
+	const std::size_t k_var_base  {16};
 
 	double m_mpool_raw_time {0.0};
 	double m_pmr_raw_time   {0.0};
@@ -145,11 +145,12 @@ private:
 		std::cout << "run metapool raw allocation..." << std::endl;
 
 		auto& allocator = hpr::mem::get_system_allocator<System>();
-		auto vec = hpr::cntr::make_vector<std::byte*, System>(count);
+		auto vec = hpr::cntr::make_vector<std::byte*, System>();
+		vec.reserve(count);
 
 		auto start = std::chrono::high_resolution_clock::now();
-		for (int frame = 0; frame < frames; ++frame) {
-			for (int i = 0; i < count; ++i)
+		for (auto frame = 0; frame < frames; ++frame) {
+			for (auto i = 0; i < count; ++i)
 				vec.push_back(allocator.alloc(base_size + (i % var_factor) * k_var_base, k_alignment));
 			for (auto* ptr : vec)
 				allocator.free(ptr);
@@ -173,8 +174,8 @@ private:
 		vec.reserve(count);
 
 		auto start = std::chrono::high_resolution_clock::now();
-		for (int frame = 0; frame < frames; ++frame) {
-			for (int i = 0; i < count; ++i) {
+		for (auto frame = 0; frame < frames; ++frame) {
+			for (auto i = 0; i < count; ++i) {
 				vec.push_back(data_allocator.allocate(base_size + (i % var_factor) * k_var_base));
 			}
 			for (auto* ptr : vec) {
@@ -201,8 +202,8 @@ private:
 		vec.reserve(count);
 
 		auto start = std::chrono::high_resolution_clock::now();
-		for (int frame = 0; frame < frames; ++frame) {
-			for (int i = 0; i < count; ++i) {
+		for (auto frame = 0; frame < frames; ++frame) {
+			for (auto i = 0; i < count; ++i) {
 				vec.push_back(static_cast<std::byte*>(
 					data_allocator.allocate(base_size + (i % var_factor) * k_var_base)));
 			}
@@ -236,11 +237,12 @@ private:
 		std::cout << "run metapool dummy allocation..." << std::endl;
 
 		auto& allocator = hpr::mem::get_system_allocator<System>();
-		auto vec = hpr::cntr::make_vector<std::byte*, System>(count);
+		auto vec = hpr::cntr::make_vector<std::byte*, System>();
+		vec.reserve(count);
 
 		auto start = std::chrono::high_resolution_clock::now();
-		for (int frame = 0; frame < frames; ++frame) {
-			for (int i = 0; i < count; ++i) {
+		for (auto frame = 0; frame < frames; ++frame) {
+			for (auto i = 0; i < count; ++i) {
 				vec.push_back(allocator.alloc(sizeof(T), k_alignment));
 			}
 			for (auto* ptr : vec) {
@@ -267,8 +269,8 @@ private:
 		vec.reserve(count);
 
 		auto start = std::chrono::high_resolution_clock::now();
-		for (int frame = 0; frame < frames; ++frame) {
-			for (int i = 0; i < count; ++i) {
+		for (auto frame = 0; frame < frames; ++frame) {
+			for (auto i = 0; i < count; ++i) {
 				vec.push_back(data_allocator.allocate(sizeof(T)));
 			}
 			for (auto* ptr : vec) {
@@ -296,8 +298,8 @@ private:
 		vec.reserve(count);
 
 		auto start = std::chrono::high_resolution_clock::now();
-		for (int frame = 0; frame < frames; ++frame) {
-			for (int i = 0; i < count; ++i) {
+		for (auto frame = 0; frame < frames; ++frame) {
+			for (auto i = 0; i < count; ++i) {
 				vec.push_back(static_cast<std::byte*>(data_allocator.allocate(sizeof(T))));
 			}
 			for (auto* ptr : vec) {
@@ -331,11 +333,12 @@ private:
 		std::cout << "run mpool dummy construct/destruct..." << std::endl;
 
 		auto& allocator = hpr::mem::get_system_allocator<System>();
-		auto vec = hpr::cntr::make_vector<T*, System>(count);
+		auto vec = hpr::cntr::make_vector<T*, System>();
+		vec.reserve(count);
 
 		auto start = std::chrono::high_resolution_clock::now();
-		for (int frame = 0; frame < frames; ++frame) {
-			for (int i = 0; i < count; ++i) {
+		for (auto frame = 0; frame < frames; ++frame) {
+			for (auto i = 0; i < count; ++i) {
 				vec.push_back(allocator.construct<T>());
 			}
 			for (auto* ptr : vec) {
@@ -362,8 +365,8 @@ private:
 		vec.reserve(count);
 
 		auto start = std::chrono::high_resolution_clock::now();
-		for (int frame = 0; frame < frames; ++frame) {
-			for (int i = 0; i < count; ++i) {
+		for (auto frame = 0; frame < frames; ++frame) {
+			for (auto i = 0; i < count; ++i) {
 				T* ptr = data_allocator.allocate(1);
 				::new (static_cast<void*>(ptr)) T();
 				vec.push_back(ptr);
@@ -394,8 +397,8 @@ private:
 		vec.reserve(count);
 
 		auto start = std::chrono::high_resolution_clock::now();
-		for (int frame = 0; frame < frames; ++frame) {
-			for (int i = 0; i < count; ++i) {
+		for (auto frame = 0; frame < frames; ++frame) {
+			for (auto i = 0; i < count; ++i) {
 				T* raw = static_cast<T*>(data_allocator.allocate(sizeof(T)));
 				T* ptr = ::new (raw) T();
 				vec.push_back(ptr);
