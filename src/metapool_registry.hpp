@@ -81,24 +81,26 @@ private:
 	template <std::size_t... Is>
 	static constexpr bool validate_registry_sequence(std::index_sequence<Is...>)
 	{
-		constexpr auto min_stride = std::array<uint32_t, registry_size>{ get_min_stride<Is>()... };
-		constexpr auto max_stride = std::array<uint32_t, registry_size>{ get_max_stride<Is>()... };
-		constexpr auto steps      = std::array<uint32_t, registry_size>{ get_stride_step<Is>()... };
-
-		constexpr uint32_t model_min = compute_model_min_stride(std::index_sequence<Is...>{});
-		constexpr uint32_t model_max = compute_model_max_stride(std::index_sequence<Is...>{});
+		constexpr auto stride_min  = std::array<uint32_t, registry_size>{ get_min_stride<Is>()... };
+		constexpr auto stride_end  = std::array<uint32_t, registry_size>{ get_max_stride<Is>()... };
+		constexpr auto stride_step = std::array<uint32_t, registry_size>{ get_stride_step<Is>()... };
 
 		for (std::size_t i = 0; i < registry_size; ++i) {
-			for (uint32_t stride = min_stride[i]; stride <= max_stride[i]; stride += steps[i]) {
-				auto coverage = 0;
+			for (uint32_t s = stride_min[i]; s < stride_end[i]; s += stride_step[i]) {
+				std::size_t cover = 0;
 				for (std::size_t j = 0; j < registry_size; ++j) {
-					if (stride >= min_stride[j] && stride <= max_stride[j] && ((stride - min_stride[j]) % steps[j] == 0))
-						++coverage;
+					if (s >= stride_min[j] && s < stride_end[j] &&
+						(s - stride_min[j]) % stride_step[j] == 0)
+					{
+						++cover;
+					}
 				}
-				if (coverage != 1)
+				if (cover != 1) {
 					return false;
+				}
 			}
 		}
+
 		return true;
 	}
 
@@ -119,7 +121,7 @@ public:
 			}
 			return MetapoolRegistry::validate_registry_sequence(std::make_index_sequence<registry_size>{});
 		}(),
-		"metapool registry has gaps, overlaps, or invalid stride steps"
+		"metapool registry has overlaps or invalid stride steps"
 	);
 };
 } // hpr

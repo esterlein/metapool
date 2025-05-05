@@ -38,7 +38,7 @@ public:
 			return Config::stride_pivots.front();
 		}();
 		static constexpr uint32_t stride_max = []() constexpr {
-			return Config::stride_pivots.back() - Config::stride_step;
+			return Config::stride_pivots.back();
 		}();
 		static constexpr uint32_t stride_step = Config::stride_step;
 		static constexpr uint32_t stride_count = (stride_max - stride_min) / stride_step;

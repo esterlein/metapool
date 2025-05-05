@@ -42,9 +42,7 @@ namespace mem {
 
 		static constexpr uint32_t min_stride = range_metadata[0].stride_min;
 
-		static constexpr uint32_t max_stride =
-			range_metadata[range_count - 1].stride_max +
-			range_metadata[range_count - 1].stride_step;
+		static constexpr uint32_t max_stride = range_metadata[range_count - 1].stride_max;
 
 		static_assert(range_count > 0,
 			"allocator config: empty range list");
@@ -53,8 +51,10 @@ namespace mem {
 			"allocator config: first range has zero stride step");
 	};
 
+
 	template <typename T>
 	concept IsAllocatorConfig = requires {
+
 		typename std::remove_cvref_t<T>::tag;
 		typename std::remove_cvref_t<T>::ProxyArrayType;
 
@@ -74,26 +74,21 @@ namespace mem {
 		for (std::size_t i = 0; i < range_count; ++i) {
 			const auto& range = ranges[i];
 
-			if (range.stride_step == 0)
+			if (range.stride_step == 0 || range.stride_min > range.stride_max)
 				return false;
 
-			if (range.stride_min > range.stride_max)
-				return false;
+			const bool is_single = range.stride_min == range.stride_max;
 
-			if ((range.stride_step & (range.stride_step - 1)) == 0) {
-				uint32_t mask = range.stride_step - 1;
-				if ((range.stride_min & mask) || (range.stride_max & mask))
-					return false;
-			} else {
-				if ((range.stride_min % range.stride_step) != 0 ||
-					(range.stride_max % range.stride_step) != 0)
-					return false;
-			}
-
-			if (i + 1 < range_count) {
-				const auto& next = ranges[i + 1];
-				if (range.stride_max + range.stride_step != next.stride_min)
-					return false;
+			if (!is_single) {
+				if ((range.stride_step & (range.stride_step - 1)) == 0) {
+					uint32_t mask = range.stride_step - 1;
+					if ((range.stride_min & mask) != 0 || (range.stride_max & mask) != 0)
+						return false;
+				} else {
+					if ((range.stride_min % range.stride_step) != 0 ||
+						(range.stride_max % range.stride_step) != 0)
+						return false;
+				}
 			}
 		}
 		return true;
