@@ -41,18 +41,20 @@ namespace mem {
 		static constexpr uint32_t alignment_quantum {8U};
 
 		static constexpr uint32_t min_stride = range_metadata[0].stride_min;
-		static constexpr uint32_t max_stride = range_metadata[range_count - 1].stride_max;
+
+		static constexpr uint32_t max_stride =
+			range_metadata[range_count - 1].stride_max +
+			range_metadata[range_count - 1].stride_step;
 
 		static_assert(range_count > 0,
-			"empty range");
-		static_assert(range_metadata[0].stride_step > 0,
-			"invalid stride step");
-	};
+			"allocator config: empty range list");
 
+		static_assert(range_metadata[0].stride_step > 0,
+			"allocator config: first range has zero stride step");
+	};
 
 	template <typename T>
 	concept IsAllocatorConfig = requires {
-
 		typename std::remove_cvref_t<T>::tag;
 		typename std::remove_cvref_t<T>::ProxyArrayType;
 
@@ -61,49 +63,39 @@ namespace mem {
 		{ std::remove_cvref_t<T>::alignment_quantum } -> std::convertible_to<uint32_t>;
 		{ std::remove_cvref_t<T>::min_stride }        -> std::convertible_to<uint32_t>;
 		{ std::remove_cvref_t<T>::max_stride }        -> std::convertible_to<uint32_t>;
-
 	} && std::is_same_v<typename std::remove_cvref_t<T>::tag, allocator_config_tag> && []() constexpr {
 
 		const auto& ranges = std::remove_cvref_t<T>::range_metadata;
 		const auto range_count = ranges.size();
 
-		if (range_count == 0) {
+		if (range_count == 0)
 			return false;
-		}
+
 		for (std::size_t i = 0; i < range_count; ++i) {
+			const auto& range = ranges[i];
 
-			const auto& this_range = ranges[i];
-
-			if (this_range.stride_step == 0) {
+			if (range.stride_step == 0)
 				return false;
-			}
 
-			if ((this_range.stride_step & (this_range.stride_step - 1)) == 0) {
-				uint32_t mask = this_range.stride_step - 1;
-				if ((this_range.stride_min & mask) ||
-					(this_range.stride_max & mask))
-				{
+			if (range.stride_min > range.stride_max)
+				return false;
+
+			if ((range.stride_step & (range.stride_step - 1)) == 0) {
+				uint32_t mask = range.stride_step - 1;
+				if ((range.stride_min & mask) || (range.stride_max & mask))
 					return false;
-				}
-			}
-			else {
-				if ((this_range.stride_min % this_range.stride_step) != 0 ||
-					(this_range.stride_max % this_range.stride_step) != 0)
-				{
+			} else {
+				if ((range.stride_min % range.stride_step) != 0 ||
+					(range.stride_max % range.stride_step) != 0)
 					return false;
-				}
 			}
 
 			if (i + 1 < range_count) {
-				const auto& next_range = ranges[i + 1];
-				if (this_range.stride_max + this_range.stride_step
-					!= next_range.stride_min)
-				{
+				const auto& next = ranges[i + 1];
+				if (range.stride_max + range.stride_step != next.stride_min)
 					return false;
-				}
 			}
 		}
-
 		return true;
 	}();
 
