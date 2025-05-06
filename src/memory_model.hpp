@@ -17,7 +17,8 @@ namespace mem {
 
 	using BenchmarkSimpleRegistry =
 		MetapoolRegistry <
-			Metapool<mem::MetapoolConfig<mem::CapacityFunction::Flat, 2048, 8, 8, 2048>>
+			Metapool<mem::MetapoolConfig<mem::CapacityFunction::Flat, 2048,  8,    8, 2048>>,
+			Metapool<mem::MetapoolConfig<mem::CapacityFunction::Flat, 2048, 16, 2048, 4128>>
 		>;
 
 	using BenchmarkIntermediateRegistry =

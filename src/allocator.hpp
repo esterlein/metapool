@@ -48,19 +48,16 @@ public:
 	template <typename T, typename... Types>
 	[[nodiscard]] T* construct(Types&&... args)
 	{
-		constexpr uint32_t alignment = compute_alignment(static_cast<uint32_t>(alignof(T)));
-		constexpr uint32_t stride    = compute_stride(static_cast<uint32_t>(sizeof(T)), alignment);
-
 		if constexpr (std::is_constant_evaluated()) {
-			static_assert(stride >= Config::min_stride || stride <= Config::max_stride,
-				"stride out of bounds in construct");
+			static_assert(sizeof(T) >= Config::min_stride || sizeof(T) <= Config::max_stride,
+				"sizeof(T) out of bounds in construct");
 		}
 		else {
-			assert((stride >= Config::min_stride || stride <= Config::max_stride) &&
-				"stride out of bounds" && __func__);
+			assert((sizeof(T) >= Config::min_stride || sizeof(T) <= Config::max_stride) &&
+				"sizeof(T) out of bounds" && __func__);
 		}
 
-		auto lookup_entry = lookup(stride);
+		auto lookup_entry = lookup(sizeof(T), alignof(T));
 
 		auto& proxy = m_proxies[lookup_entry.mpool_index];
 		std::byte* block = proxy.fetch(lookup_entry.flist_index);
@@ -144,29 +141,38 @@ private:
 
 private:
 
-	static inline constexpr LookupEntry lookup(uint32_t stride)
+	static inline constexpr LookupEntry lookup(uint32_t raw_size, uint32_t alignment_min)
 	{
 		constexpr auto& range_meta = Config::range_metadata;
 		constexpr std::size_t metapool_count = range_meta.size();
 
-		for (std::size_t i = 0; i < metapool_count; ++i) {
-			const auto& range = range_meta[i];
+		const uint32_t alignment = compute_alignment(alignment_min);
+		const uint32_t alloc_size  = raw_size + mem::alloc_header_size;
 
+		for (std::size_t i = 0; i < metapool_count; ++i) {
+
+			const auto& range = range_meta[i];
+			const uint32_t step = range.stride_step;
+
+			const uint32_t align_to = std::max(step, alignment);
+			const uint32_t stride = (alloc_size + align_to - 1U) & ~(align_to - 1U);
+	
 			if (stride < range.stride_min || stride > range.stride_max)
 				continue;
-
-			uint32_t offset = stride - range.stride_min;
-			uint32_t index = offset >> range.stride_shift;
-
-			assert((offset & ((1U << range.stride_shift) - 1U)) == 0 && "allocator lookup: stride unaligned");
-
+	
+			const uint32_t offset = stride - range.stride_min;
+			const uint32_t index  = offset >> range.stride_shift;
+	
+			assert((offset & (step - 1U)) == 0 &&
+				"allocator lookup: stride unaligned");
+	
 			return LookupEntry {
 				static_cast<uint8_t>(i),
 				static_cast<uint8_t>(index)
 			};
 		}
-
-		assert(false && "allocator lookup: stride out of range");
+	
+		assert(false && "allocator lookup: no suitable metapool for stride and alignment");
 		return LookupEntry {0xFF, 0xFF};
 	}
 
@@ -177,10 +183,10 @@ private:
 			& ~(Config::alignment_quantum - 1U);
 	}
 	
-	static constexpr uint32_t compute_stride(uint32_t size, uint32_t alignment) noexcept
+	static constexpr uint32_t compute_stride(uint32_t size, uint32_t step) noexcept
 	{
-		return (size + mem::alloc_header_size + alignment - 1U)
-			& ~(alignment - 1U);
+		return (size + mem::alloc_header_size + step - 1U)
+			& ~(step - 1U);
 	}
 
 
