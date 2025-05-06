@@ -79,6 +79,7 @@ private:
 		std::cout << "testing containers..." << std::flush;
 
 		auto vec_std = hpr::cntr::make_vector<int, System>();
+		vec_std.reserve(1000);
 
 		for (int i = 0; i < 1000; ++i)
 			vec_std.push_back(i);
