@@ -41,7 +41,7 @@ public:
 
 public:
 
-	std::byte* alloc(uint32_t size, uint32_t alignment);
+	[[nodiscard]] std::byte* alloc(uint32_t size, uint32_t alignment);
 	void free(std::byte* block);
 	void reset() noexcept;
 
@@ -141,12 +141,11 @@ private:
 
 private:
 
-	static inline constexpr LookupEntry lookup(uint32_t raw_size, uint32_t alignment_min)
+	static inline constexpr LookupEntry lookup(uint32_t raw_size, uint32_t alignment)
 	{
 		constexpr auto& range_meta = Config::range_metadata;
 		constexpr std::size_t metapool_count = range_meta.size();
 
-		const uint32_t alignment = compute_alignment(alignment_min);
 		const uint32_t alloc_size  = raw_size + mem::alloc_header_size;
 
 		for (std::size_t i = 0; i < metapool_count; ++i) {
