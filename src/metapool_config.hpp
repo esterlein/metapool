@@ -22,11 +22,11 @@ namespace mem {
 
 	struct MetapoolConstraints
 	{
-		static inline constexpr uint32_t min_base_block_count = 32U;
-		static inline constexpr uint32_t min_last_block_count = 32U;
-		static inline constexpr uint32_t min_stride = 8U;
-		static inline constexpr uint32_t min_stride_step = 8U;
-		static inline constexpr uint32_t max_stride_step = 524288U; // 512 KB
+		static inline constexpr uint32_t min_base_block_count = 8U;
+		static inline constexpr uint32_t min_last_block_count = 8U;
+		static inline constexpr uint32_t min_stride           = 8U;
+		static inline constexpr uint32_t min_stride_step      = 8U;
+		static inline constexpr uint32_t max_stride_step      = 524288U; // 512 KB
 	};
 
 

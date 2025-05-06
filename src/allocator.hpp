@@ -156,7 +156,7 @@ private:
 			const uint32_t align_to = std::max(step, alignment);
 			const uint32_t stride = (alloc_size + align_to - 1U) & ~(align_to - 1U);
 	
-			if (stride < range.stride_min || stride > range.stride_max)
+			if (stride >= range.stride_max)
 				continue;
 	
 			const uint32_t offset = stride - range.stride_min;
