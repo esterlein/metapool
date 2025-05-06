@@ -144,33 +144,34 @@ private:
 	static inline constexpr LookupEntry lookup(uint32_t raw_size, uint32_t alignment)
 	{
 		constexpr auto& range_meta = Config::range_metadata;
-		constexpr std::size_t metapool_count = range_meta.size();
+		constexpr uint32_t metapool_count = range_meta.size();
 
 		const uint32_t alloc_size  = raw_size + mem::alloc_header_size;
 
-		for (std::size_t i = 0; i < metapool_count; ++i) {
+		for (uint32_t i = 0; i < metapool_count; ++i) {
 
 			const auto& range = range_meta[i];
 			const uint32_t step = range.stride_step;
 
 			const uint32_t align_to = std::max(step, alignment);
 			const uint32_t stride = (alloc_size + align_to - 1U) & ~(align_to - 1U);
-	
+
 			if (stride >= range.stride_max)
 				continue;
-	
-			const uint32_t offset = stride - range.stride_min;
-			const uint32_t index  = offset >> range.stride_shift;
-	
+
+			const uint32_t stride_floor = std::max(stride, range.stride_min);
+			const uint32_t offset = stride_floor - range.stride_min;
+			const uint32_t index = offset >> range.stride_shift;
+
 			assert((offset & (step - 1U)) == 0 &&
 				"allocator lookup: stride unaligned");
-	
+
 			return LookupEntry {
 				static_cast<uint8_t>(i),
 				static_cast<uint8_t>(index)
 			};
 		}
-	
+
 		assert(false && "allocator lookup: no suitable metapool for stride and alignment");
 		return LookupEntry {0xFF, 0xFF};
 	}
