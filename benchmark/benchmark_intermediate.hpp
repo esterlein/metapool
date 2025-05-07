@@ -72,7 +72,7 @@ public:
 		std::cout << "\n--- metapool memory model intermediate benchmark ---\n" << std::endl;
 		std::cout << "running basic metapool tests..." << std::endl;
 
-	//	Benchmark::basic_tests();
+		Benchmark::basic_tests();
 	}
 
 
@@ -505,12 +505,16 @@ public:
 		std::cout << std::endl;
 		m_raw_time_ui = run_pattern_raw_alloc("ui", 48, 1, 256, 1000);
 
+		hpr::mem::get_system_allocator<System>().reset();
+
 		std::cout << "\n\n";
 		m_dummy_alloc_time_ecs = run_pattern_dummy_alloc<DummySmall>("ecs", 5000, 100);
 		std::cout << "\n";
 		m_dummy_construct_time_ecs = run_pattern_dummy_construct<DummySmall>("ecs", 5000, 100);
 		std::cout << "\n";
 		m_dummy_emplace_time_ecs = run_pattern_dummy_emplace<DummySmall>("ecs", 5000, 100);
+
+		hpr::mem::get_system_allocator<System>().reset();
 
 		std::cout << "\n\n";
 		m_dummy_alloc_time_render = run_pattern_dummy_alloc<DummyMedium>("render", 500, 100);
@@ -519,12 +523,16 @@ public:
 		std::cout << "\n";
 		m_dummy_emplace_time_render = run_pattern_dummy_emplace<DummyMedium>("render", 500, 100);
 
+		hpr::mem::get_system_allocator<System>().reset();
+
 		std::cout << "\n\n";
 		m_dummy_alloc_time_ui = run_pattern_dummy_alloc<DummyBig>("ui", 256, 1000);
 		std::cout << "\n";
 		m_dummy_construct_time_ui = run_pattern_dummy_construct<DummyBig>("ui", 256, 1000);
 		std::cout << "\n";
 		m_dummy_emplace_time_ui = run_pattern_dummy_emplace<DummyBig>("ui", 256, 1000);
+
+		hpr::mem::get_system_allocator<System>().reset();
 
 		std::cout << "\n\n";
 		print_summary();
