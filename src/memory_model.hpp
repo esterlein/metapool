@@ -24,10 +24,10 @@ namespace mem {
 
 	using BenchmarkIntermediateRegistry =
 		MetapoolRegistry <
-			Metapool<mem::MetapoolConfig<mem::CapacityFunction::Flat, 2048, 16,      48,     112>>,
+			Metapool<mem::MetapoolConfig<mem::CapacityFunction::Flat, 5120, 16,      48,     112>>,
 			Metapool<mem::MetapoolConfig<mem::CapacityFunction::Flat,  512,  8,     112,     136>>,
 			Metapool<mem::MetapoolConfig<mem::CapacityFunction::Flat,  512,  8,    1040,    1048>>,
-			Metapool<mem::MetapoolConfig<mem::CapacityFunction::Flat,  256,  8,   16400,   16408>>,
+			Metapool<mem::MetapoolConfig<mem::CapacityFunction::Flat,  288,  8,   16400,   16408>>,
 			Metapool<mem::MetapoolConfig<mem::CapacityFunction::Flat,   64,  8,   40008,   40016>>,
 			Metapool<mem::MetapoolConfig<mem::CapacityFunction::Flat,   32,  8,  512008,  512016>>,
 			Metapool<mem::MetapoolConfig<mem::CapacityFunction::Flat,   32,  8, 4194560, 4194568>>
