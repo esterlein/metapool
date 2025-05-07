@@ -5,9 +5,12 @@
 #include <vector>
 #include <chrono>
 #include <cstring>
+#include <iomanip>
+#include <sstream>
 #include <iostream>
 #include <string_view>
 #include <memory_resource>
+
 
 #include "benchmark.hpp"
 #include "memory_api.hpp"
@@ -544,7 +547,6 @@ private:
 	void print_summary() const
 	{
 		std::cout << "\n--- benchmark summary ---\n";
-
 		auto print_pattern_results = [this](
 										const std::string& pattern_name,
 										const std::array<double, 3>& raw_times,
@@ -552,50 +554,56 @@ private:
 										const std::array<double, 3>& construct_times,
 										const std::array<double, 3>& emplace_times
 		){
-			std::cout << "\n=== " << pattern_name << " pattern ===\n";
+			std::cout << "\n=== " << pattern_name << " pattern ===\n\n";
 
-			std::cout << "\nraw alloc:\n";
-			std::cout << "mtp: " << raw_times[0] << " ms\n";
-			std::cout << "std: " << raw_times[1] << " ms\n";
-			std::cout << "pmr: " << raw_times[2] << " ms\n";
+			std::cout << std::left << std::setw(25) << "strategy"
+					  << std::setw(15) << "mtp (ms)"
+					  << std::setw(15) << "std (ms)"
+					  << std::setw(15) << "pmr (ms)"
+					  << std::setw(20) << "mtp vs std"
+					  << std::setw(20) << "mtp vs pmr"
+					  << "\n";
 
-			std::cout << "\ndummy alloc/free:\n";
-			std::cout << "mtp: " << alloc_times[0] << " ms\n";
-			std::cout << "std: " << alloc_times[1] << " ms\n";
-			std::cout << "pmr: " << alloc_times[2] << " ms\n";
+			std::cout << std::string(110, '-') << "\n";
 
-			std::cout << "\ndummy construct/destruct:\n";
-			std::cout << "mtp: " << construct_times[0] << " ms\n";
-			std::cout << "std: " << construct_times[1] << " ms\n";
-			std::cout << "pmr: " << construct_times[2] << " ms\n";
-
-			std::cout << "\ndummy emplace/clear:\n";
-			std::cout << "mtp: " << emplace_times[0] << " ms\n";
-			std::cout << "std: " << emplace_times[1] << " ms\n";
-			std::cout << "pmr: " << emplace_times[2] << " ms\n";
-
-			std::cout << "\n--- performance comparison ---\n";
-
-			auto cmp = [](double base, double val) {
+			auto format_cmp = [](double base, double val) -> std::string {
 				double r = val / base;
-				std::cout << r << "x " << (r > 1.0 ? "slower" : "faster") << "\n";
+				std::stringstream ss;
+				ss << std::fixed << std::setprecision(2) << r << "x " << (r > 1.0 ? "faster" : "slower");
+				return ss.str();
 			};
 
-			std::cout << "\nraw alloc:\n";
-			std::cout << "metapool vs std: "; cmp(raw_times[0], raw_times[1]);
-			std::cout << "metapool vs pmr: "; cmp(raw_times[0], raw_times[2]);
+			std::cout << std::left << std::setw(25) << "raw alloc"
+					  << std::setw(15) << std::fixed << std::setprecision(4) << raw_times[0]
+					  << std::setw(15) << std::fixed << std::setprecision(4) << raw_times[1]
+					  << std::setw(15) << std::fixed << std::setprecision(4) << raw_times[2]
+					  << std::setw(20) << format_cmp(raw_times[0], raw_times[1])
+					  << std::setw(20) << format_cmp(raw_times[0], raw_times[2])
+					  << "\n";
 
-			std::cout << "\ndummy alloc/free:\n";
-			std::cout << "metapool vs std: "; cmp(alloc_times[0], alloc_times[1]);
-			std::cout << "metapool vs pmr: "; cmp(alloc_times[0], alloc_times[2]);
+			std::cout << std::left << std::setw(25) << "dummy alloc/free"
+					  << std::setw(15) << std::fixed << std::setprecision(4) << alloc_times[0]
+					  << std::setw(15) << std::fixed << std::setprecision(4) << alloc_times[1]
+					  << std::setw(15) << std::fixed << std::setprecision(4) << alloc_times[2]
+					  << std::setw(20) << format_cmp(alloc_times[0], alloc_times[1])
+					  << std::setw(20) << format_cmp(alloc_times[0], alloc_times[2])
+					  << "\n";
 
-			std::cout << "\ndummy construct/destruct:\n";
-			std::cout << "metapool vs std: "; cmp(construct_times[0], construct_times[1]);
-			std::cout << "metapool vs pmr: "; cmp(construct_times[0], construct_times[2]);
+			std::cout << std::left << std::setw(25) << "dummy construct/destruct"
+					  << std::setw(15) << std::fixed << std::setprecision(4) << construct_times[0]
+					  << std::setw(15) << std::fixed << std::setprecision(4) << construct_times[1]
+					  << std::setw(15) << std::fixed << std::setprecision(4) << construct_times[2]
+					  << std::setw(20) << format_cmp(construct_times[0], construct_times[1])
+					  << std::setw(20) << format_cmp(construct_times[0], construct_times[2])
+					  << "\n";
 
-			std::cout << "\ndummy emplace/clear:\n";
-			std::cout << "metapool vs std: "; cmp(emplace_times[0], emplace_times[1]);
-			std::cout << "metapool vs pmr: "; cmp(emplace_times[0], emplace_times[2]);
+			std::cout << std::left << std::setw(25) << "dummy emplace/clear"
+					  << std::setw(15) << std::fixed << std::setprecision(4) << emplace_times[0]
+					  << std::setw(15) << std::fixed << std::setprecision(4) << emplace_times[1]
+					  << std::setw(15) << std::fixed << std::setprecision(4) << emplace_times[2]
+					  << std::setw(20) << format_cmp(emplace_times[0], emplace_times[1])
+					  << std::setw(20) << format_cmp(emplace_times[0], emplace_times[2])
+					  << "\n";
 		};
 
 		print_pattern_results("ecs", m_raw_time_ecs, m_dummy_alloc_time_ecs, m_dummy_construct_time_ecs, m_dummy_emplace_time_ecs);
