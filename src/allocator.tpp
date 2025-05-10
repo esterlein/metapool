@@ -8,12 +8,14 @@ namespace hpr {
 
 
 template <mem::IsAllocatorConfig Config>
-std::byte* AllocatorCore<Config>::alloc(uint32_t size, uint32_t alignment_min)
+std::byte* AllocatorCore<Config>::alloc(uint32_t size, uint32_t alignment)
 {
 	assert((size >= Config::min_stride || size <= Config::max_stride) &&
 		"alloc size is out of bounds" && __func__);
 
-	auto lookup_entry = lookup(size, alignment_min);
+	mem::AllocLogger::log(size);
+
+	auto lookup_entry = lookup(size, alignment);
 
 	auto& proxy = m_proxies[lookup_entry.mpool_index];
 	std::byte* block = proxy.fetch(lookup_entry.flist_index);

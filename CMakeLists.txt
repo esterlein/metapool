@@ -7,7 +7,7 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 if(NOT CMAKE_BUILD_TYPE)
-	set(CMAKE_BUILD_TYPE Release)
+	set(CMAKE_BUILD_TYPE Debug)
 endif()
 
 find_library(PROFILER_LIBRARY profiler PATHS
@@ -51,6 +51,10 @@ target_compile_options(metapool PRIVATE
 	$<$<CONFIG:Debug>:-Wsign-conversion>
 	$<$<CONFIG:Release>:-O3>
 	$<$<CONFIG:Release>:-DNDEBUG>
+)
+
+target_compile_definitions(metapool PRIVATE
+	$<$<CONFIG:Debug>:ENABLE_ALLOC_LOGGING=1>
 )
 
 target_link_libraries(metapool PRIVATE

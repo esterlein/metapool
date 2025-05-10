@@ -7,6 +7,7 @@
 #include <memory_resource>
 
 #include "alloc_header.hpp"
+#include "alloc_logger.hpp"
 #include "metapool_proxy.hpp"
 #include "allocator_config.hpp"
 
@@ -56,6 +57,8 @@ public:
 			assert((sizeof(T) >= Config::min_stride || sizeof(T) <= Config::max_stride) &&
 				"sizeof(T) out of bounds" && __func__);
 		}
+
+		mem::AllocLogger::log(sizeof(T));
 
 		auto lookup_entry = lookup(sizeof(T), alignof(T));
 

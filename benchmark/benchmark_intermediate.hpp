@@ -15,6 +15,7 @@
 #include "benchmark.hpp"
 #include "memory_api.hpp"
 #include "container_factory.hpp"
+#include "alloc_logger.hpp"
 
 
 
@@ -75,7 +76,7 @@ public:
 		std::cout << "\n--- metapool memory model intermediate benchmark ---\n" << std::endl;
 		std::cout << "running basic metapool tests..." << std::endl;
 
-		Benchmark::basic_tests();
+//		Benchmark::basic_tests();
 	}
 
 
@@ -503,37 +504,49 @@ public:
 	{
 		std::cout << std::endl;
 		m_raw_time_ecs = run_pattern_raw_alloc("ecs", 32, 4, 5000, 100);
+		hpr::mem::AllocLogger::export_profile("alloc_raw_ecs.csv", true);
 		std::cout << std::endl;
 		m_raw_time_render = run_pattern_raw_alloc("render", 64, 4, 500, 100);
+		hpr::mem::AllocLogger::export_profile("alloc_raw_render.csv", true);
 		std::cout << std::endl;
 		m_raw_time_ui = run_pattern_raw_alloc("ui", 48, 1, 256, 1000);
+		hpr::mem::AllocLogger::export_profile("alloc_raw_ui.csv", true);
 
 		hpr::mem::get_system_allocator<System>().reset();
 
 		std::cout << "\n\n";
 		m_dummy_alloc_time_ecs = run_pattern_dummy_alloc<DummySmall>("ecs", 5000, 100);
+		hpr::mem::AllocLogger::export_profile("alloc_dummysmall_ecs.csv", true);
 		std::cout << "\n";
 		m_dummy_construct_time_ecs = run_pattern_dummy_construct<DummySmall>("ecs", 5000, 100);
+		hpr::mem::AllocLogger::export_profile("construct_dummysmall_ecs.csv", true);
 		std::cout << "\n";
 		m_dummy_emplace_time_ecs = run_pattern_dummy_emplace<DummySmall>("ecs", 5000, 100);
+		hpr::mem::AllocLogger::export_profile("emplace_dummysmall_ecs.csv", true);
 
 		hpr::mem::get_system_allocator<System>().reset();
 
 		std::cout << "\n\n";
 		m_dummy_alloc_time_render = run_pattern_dummy_alloc<DummyMedium>("render", 500, 100);
+		hpr::mem::AllocLogger::export_profile("alloc_dummymed_ecs.csv", true);
 		std::cout << "\n";
 		m_dummy_construct_time_render = run_pattern_dummy_construct<DummyMedium>("render", 500, 100);
+		hpr::mem::AllocLogger::export_profile("construct_dummymed_ecs.csv", true);
 		std::cout << "\n";
 		m_dummy_emplace_time_render = run_pattern_dummy_emplace<DummyMedium>("render", 500, 100);
+		hpr::mem::AllocLogger::export_profile("emplace_dummymed_ecs.csv", true);
 
 		hpr::mem::get_system_allocator<System>().reset();
 
 		std::cout << "\n\n";
 		m_dummy_alloc_time_ui = run_pattern_dummy_alloc<DummyBig>("ui", 256, 1000);
+		hpr::mem::AllocLogger::export_profile("alloc_dummybig_ecs.csv", true);
 		std::cout << "\n";
 		m_dummy_construct_time_ui = run_pattern_dummy_construct<DummyBig>("ui", 256, 1000);
+		hpr::mem::AllocLogger::export_profile("construct_dummybig_ecs.csv", true);
 		std::cout << "\n";
 		m_dummy_emplace_time_ui = run_pattern_dummy_emplace<DummyBig>("ui", 256, 1000);
+		hpr::mem::AllocLogger::export_profile("emplace_dummybig_ecs.csv", true);
 
 		hpr::mem::get_system_allocator<System>().reset();
 
