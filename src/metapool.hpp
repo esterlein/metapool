@@ -226,7 +226,7 @@ public:
 
 private:
 
-	std::array<Pool, compute_number_of_pools()> m_pools {compute_pools()};
+	std::array<Pool, MetapoolTraits::stride_count> m_pools {compute_pools()};
 
 	MonotonicArena* m_upstream {nullptr};
 };
