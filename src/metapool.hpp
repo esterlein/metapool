@@ -46,15 +46,9 @@ public:
 
 private:
 
-	static inline constexpr uint32_t compute_number_of_pools()
-	{
-		return MetapoolTraits::stride_count;
-	}
-
 	static inline constexpr const auto& compute_pool_strides()
 	{
-		static constexpr uint32_t num_pools = compute_number_of_pools();
-		
+		static constexpr auto num_pools = MetapoolTraits::stride_count;
 		static constexpr auto strides =
 			[]<std::size_t... Is>(std::index_sequence<Is...>) constexpr {
 				return std::array<uint32_t, num_pools> {
@@ -68,7 +62,7 @@ private:
 
 	static inline constexpr const auto& compute_block_count()
 	{
-		static constexpr uint32_t num_pools = compute_number_of_pools();
+		static constexpr auto num_pools = MetapoolTraits::stride_count;
 		static constexpr auto& pool_strides = compute_pool_strides();
 
 		static constexpr auto& pivots = Config::stride_pivots;
@@ -118,7 +112,7 @@ private:
 
 	static inline constexpr auto& compute_pools()
 	{
-		constexpr std::size_t num_pools = compute_number_of_pools();
+		static constexpr auto num_pools = MetapoolTraits::stride_count;
 	
 		static constexpr std::array<Pool, num_pools> pools =
 			[]<std::size_t... Is>(std::index_sequence<Is...>) constexpr {
