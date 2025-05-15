@@ -1,6 +1,7 @@
 #include <memory>
 #include <cassert>
 
+#include "fail.hpp"
 #include "monotonic_arena.hpp"
 
 
@@ -24,22 +25,23 @@ MonotonicArena::~MonotonicArena()
 
 std::byte* MonotonicArena::allocate(std::size_t alloc_size, std::size_t alignment, std::size_t shift)
 {
-	if (alloc_size > std::numeric_limits<std::size_t>::max() - shift - alignment - sizeof(void*)) { [[unlikely]]
-		throw std::bad_alloc{};
+	if ([[unlikely]] alloc_size > std::numeric_limits<std::size_t>::max() - shift - alignment - sizeof(void*)) {
+		fatal("arena allocation size overflow");
 	}
 
 	std::size_t total_size = alloc_size + shift + alignment - 1 + sizeof(void*);
 
 	std::byte* raw = reinterpret_cast<std::byte*>(::malloc(total_size));
-	if (!raw) [[unlikely]]
-		throw std::bad_alloc{};
+	if ([[unlikely]] !raw){
+		fatal("arena malloc failed");
+	}
 	
 	uintptr_t raw_addr = reinterpret_cast<uintptr_t>(raw) + sizeof(void*);
 	uintptr_t aligned_addr = (raw_addr + shift + alignment - 1) & ~(alignment - 1);
 
-	if (aligned_addr - shift < reinterpret_cast<uintptr_t>(raw) + sizeof(void*)) { [[unlikely]]
+	if ([[unlikely]] aligned_addr - shift < reinterpret_cast<uintptr_t>(raw) + sizeof(void*)) {
 		::free(raw);
-		throw std::bad_alloc{};
+		fatal("arena alignment shift results in invalid allocation address");
 	}
 
 	std::byte* base_addr = reinterpret_cast<std::byte*>(aligned_addr - shift);
