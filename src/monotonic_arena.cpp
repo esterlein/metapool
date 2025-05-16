@@ -53,7 +53,7 @@ std::byte* MonotonicArena::allocate(std::size_t alloc_size, std::size_t alignmen
 
 std::byte* MonotonicArena::fetch(std::size_t alloc_size, std::size_t alignment, std::size_t shift)
 {
-	if (alloc_size == 0) { [[unlikely]]
+	if ([[unlikely]] alloc_size == 0) {
 		return nullptr;
 	}
 
@@ -61,8 +61,8 @@ std::byte* MonotonicArena::fetch(std::size_t alloc_size, std::size_t alignment, 
 	std::size_t available = m_size - m_offset;
 
 	void* aligned_ptr = current + shift;
-	if (std::align(alignment, alloc_size, aligned_ptr, available) == nullptr) { [[unlikely]]
-		throw std::bad_alloc {};
+	if ([[unlikely]] std::align(alignment, alloc_size, aligned_ptr, available) == nullptr) {
+		fatal("arena fetch failed: not enough space to fit aligned allocation");
 	}
 
 	std::byte* data_ptr = static_cast<std::byte*>(aligned_ptr);
@@ -71,8 +71,8 @@ std::byte* MonotonicArena::fetch(std::size_t alloc_size, std::size_t alignment, 
 	std::size_t adjustment = static_cast<std::size_t>(data_ptr - current);
 	std::size_t allocation_total = adjustment + alloc_size;
 
-	if (m_offset + allocation_total > m_size) { [[unlikely]]
-		throw std::bad_alloc {};
+	if ([[unlikely]] m_offset + allocation_total > m_size) {
+		fatal("arena fetch allocation exceeds available capacity");
 	}
 
 	m_offset += allocation_total;
