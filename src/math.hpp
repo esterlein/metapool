@@ -38,7 +38,8 @@ namespace math {
 	template <std::unsigned_integral T>
 	constexpr auto int_pow(T, T exp)
 	{
-		static_assert(exp >= 0, "negative exponents are not allowed for unsigned types");
+		static_assert(exp >= 0,
+			"negative exponents are not allowed for unsigned types");
 	}
 
 
