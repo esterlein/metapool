@@ -167,7 +167,7 @@ private:
 			const uint32_t index = offset >> range.stride_shift;
 
 			assert((offset & (step - 1U)) == 0 &&
-				"allocator lookup: stride unaligned");
+				"allocator::lookup(): stride unaligned");
 
 			return LookupEntry {
 				static_cast<uint8_t>(i),
@@ -175,7 +175,9 @@ private:
 			};
 		}
 
-		assert(false && "allocator lookup: no suitable metapool for stride and alignment");
+		assert(false &&
+			"allocator::lookup(): no suitable metapool for stride and alignment");
+
 		return LookupEntry {0xFF, 0xFF};
 	}
 
