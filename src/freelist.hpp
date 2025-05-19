@@ -18,15 +18,15 @@ public:
 	Freelist() = default;
 
 	void initialize(std::byte* memory);
-	[[nodiscard]] std::byte* fetch() noexcept;
-	void release(std::byte* block) noexcept;
+	[[nodiscard]] inline std::byte* fetch() noexcept;
+	void inline release(std::byte* block) noexcept;
 
 	inline void reset() noexcept;
-	[[nodiscard]] inline bool empty() const noexcept
+	[[nodiscard]] bool empty() const noexcept
 	{ return m_head == nullptr; }
-	[[nodiscard]] inline constexpr uint32_t stride() const noexcept
+	[[nodiscard]] constexpr uint32_t stride() const noexcept
 	{ return Stride; }
-	[[nodiscard]] inline constexpr uint32_t block_count() const noexcept
+	[[nodiscard]] constexpr uint32_t block_count() const noexcept
 	{ return BlockCount; }
 
 private:
@@ -51,14 +51,14 @@ private:
 
 private:
 
-	inline std::byte* pop() noexcept
+	std::byte* pop() noexcept
 	{
 		Block* block = m_head;
 		m_head = m_head->next;
 		return block->get_memory();
 	}
 
-	inline void push(std::byte* location) noexcept
+	void push(std::byte* location) noexcept
 	{
 		auto* block = reinterpret_cast<Block*>(location);
 		block->next = m_head;

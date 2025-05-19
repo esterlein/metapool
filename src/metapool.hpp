@@ -46,7 +46,7 @@ public:
 
 private:
 
-	static inline constexpr const auto& compute_pool_strides()
+	static constexpr const auto& compute_pool_strides()
 	{
 		static constexpr auto num_pools = MetapoolTraits::stride_count;
 		static constexpr auto strides =
@@ -60,7 +60,7 @@ private:
 	}
 
 
-	static inline constexpr const auto& compute_block_count()
+	static constexpr const auto& compute_block_count()
 	{
 		static constexpr auto num_pools = MetapoolTraits::stride_count;
 		static constexpr auto& pool_strides = compute_pool_strides();
@@ -110,7 +110,7 @@ private:
 	}
 
 
-	static inline constexpr auto& compute_pools()
+	static constexpr auto& compute_pools()
 	{
 		static constexpr auto num_pools = MetapoolTraits::stride_count;
 	
@@ -210,16 +210,16 @@ public:
 	using config_type = Config;
 	using PoolVariant = FreelistVariant;
 
-	[[nodiscard]] std::byte* fetch(uint8_t pool_index);
-	void release(uint8_t pool_index, std::byte* block);
-	void reset() noexcept;
+	[[nodiscard]] inline std::byte* fetch(uint8_t pool_index);
+	inline void release(uint8_t pool_index, std::byte* block);
+	inline void reset() noexcept;
 
-	[[nodiscard]] static inline constexpr auto bounds()
+	[[nodiscard]] static constexpr auto bounds()
 	{
 		return std::pair{Config::stride_min, Config::stride_max};
 	}
 
-	[[nodiscard]] inline MetapoolProxy proxy() noexcept
+	[[nodiscard]] MetapoolProxy proxy() noexcept
 	{
 		return create_proxy();
 	}
