@@ -3,7 +3,9 @@ import glob
 import os
 import matplotlib.pyplot as plt
 
+
 plt.style.use('dark_background')
+plt.rcParams['font.family'] = 'DIN Alternate'
 
 csv_files      = sorted(glob.glob("build/*.csv"))
 stride_counts  = {}
@@ -41,11 +43,11 @@ ax1.bar(
 	alpha      = 1.0,
 	color      = 'none',
 	edgecolor  = 'white',
-	hatch      = 'xx',
+	hatch      = 'x',
 	linewidth  = 1.2
 )
 
-ax1.set_ylabel("allocation count")
+ax1.set_ylabel("ALLOCATION COUNT")
 ax1.set_yscale("log")
 ax1.grid(True, axis = 'y', linestyle = '--', alpha = 0.4)
 ax1.tick_params(axis = 'x', colors = 'white')
@@ -65,7 +67,7 @@ ax2.bar(
 	linewidth  = 1.2
 )
 
-ax2.set_ylabel("raw bytes")
+ax2.set_ylabel("RAW BYTES")
 ax2.set_yscale("log")
 ax2.grid(True, axis = 'y', linestyle = '--', alpha = 0.4)
 ax2.tick_params(axis = 'x', colors = 'white')
@@ -85,10 +87,10 @@ ax3.bar(
 	linewidth  = 1.2
 )
 
-ax3.set_ylabel("peak memory pressure")
+ax3.set_ylabel("PEAK MEMORY PRESSURE")
 ax3.set_yscale("log")
 ax3.grid(True, axis = 'y', linestyle = '--', alpha = 0.4)
-ax3.set_xlabel("stride size (bytes)")
+ax3.set_xlabel("STRIDE SIZE (BYTES)")
 ax3.tick_params(axis = 'x', colors = 'white')
 ax3.tick_params(axis = 'y', colors = 'white')
 ax3.yaxis.label.set_color('white')
@@ -101,7 +103,7 @@ ax3.set_xticklabels(
 	rotation = 45
 )
 
-plt.suptitle("memory phase disassociation / stride pressure signature", color = 'white')
+plt.suptitle("MEMORY PHASE DISASSOCIATION / STRIDE PRESSURE SIGNATURE", color = 'white')
 plt.tight_layout(pad = 1.5, h_pad = 0.8)
 plt.savefig("alloc_profile.svg", format = "svg")
 plt.show()
