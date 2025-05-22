@@ -76,7 +76,7 @@ public:
 		std::cout << "\n--- metapool memory model intermediate benchmark ---\n" << std::endl;
 		std::cout << "running basic metapool tests..." << std::endl;
 
-//		Benchmark::basic_tests();
+		Benchmark::basic_tests();
 	}
 
 
@@ -560,7 +560,7 @@ private:
 	void print_summary() const
 	{
 		std::cout << "\n--- benchmark summary ---\n";
-		auto print_pattern_results = [this](
+		auto print_pattern_results = [](
 										const std::string& pattern_name,
 										const std::array<double, 3>& raw_times,
 										const std::array<double, 3>& alloc_times,

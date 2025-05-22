@@ -11,7 +11,7 @@ template <uint32_t Stride, uint32_t BlockCount>
 class Freelist final
 {
 
-	static_assert(Stride >= sizeof(void*), "stride is smaller than a pointer");
+	static_assert(Stride >= sizeof(void*), "freelist: stride is smaller than a pointer");
 
 public:
 
@@ -42,7 +42,7 @@ private:
 		inline const std::byte* get_memory() const noexcept { return data; }
 	};
 
-	static_assert(sizeof(Block) <= Stride, "block is larger than stride");
+	static_assert(sizeof(Block) <= Stride, "freelist: block is larger than stride");
 
 	Block* m_head {nullptr};
 

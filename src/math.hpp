@@ -2,6 +2,8 @@
 #include <stdexcept>
 #include <type_traits>
 
+#include "fail.hpp"
+
 
 namespace hpr {
 namespace math {
@@ -14,7 +16,7 @@ namespace math {
 		if constexpr (std::is_signed_v<T>) {
 			if (exp < 0) {
 				if (base == 0) {
-					throw std::invalid_argument("base cannot be zero for negative exponents");
+					fatal("math: base cannot be zero for negative exponents");
 				}
 				return static_cast<double>(1) / int_pow(base, -exp);
 			}
@@ -39,7 +41,7 @@ namespace math {
 	constexpr auto int_pow(T, T exp)
 	{
 		static_assert(exp >= 0,
-			"negative exponents are not allowed for unsigned types");
+			"math: negative exponents are not allowed for unsigned types");
 	}
 
 

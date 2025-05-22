@@ -3,6 +3,8 @@
 #include <cstdint>
 #include "alloc_header.hpp"
 
+#include "fail.hpp"
+
 
 namespace hpr {
 
@@ -11,7 +13,7 @@ template <mem::IsAllocatorConfig Config>
 std::byte* AllocatorCore<Config>::alloc(uint32_t size, uint32_t alignment)
 {
 	assert((size >= Config::min_stride || size <= Config::max_stride) &&
-		"alloc size is out of bounds" && __func__);
+		THIS_FUNC && ": size is out of bounds");
 
 	mem::AllocLogger::log(size);
 
@@ -21,7 +23,7 @@ std::byte* AllocatorCore<Config>::alloc(uint32_t size, uint32_t alignment)
 	std::byte* block = proxy.fetch(lookup_entry.flist_index);
 
 	assert(block != nullptr &&
-		"block is nullptr"  && __func__);
+		THIS_FUNC && ": block is nullptr");
 
 	auto* header = reinterpret_cast<mem::AllocHeader*>(block);
 	*header = mem::AllocHeader::make(lookup_entry.mpool_index, lookup_entry.flist_index);
@@ -36,7 +38,7 @@ template <mem::IsAllocatorConfig Config>
 void AllocatorCore<Config>::free(std::byte* location)
 {
 	assert(location != nullptr &&
-		"location is nullptr"  && __func__);
+		THIS_FUNC && ": location is nullptr");
 
 	auto* block = location - sizeof(mem::AllocHeader);
 	auto* header = reinterpret_cast<mem::AllocHeader*>(block);

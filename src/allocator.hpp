@@ -11,6 +11,8 @@
 #include "metapool_proxy.hpp"
 #include "allocator_config.hpp"
 
+#include "fail.hpp"
+
 
 namespace hpr {
 
@@ -51,11 +53,11 @@ public:
 	{
 		if constexpr (std::is_constant_evaluated()) {
 			static_assert(sizeof(T) >= Config::min_stride || sizeof(T) <= Config::max_stride,
-				"sizeof(T) out of bounds in construct");
+				"allocator::construct(): sizeof(T) out of bounds");
 		}
 		else {
 			assert((sizeof(T) >= Config::min_stride || sizeof(T) <= Config::max_stride) &&
-				"sizeof(T) out of bounds" && __func__);
+				THIS_FUNC && ": sizeof(T) out of bounds");
 		}
 
 		mem::AllocLogger::log(sizeof(T));
@@ -66,7 +68,7 @@ public:
 		std::byte* block = proxy.fetch(lookup_entry.flist_index);
 
 		assert(block != nullptr &&
-			"block is nullptr"  && __func__);
+			THIS_FUNC && ": block is nullptr");
 
 		auto* header = reinterpret_cast<mem::AllocHeader*>(block);
 		*header = mem::AllocHeader::make(lookup_entry.mpool_index, lookup_entry.flist_index);
@@ -82,7 +84,7 @@ public:
 	void destruct(T* object)
 	{
 		assert(object != nullptr &&
-			"object is nullptr"  && __func__);
+			THIS_FUNC && ": object is nullptr");
 
 		std::byte* block = reinterpret_cast<std::byte*>(object) - sizeof(mem::AllocHeader);
 		auto* header = reinterpret_cast<const mem::AllocHeader*>(block);
@@ -97,7 +99,7 @@ public:
 private:
 
 	static_assert(Config::range_metadata.size() <= 256,
-		"too many metapools for a 1 byte lookup index");
+		"allocator core: too many metapools for a 1 byte lookup index");
 
 
 	struct LookupEntry
@@ -114,7 +116,7 @@ private:
 		for (std::size_t i = 0; i < range_meta.size(); ++i) {
 
 			static_assert(Config::range_metadata.size() <= 256,
-				"too many freelists for a 1 byte lookup index");
+				"allocator core: too many freelists for a 1 byte lookup index");
 
 			total += range_meta[i].stride_count;
 		}
@@ -167,7 +169,7 @@ private:
 			const uint32_t index = offset >> range.stride_shift;
 
 			assert((offset & (step - 1U)) == 0 &&
-				"allocator::lookup(): stride unaligned");
+				THIS_FUNC && ": stride is not a multiple of stride step");
 
 			return LookupEntry {
 				static_cast<uint8_t>(i),
@@ -175,8 +177,8 @@ private:
 			};
 		}
 
-		assert(false &&
-			"allocator::lookup(): no suitable metapool for stride and alignment");
+		assert(false && THIS_FUNC &&
+			"allocator::lookup(): no suitable metapool for size and alignment");
 
 		return LookupEntry {0xFF, 0xFF};
 	}

@@ -10,12 +10,6 @@ if(NOT CMAKE_BUILD_TYPE)
 	set(CMAKE_BUILD_TYPE Debug)
 endif()
 
-find_library(PROFILER_LIBRARY profiler PATHS
-	/usr/local/lib
-	/usr/local/opt/gperftools/lib
-	REQUIRED
-)
-message(STATUS "found profiler library: ${PROFILER_LIBRARY}")
 
 file(GLOB_RECURSE METAPOOL_SOURCES
 	"${CMAKE_SOURCE_DIR}/src/*.cpp"
@@ -57,39 +51,10 @@ target_compile_definitions(metapool PRIVATE
 	$<$<CONFIG:Debug>:ENABLE_ALLOC_LOGGING=1>
 )
 
-target_link_libraries(metapool PRIVATE
-	${PROFILER_LIBRARY}
-)
 
 add_custom_target(run
 	COMMAND $<TARGET_FILE:metapool> ${ARGS}
 	DEPENDS metapool
-	WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
-	VERBATIM
-)
-
-add_custom_target(profile
-	COMMAND ${CMAKE_COMMAND} -E env CPUPROFILE=metapool.prof $<TARGET_FILE:metapool> ${ARGS}
-	DEPENDS metapool
-	WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
-	VERBATIM
-)
-
-add_custom_target(analyze
-	COMMAND ${CMAKE_SOURCE_DIR}/perft_setup.zsh $<TARGET_FILE:metapool> ${CMAKE_CURRENT_BINARY_DIR}/metapool.prof
-	DEPENDS profile
-	WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
-	VERBATIM
-)
-
-add_custom_target(analyze-web
-	COMMAND ${CMAKE_COMMAND} -E env
-		DYLD_LIBRARY_PATH=/usr/local/opt/llvm/lib:/usr/local/opt/llvm/lib/c++
-		pprof
-		--web
-		$<TARGET_FILE:metapool>
-		${CMAKE_CURRENT_BINARY_DIR}/metapool.prof
-	DEPENDS profile
 	WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
 	VERBATIM
 )

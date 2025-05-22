@@ -25,21 +25,21 @@ MonotonicArena::~MonotonicArena()
 
 std::byte* MonotonicArena::allocate(std::size_t alloc_size, std::size_t alignment, std::size_t shift)
 {
-	if ([[unlikely]] alloc_size > std::numeric_limits<std::size_t>::max() - shift - alignment - sizeof(void*)) {
+	if (alloc_size > std::numeric_limits<std::size_t>::max() - shift - alignment - sizeof(void*)) [[unlikely]] {
 		fatal("arena allocation size overflow");
 	}
 
 	std::size_t total_size = alloc_size + shift + alignment - 1 + sizeof(void*);
 
 	std::byte* raw = reinterpret_cast<std::byte*>(::malloc(total_size));
-	if ([[unlikely]] !raw){
+	if (!raw) [[unlikely]] {
 		fatal("arena malloc failed");
 	}
 	
 	uintptr_t raw_addr = reinterpret_cast<uintptr_t>(raw) + sizeof(void*);
 	uintptr_t aligned_addr = (raw_addr + shift + alignment - 1) & ~(alignment - 1);
 
-	if ([[unlikely]] aligned_addr - shift < reinterpret_cast<uintptr_t>(raw) + sizeof(void*)) {
+	if (aligned_addr - shift < reinterpret_cast<uintptr_t>(raw) + sizeof(void*)) [[unlikely]] {
 		::free(raw);
 		fatal("arena alignment shift results in invalid allocation address");
 	}
@@ -53,7 +53,7 @@ std::byte* MonotonicArena::allocate(std::size_t alloc_size, std::size_t alignmen
 
 std::byte* MonotonicArena::fetch(std::size_t alloc_size, std::size_t alignment, std::size_t shift)
 {
-	if ([[unlikely]] alloc_size == 0) {
+	if (alloc_size == 0) [[unlikely]] {
 		return nullptr;
 	}
 
@@ -61,7 +61,7 @@ std::byte* MonotonicArena::fetch(std::size_t alloc_size, std::size_t alignment, 
 	std::size_t available = m_size - m_offset;
 
 	void* aligned_ptr = current + shift;
-	if ([[unlikely]] std::align(alignment, alloc_size, aligned_ptr, available) == nullptr) {
+	if (std::align(alignment, alloc_size, aligned_ptr, available) == nullptr) [[unlikely]] {
 		fatal("arena fetch failed: not enough space to fit aligned allocation");
 	}
 
@@ -71,7 +71,7 @@ std::byte* MonotonicArena::fetch(std::size_t alloc_size, std::size_t alignment, 
 	std::size_t adjustment = static_cast<std::size_t>(data_ptr - current);
 	std::size_t allocation_total = adjustment + alloc_size;
 
-	if ([[unlikely]] m_offset + allocation_total > m_size) {
+	if (m_offset + allocation_total > m_size) [[unlikely]] {
 		fatal("arena fetch allocation exceeds available capacity");
 	}
 

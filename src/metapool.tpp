@@ -6,6 +6,8 @@
 #include "alloc_header.hpp"
 #include "monotonic_arena.hpp"
 
+#include "fail.hpp"
+
 
 
 namespace hpr {
@@ -20,7 +22,8 @@ template <mem::IsMetapoolConfig Config>
 Metapool<Config>::Metapool(MonotonicArena* upstream)
 	: m_upstream {upstream}
 {
-	assert(upstream != nullptr);
+	assert(upstream != nullptr &&
+		THIS_FUNC && ": upstream is nullptr");
 
 	for (std::size_t pool_index = 0; pool_index < m_pools.size(); ++pool_index) {
 
@@ -60,7 +63,7 @@ std::byte* Metapool<Config>::fetch(uint8_t pool_index)
 	std::byte* block = m_pools[pool_index].fl_fetch(&m_pools[pool_index].freelist);
 
 	assert(block != nullptr &&
-		"block is nullptr"  && __func__);
+		THIS_FUNC && ": block is nullptr");
 
 	return std::launder(block);
 }
@@ -70,9 +73,9 @@ template <mem::IsMetapoolConfig Config>
 void Metapool<Config>::release(uint8_t pool_index, std::byte* block)
 {
 	assert(block != nullptr &&
-		"block is nullptr"  && __func__);
+		THIS_FUNC && ": block is nullptr");
 	assert(pool_index < m_pools.size() &&
-		"pool index out of bounds"     && __func__);
+		THIS_FUNC && ": pool index out of bounds");
 
 	m_pools[pool_index].fl_release(&m_pools[pool_index].freelist, block);
 }

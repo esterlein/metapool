@@ -4,6 +4,8 @@
 #include <cstdint>
 #include <cstddef>
 
+#include "fail.hpp"
+
 
 namespace hpr {
 
@@ -11,7 +13,8 @@ namespace hpr {
 template <uint32_t Stride, uint32_t BlockCount>
 void Freelist<Stride, BlockCount>::initialize(std::byte* memory)
 {
-	assert(memory != nullptr && BlockCount > 0);
+	assert(memory != nullptr &&
+		THIS_FUNC && ": passed memory is nullptr");
 
 	m_memory_base = memory;
 	m_memory_end  = memory + (size_t(BlockCount) * Stride);
@@ -24,8 +27,8 @@ void Freelist<Stride, BlockCount>::initialize(std::byte* memory)
 		size_t offset = size_t(i) * Stride;
 		Block* next = reinterpret_cast<Block*>(memory + offset);
 
-		if ([[unlikely]] i > std::numeric_limits<uint32_t>::max() / Stride) {
-			throw std::runtime_error{"integer overflow in freelist initialization"};
+		if (i > std::numeric_limits<uint32_t>::max() / Stride) [[unlikely]] {
+			fatal("freelist::initialize(): integer overflow");
 		}
 
 		current->next = next;
@@ -56,7 +59,7 @@ template <uint32_t Stride, uint32_t BlockCount>
 std::byte* Freelist<Stride, BlockCount>::fetch() noexcept
 {
 	assert(m_head != nullptr &&
-		"freelist::fetch(): head is nullptr");
+		THIS_FUNC && ": head is nullptr");
 	return pop();
 }
 
@@ -65,9 +68,9 @@ template <uint32_t Stride, uint32_t BlockCount>
 void Freelist<Stride, BlockCount>::release(std::byte* block) noexcept
 {
 	assert(block != nullptr &&
-		"freelist::release(): block is nullptr");
+		THIS_FUNC && ": block is nullptr");
 	assert(block >= m_memory_base && block < m_memory_end &&
-		"freelist::release(): block does not belong to this freelist");
+		THIS_FUNC && ": block does not belong to this freelist");
 	push(block);
 }
 } // hpr

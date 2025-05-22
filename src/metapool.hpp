@@ -158,7 +158,7 @@ private:
 		typename FreelistGenerator <
 			compute_pool_strides(),
 			compute_block_count(),
-			std::make_index_sequence<compute_number_of_pools()>
+			std::make_index_sequence<MetapoolTraits::stride_count>
 		>::type;
 
 	using FreelistFetch = std::byte* (*)(void* freelist);
