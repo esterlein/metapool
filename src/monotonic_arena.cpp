@@ -1,8 +1,9 @@
 #include <memory>
 #include <cassert>
 
-#include "fail.hpp"
 #include "monotonic_arena.hpp"
+
+#include "fail.hpp"
 
 
 namespace hpr {
@@ -13,7 +14,8 @@ MonotonicArena::MonotonicArena(std::size_t size, std::size_t alignment)
 {
 	m_arena = allocate(size, alignment, 0);
 
-	assert(m_arena != nullptr);
+	assert(m_arena != nullptr &&
+		THIS_FUNC && ": global allocation failed");
 }
 
 
