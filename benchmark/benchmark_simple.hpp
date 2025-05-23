@@ -6,7 +6,10 @@
 #include <memory_resource>
 
 #include "benchmark.hpp"
-#include "memory_api.hpp"
+
+#include "mtp_setup.hpp"
+#include "mtp_memory.hpp"
+
 #include "container_factory.hpp"
 
 
@@ -15,7 +18,7 @@ class BenchmarkSimple : public Benchmark
 {
 public:
 
-	using System = hpr::mem::BenchmarkSimpleSystem;
+	using System = mtp::BenchmarkSimpleSystem;
 
 	inline void setup() override
 	{
@@ -43,7 +46,7 @@ public:
 	{
 		std::cout << std::endl;
 
-		auto& allocator = hpr::mem::get_system_allocator<System>();
+		auto& allocator = mtp::get_system_allocator<System>();
 		allocator.reset();
 	}
 
@@ -61,7 +64,7 @@ private:
 	{
 		std::cout << "--- metapool benchmark ---\n" << std::endl;
 
-		auto& allocator = hpr::mem::get_system_allocator<System>();
+		auto& allocator = mtp::get_system_allocator<System>();
 		auto vec = hpr::cntr::make_vector<std::byte*, System>();
 		vec.reserve(k_allocation_count);
 
