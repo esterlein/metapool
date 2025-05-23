@@ -6,7 +6,9 @@
 #include <iostream>
 #include <memory_resource>
 
-#include "memory_api.hpp"
+#include "mtp_setup.hpp"
+#include "mtp_memory.hpp"
+
 #include "container_factory.hpp"
 
 
@@ -18,7 +20,7 @@ public:
 	virtual ~Benchmark()
 	{}
 
-	using System = hpr::mem::BenchmarkSimpleSystem;
+	using System = mtp::BenchmarkSimpleSystem;
 
 private:
 
@@ -26,7 +28,7 @@ private:
 	{
 		std::cout << "testing basic allocation..." << std::flush;
 
-		auto& allocator = hpr::mem::get_system_allocator<System>();
+		auto& allocator = mtp::get_system_allocator<System>();
 
 		std::byte* ptr = allocator.alloc(100, alignof(int));
 		assert(ptr != nullptr);
@@ -40,7 +42,7 @@ private:
 	{
 		std::cout << "testing alignment..." << std::flush;
 
-		auto& allocator = hpr::mem::get_system_allocator<System>();
+		auto& allocator = mtp::get_system_allocator<System>();
 
 		for (size_t alignment : {1, 2, 4, 8, 16, 32, 64}) {
 			std::byte* ptr = allocator.alloc(64, alignment);
@@ -56,7 +58,7 @@ private:
 	{
 		std::cout << "testing multiple allocations..." << std::flush;
 
-		auto& allocator = hpr::mem::get_system_allocator<System>();
+		auto& allocator = mtp::get_system_allocator<System>();
 
 		std::vector<std::byte*> vec;
 		std::array<std::size_t, 6> sizes {8, 16, 32, 64, 128, 256};
