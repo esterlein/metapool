@@ -3,8 +3,7 @@
 #include <cstdint>
 
 
-namespace hpr {
-namespace mem {
+namespace hpr::mem {
 
 
 	struct AllocHeader
@@ -32,4 +31,3 @@ namespace mem {
 	static constexpr auto alloc_header_size = sizeof(AllocHeader);
 
 } // hpr::mem
-} // hpr
