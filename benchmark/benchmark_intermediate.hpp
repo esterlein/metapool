@@ -11,11 +11,12 @@
 #include <string_view>
 #include <memory_resource>
 
-
 #include "benchmark.hpp"
-#include "memory_api.hpp"
+
+#include "mtp_setup.hpp"
+#include "mtp_memory.hpp"
+
 #include "container_factory.hpp"
-#include "alloc_logger.hpp"
 
 
 
@@ -69,7 +70,7 @@ class BenchmarkIntermediate : public Benchmark
 {
 public:
 
-	using System = hpr::mem::BenchmarkIntermediateSystem;
+	using System = mtp::BenchmarkIntermediateSystem;
 
 	inline void setup() override
 	{
@@ -83,7 +84,7 @@ public:
 	inline void teardown() override
 	{
 		std::cout << "\n";
-		auto& allocator = hpr::mem::get_system_allocator<System>();
+		auto& allocator = mtp::get_system_allocator<System>();
 		allocator.reset();
 	}
 
@@ -126,7 +127,7 @@ private:
 	{
 		std::cout << "run metapool raw allocation..." << std::endl;
 
-		auto& allocator = hpr::mem::get_system_allocator<System>();
+		auto& allocator = mtp::get_system_allocator<System>();
 		auto vec = hpr::cntr::make_vector<std::byte*, System>();
 		vec.reserve(count);
 
@@ -225,7 +226,7 @@ private:
 	{
 		std::cout << "run metapool dummy allocation..." << std::endl;
 
-		auto& allocator = hpr::mem::get_system_allocator<System>();
+		auto& allocator = mtp::get_system_allocator<System>();
 		auto vec = hpr::cntr::make_vector<std::byte*, System>();
 		vec.reserve(count);
 
@@ -326,7 +327,7 @@ private:
 	{
 		std::cout << "run mpool dummy construct/destruct..." << std::endl;
 
-		auto& allocator = hpr::mem::get_system_allocator<System>();
+		auto& allocator = mtp::get_system_allocator<System>();
 		auto vec = hpr::cntr::make_vector<T*, System>();
 		vec.reserve(count);
 
@@ -512,7 +513,7 @@ public:
 		m_raw_time_ui = run_pattern_raw_alloc("ui", 48, 1, 256, 1000);
 		hpr::mem::AllocLogger::export_profile("alloc_raw_ui.csv", true);
 
-		hpr::mem::get_system_allocator<System>().reset();
+		mtp::get_system_allocator<System>().reset();
 
 		std::cout << "\n\n";
 		m_dummy_alloc_time_ecs = run_pattern_dummy_alloc<DummySmall>("ecs", 5000, 100);
@@ -524,7 +525,7 @@ public:
 		m_dummy_emplace_time_ecs = run_pattern_dummy_emplace<DummySmall>("ecs", 5000, 100);
 		hpr::mem::AllocLogger::export_profile("emplace_dummysmall_ecs.csv", true);
 
-		hpr::mem::get_system_allocator<System>().reset();
+		mtp::get_system_allocator<System>().reset();
 
 		std::cout << "\n\n";
 		m_dummy_alloc_time_render = run_pattern_dummy_alloc<DummyMedium>("render", 500, 100);
@@ -536,7 +537,7 @@ public:
 		m_dummy_emplace_time_render = run_pattern_dummy_emplace<DummyMedium>("render", 500, 100);
 		hpr::mem::AllocLogger::export_profile("emplace_dummymed_ecs.csv", true);
 
-		hpr::mem::get_system_allocator<System>().reset();
+		mtp::get_system_allocator<System>().reset();
 
 		std::cout << "\n\n";
 		m_dummy_alloc_time_ui = run_pattern_dummy_alloc<DummyBig>("ui", 256, 1000);
@@ -548,7 +549,7 @@ public:
 		m_dummy_emplace_time_ui = run_pattern_dummy_emplace<DummyBig>("ui", 256, 1000);
 		hpr::mem::AllocLogger::export_profile("emplace_dummybig_ecs.csv", true);
 
-		hpr::mem::get_system_allocator<System>().reset();
+		mtp::get_system_allocator<System>().reset();
 
 		std::cout << "\n\n";
 		print_summary();
