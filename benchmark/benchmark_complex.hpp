@@ -5,6 +5,9 @@
 
 #include "benchmark.hpp"
 
+#include "mtp_setup.hpp"
+#include "mtp_memory.hpp"
+
 
 class BenchmarkComplex : public Benchmark
 {
