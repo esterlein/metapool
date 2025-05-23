@@ -6,23 +6,14 @@
 #include "metapool_config.hpp"
 #include "metapool_registry.hpp"
 #include "allocator.hpp"
+#include "allocator_interface.hpp"
 #include "monotonic_arena.hpp"
 
 #include "mtp_setup.hpp"
+#include "mtp_align.hpp"
 
 
 namespace hpr {
-namespace mem {
-
-
-	enum class AllocatorInterface
-	{
-		native,
-		std_adapter,
-		pmr_adapter
-	};
-
-} // hpr::mem
 
 
 class MemoryModel final
@@ -31,14 +22,27 @@ public:
 
 	MemoryModel() = delete;
 
-	template <mem::AllocatorType Type, mem::AllocatorInterface Interface>
-	static auto& get_allocator()
+
+	template <typename MetapoolRegistryType, mem::AllocatorInterface Interface>
+	static auto& create_thread_local_allocator()
 	{
-		if constexpr (Type == mem::AllocatorType::simple) {
-			return create_thread_local_allocator<mem::BenchmarkSimpleRegistry, Interface>();
+		thread_local static MonotonicArena arena {mtp::arena_size, mtp::max_align};
+		thread_local static MetapoolContainer<MetapoolRegistryType> container {&arena};
+
+		thread_local static auto proxies = container.get_proxies();
+		constexpr auto allocator_config = MetapoolRegistryType::create_allocator_config();
+
+		if constexpr (Interface == mem::AllocatorInterface::native) {
+			thread_local static Allocator<decltype(allocator_config), Native> alloc {proxies};
+			return alloc;
 		}
-		else if constexpr (Type == mem::AllocatorType::intermediate) {
-			return create_thread_local_allocator<mem::BenchmarkIntermediateRegistry, Interface>();
+		else if constexpr (Interface == mem::AllocatorInterface::std_adapter) {
+			thread_local static Allocator<decltype(allocator_config), StdAdapter, void> alloc {proxies};
+			return alloc;
+		}
+		else if constexpr (Interface == mem::AllocatorInterface::pmr_adapter) {
+			thread_local static Allocator<decltype(allocator_config), PmrAdapter> alloc {proxies};
+			return alloc;
 		}
 	}
 
@@ -81,29 +85,5 @@ private:
 		typename MetapoolRegistryType::TupleType m_metapool_storage;
 
 	}; // MemoryModel::MetapoolContainer<typename MetapoolRegistryType>
-
-
-	template <typename MetapoolRegistryType, mem::AllocatorInterface Interface>
-	static auto& create_thread_local_allocator()
-	{
-		thread_local static MonotonicArena arena {mem::arena_size, mem::cacheline};
-		thread_local static MetapoolContainer<MetapoolRegistryType> container {&arena};
-
-		thread_local static auto proxies = container.get_proxies();
-		constexpr auto allocator_config = MetapoolRegistryType::create_allocator_config();
-
-		if constexpr (Interface == mem::AllocatorInterface::native) {
-			thread_local static Allocator<decltype(allocator_config), Native> alloc {proxies};
-			return alloc;
-		}
-		else if constexpr (Interface == mem::AllocatorInterface::std_adapter) {
-			thread_local static Allocator<decltype(allocator_config), StdAdapter, void> alloc {proxies};
-			return alloc;
-		}
-		else if constexpr (Interface == mem::AllocatorInterface::pmr_adapter) {
-			thread_local static Allocator<decltype(allocator_config), PmrAdapter> alloc {proxies};
-			return alloc;
-		}
-	}
 };
 } // hpr
