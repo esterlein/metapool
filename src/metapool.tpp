@@ -6,16 +6,13 @@
 #include "alloc_header.hpp"
 #include "monotonic_arena.hpp"
 
+#include "mtp_align.hpp"
+
 #include "fail.hpp"
 
 
 
 namespace hpr {
-namespace mem {
-
-	static inline constexpr uint32_t cacheline = 64U;
-
-}
 
 
 template <mem::IsMetapoolConfig Config>
@@ -31,7 +28,7 @@ Metapool<Config>::Metapool(MonotonicArena* upstream)
 
 		std::size_t pool_size = pool.stride * pool.block_count;
 
-		std::byte* pool_memory = m_upstream->fetch(pool_size, mem::cacheline, mem::alloc_header_size);
+		std::byte* pool_memory = m_upstream->fetch(pool_size, mtp::max_align, mem::alloc_header_size);
 
 		std::visit(
 			[pool_memory](auto& freelist) {
