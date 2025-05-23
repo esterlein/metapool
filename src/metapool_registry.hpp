@@ -11,7 +11,12 @@
 
 
 namespace hpr {
+namespace mem {
 
+	template <typename System>
+	struct SystemAllocatorTraits;
+
+} // hpr::mem
 
 
 template <typename... Metapools>
