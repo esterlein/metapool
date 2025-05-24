@@ -10,7 +10,6 @@
 #include "monotonic_arena.hpp"
 
 #include "mtp_setup.hpp"
-#include "mtp_align.hpp"
 
 
 namespace hpr {
@@ -28,7 +27,7 @@ public:
 	{
 		thread_local static MonotonicArena arena {
 			MetapoolRegistryType::arena_size,
-			MetapoolRegistryType::alignment
+			mem::MetapoolConstraints::freelist_alignment
 		};
 
 		thread_local static MetapoolContainer<MetapoolRegistryType> container {&arena};
