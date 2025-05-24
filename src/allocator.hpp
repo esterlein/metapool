@@ -146,7 +146,7 @@ private:
 
 private:
 
-	static inline constexpr LookupEntry lookup(uint32_t raw_size, uint32_t alignment)
+	static constexpr LookupEntry lookup(uint32_t raw_size, uint32_t alignment)
 	{
 		constexpr auto& range_meta = Config::range_metadata;
 		constexpr uint32_t metapool_count = range_meta.size();
