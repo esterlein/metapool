@@ -16,27 +16,22 @@ using hpr::mem::CapacityFunction;
 
 
 //----------------------------------------
-// arena size
-//----------------------------------------
-
-static inline constexpr std::size_t arena_size = 2147483648; // 2 GB
-
-
-//----------------------------------------
 // registry definitions
 //----------------------------------------
 
 using BenchmarkSimpleRegistry =
 	MetapoolRegistry <
+		2UL * 1024 * 1024 * 1024,
+		64UL,
 		Metapool<MetapoolConfig<CapacityFunction::Flat, 2048,  8,     8,  2048>>,
 		Metapool<MetapoolConfig<CapacityFunction::Flat, 2048, 16,  2048,  4128>>,
 		Metapool<MetapoolConfig<CapacityFunction::Flat,    8, 16, 65664, 65680>>
-		2UL * 1024 * 1024 * 1024,
-		64
 	>;
 
 using BenchmarkIntermediateRegistry =
 	MetapoolRegistry <
+		2UL * 1024 * 1024 * 1024,
+		64UL,
 		Metapool<MetapoolConfig<CapacityFunction::Flat, 5120, 16,      48,     112>>,
 		Metapool<MetapoolConfig<CapacityFunction::Flat,  512,  8,     112,     136>>,
 		Metapool<MetapoolConfig<CapacityFunction::Flat,  512,  8,    1040,    1048>>,

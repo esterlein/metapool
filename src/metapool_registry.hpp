@@ -13,7 +13,7 @@
 namespace hpr {
 
 
-template <typename... Metapools, std::size_t Size, std::size_t Alignment>
+template <std::size_t Size, std::size_t Alignment, typename... Metapools>
 class MetapoolRegistry final
 {
 public:
@@ -38,7 +38,7 @@ public:
 			}(std::make_index_sequence<registry_size>{});
 
 
-	static constexpr std::size_t arena_size = ArenaSize;
+	static constexpr std::size_t arena_size = Size;
 	static constexpr std::size_t alignment  = Alignment;
 
 private:

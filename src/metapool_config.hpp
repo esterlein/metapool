@@ -22,12 +22,13 @@ namespace mem {
 
 	struct MetapoolConstraints
 	{
-		static inline constexpr uint32_t min_stride           = 8U;
-		static inline constexpr uint32_t max_stride           = 8388608U; // 8 MB
-		static inline constexpr uint32_t min_stride_step      = 8U;
-		static inline constexpr uint32_t max_stride_step      = 524288U; // 512 KB
-		static inline constexpr uint32_t min_base_block_count = 8U;
-		static inline constexpr uint32_t min_last_block_count = 8U;
+		static constexpr uint32_t min_stride             = 8U;
+		static constexpr uint32_t max_stride             = 8388608U; // 8 MB
+		static constexpr uint32_t min_stride_step        = 8U;
+		static constexpr uint32_t max_stride_step        = 524288U; // 512 KB
+		static constexpr uint32_t min_base_block_count   = 8U;
+		static constexpr uint32_t min_last_block_count   = 8U;
+		static constexpr uint32_t min_freelist_alignment = 64U; // cacheline
 	};
 
 
@@ -55,8 +56,9 @@ namespace mem {
 	template <CapacityFunction Func, auto BaseBlockCount, auto StrideStep, auto... StridePivots>
 	concept ValidMetapoolConfig =
 		BaseBlockCount >= MetapoolConstraints::min_base_block_count &&
-		StrideStep >= MetapoolConstraints::min_stride_step &&
-		StrideStep <= MetapoolConstraints::max_stride_step &&
+		Alignment      >= MetapoolConstraints::min_freelist_alignment &&
+		StrideStep     >= MetapoolConstraints::min_stride_step &&
+		StrideStep     <= MetapoolConstraints::max_stride_step &&
 		sizeof...(StridePivots) >= 2 &&
 		((StridePivots % MetapoolConstraints::min_stride_step == 0) && ...) &&
 		[]() constexpr {
@@ -100,13 +102,14 @@ namespace mem {
 		}();
 
 
-	template <CapacityFunction Func, auto BaseBlockCount, auto StrideStep, auto... StridePivots>
-	requires ValidMetapoolConfig <Func, BaseBlockCount, StrideStep, StridePivots...>
+	template <CapacityFunction Func, auto BaseBlockCount, auto Alignment, auto StrideStep, auto... StridePivots>
+	requires ValidMetapoolConfig <Func, BaseBlockCount, Alignment, StrideStep, StridePivots...>
 	struct MetapoolConfig
 	{
 		using tag = metapool_config_tag;
 
 		static constexpr uint32_t base_block_count  = BaseBlockCount;
+		static constexpr uint32_t alignment         = Alignment;
 		static constexpr uint32_t stride_step       = StrideStep;
 
 		static constexpr std::array<uint32_t, sizeof...(StridePivots)> stride_pivots = { StridePivots... };
