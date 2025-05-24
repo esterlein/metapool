@@ -4,7 +4,7 @@
 namespace mtp {
 
 	template <typename System>
-	struct SystemAllocatorTraits;
+	struct RegistryForSystem;
 
 } // mtp
 

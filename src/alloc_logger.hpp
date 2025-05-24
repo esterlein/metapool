@@ -65,7 +65,7 @@ class AllocLogger
 public:
 
 	static inline void log(uint32_t) noexcept {}
-	static inline void export_profile(std::string_view = {}) noexcept {}
+	static inline void export_profile(std::string_view = {}, bool = false) noexcept {}
 };
 
 #endif

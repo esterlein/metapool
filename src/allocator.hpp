@@ -158,8 +158,9 @@ private:
 			const auto& range = range_meta[i];
 			const uint32_t step = range.stride_step;
 
-			const uint32_t align_to = std::max(step, alignment);
-			const uint32_t stride = (alloc_size + align_to - 1U) & ~(align_to - 1U);
+			const uint32_t align_to = std::max(Config::alignment_quantum, alignment);
+			const uint32_t aligned  = (alloc_size + align_to - 1U) & ~(align_to - 1U);
+			const uint32_t stride   = (aligned + step - 1U) & ~(step - 1U);
 
 			if (stride >= range.stride_max)
 				continue;

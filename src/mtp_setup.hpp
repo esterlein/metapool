@@ -31,6 +31,8 @@ using BenchmarkSimpleRegistry =
 		Metapool<MetapoolConfig<CapacityFunction::Flat, 2048,  8,     8,  2048>>,
 		Metapool<MetapoolConfig<CapacityFunction::Flat, 2048, 16,  2048,  4128>>,
 		Metapool<MetapoolConfig<CapacityFunction::Flat,    8, 16, 65664, 65680>>
+		2UL * 1024 * 1024 * 1024,
+		64
 	>;
 
 using BenchmarkIntermediateRegistry =
@@ -57,9 +59,6 @@ struct BenchmarkIntermediateSystem {};
 //----------------------------------------
 // system-to-registry mapping
 //----------------------------------------
-
-template <typename System>
-struct RegistryForSystem;
 
 template <>
 struct RegistryForSystem<BasicTestsSystem> {

@@ -26,7 +26,11 @@ public:
 	template <typename MetapoolRegistryType, mem::AllocatorInterface Interface>
 	static auto& create_thread_local_allocator()
 	{
-		thread_local static MonotonicArena arena {mtp::arena_size, mtp::max_align};
+		thread_local static MonotonicArena arena {
+			MetapoolRegistryType::arena_size,
+			MetapoolRegistryType::alignment
+		};
+
 		thread_local static MetapoolContainer<MetapoolRegistryType> container {&arena};
 
 		thread_local static auto proxies = container.get_proxies();

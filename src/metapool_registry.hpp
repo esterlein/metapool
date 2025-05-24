@@ -13,7 +13,7 @@
 namespace hpr {
 
 
-template <typename... Metapools>
+template <typename... Metapools, std::size_t Size, std::size_t Alignment>
 class MetapoolRegistry final
 {
 public:
@@ -21,9 +21,9 @@ public:
 	using TupleType  = std::tuple<Metapools...>;
 	using VariantPtr = std::variant<Metapools*...>;
 
-	static inline constexpr std::size_t registry_size = sizeof...(Metapools);
+	static constexpr std::size_t registry_size = sizeof...(Metapools);
 
-	static inline constexpr auto range_metadata_array =
+	static constexpr auto range_metadata_array =
 		[]<std::size_t... Is>(
 			std::index_sequence<Is...>) -> std::array<mem::RangeMetadata, sizeof...(Is)> {
 				return {{
@@ -36,6 +36,10 @@ public:
 					}...
 				}};
 			}(std::make_index_sequence<registry_size>{});
+
+
+	static constexpr std::size_t arena_size = ArenaSize;
+	static constexpr std::size_t alignment  = Alignment;
 
 private:
 
