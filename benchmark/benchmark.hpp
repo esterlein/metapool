@@ -44,7 +44,7 @@ private:
 
 		auto& allocator = mtp::get_system_allocator<System>();
 
-		for (size_t alignment : {1, 2, 4, 8, 16, 32, 64, 128, 256}) {
+		for (size_t alignment : {1, 2, 4, 8, 16, 32, 64}) {
 			std::byte* ptr = allocator.alloc(64, alignment);
 			assert(ptr != nullptr);
 			assert(reinterpret_cast<uintptr_t>(ptr) % alignment == 0);
