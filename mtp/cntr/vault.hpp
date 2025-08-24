@@ -2,13 +2,16 @@
 
 #include <cstddef>
 #include <cassert>
+#include <cstring>
 #include <utility>
 
 #include "../memory_model.hpp"
 
 #include "fail.hpp"
 
+
 namespace mtp::cntr {
+
 
 template <typename T, typename Set>
 class vault
@@ -211,6 +214,50 @@ public:
 		m_cap = new_beg + new_cap;
 	}
 
+	void resize(std::size_t new_size)
+	{
+		const std::size_t old_size = size();
+		if (new_size > capacity())
+			reserve(new_size);
+
+		T* __restrict__ beg = m_beg;
+
+		if (new_size > old_size) {
+			if constexpr (!std::is_trivially_default_constructible_v<T>) {
+				T* __restrict__ first = beg + old_size;
+				T* __restrict__ last  = beg + new_size;
+				for (T* ptr = first; ptr != last; ++ptr)
+					new (ptr) T();
+			}
+		}
+		else {
+			resize_helper(new_size, old_size);
+		}
+
+		m_end = beg + new_size;
+	}
+
+	void resize(std::size_t new_size, const T& value)
+	{
+		const std::size_t old_size = size();
+		if (new_size > capacity())
+			reserve(new_size);
+
+		T* __restrict__ beg = m_beg;
+
+		if (new_size > old_size) {
+			T* __restrict__ first = beg + old_size;
+			T* __restrict__ last  = beg + new_size;
+			for (T* p = first; p != last; ++p)
+				new (p) T(value);
+		}
+		else {
+			resize_helper(new_size, old_size);
+		}
+
+		m_end = beg + new_size;
+	}
+
 	void clear()
 	{
 		MTP_ASSERT(m_end == m_beg || m_beg != nullptr,
@@ -297,6 +344,21 @@ private:
 		m_beg = new_beg;
 		m_end = new_beg + count;
 		m_cap = new_beg + new_cap;
+	}
+
+	void resize_helper(std::size_t new_size, std::size_t old_size)
+	{
+		T* __restrict__ beg = m_beg;
+		if (new_size < old_size) {
+			if constexpr (!std::is_trivially_destructible_v<T>) {
+				T* __restrict__ first = beg + new_size;
+				T* __restrict__ last  = beg + old_size;
+				for (T* ptr = first; ptr != last; ++ptr) {
+					std::destroy_at(ptr);
+				}
+			}
+		}
+		m_end = beg + new_size;
 	}
 
 private:
