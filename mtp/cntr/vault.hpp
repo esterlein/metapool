@@ -79,10 +79,11 @@ public:
 	vault& operator=(const vault&) = delete;
 
 	vault(vault&& other) noexcept
-		: m_allocator {other.m_allocator}
-		, m_beg       {other.m_beg}
+		: m_beg       {other.m_beg}
 		, m_end       {other.m_end}
 		, m_cap       {other.m_cap}
+		, m_allocator {other.m_allocator}
+
 	{
 		MTP_ASSERT(this != &other,
 			mtp::err::vault_self_move_ctor);
@@ -90,10 +91,10 @@ public:
 		MTP_ASSERT(m_beg != nullptr,
 			mtp::err::vault_move_null_data);
 
-		other.m_allocator = nullptr;
 		other.m_beg = nullptr;
 		other.m_end = nullptr;
 		other.m_cap = nullptr;
+		other.m_allocator = nullptr;
 	}
 
 	vault& operator=(vault&& other) noexcept
@@ -109,15 +110,15 @@ public:
 			m_allocator->free(reinterpret_cast<std::byte*>(m_beg));
 		}
 
-		m_allocator = other.m_allocator;
 		m_beg = other.m_beg;
 		m_end = other.m_end;
 		m_cap = other.m_cap;
+		m_allocator = other.m_allocator;
 
-		other.m_allocator = nullptr;
 		other.m_beg = nullptr;
 		other.m_end = nullptr;
 		other.m_cap = nullptr;
+		other.m_allocator = nullptr;
 
 		return *this;
 	}
@@ -184,6 +185,58 @@ public:
 		return *new (m_end++) T(std::forward<Types>(args)...);
 	}
 
+	void assign(std::size_t count, const T& value)
+	{
+		if constexpr (!std::is_trivially_destructible_v<T>) {
+			for (T* __restrict__ ptr = m_beg; ptr != m_end; ++ptr)
+				ptr->~T();
+		}
+		if (count > capacity())
+			reserve(count);
+
+		T* __restrict__ dst = m_beg;
+		for (std::size_t i = 0; i < count; ++i)
+			new (dst + i) T(value);
+
+		m_end = dst + count;
+	}
+
+	template <typename InputIt>
+	requires (!std::is_integral_v<InputIt>)
+	void assign(InputIt first, InputIt last)
+	{
+		if constexpr (!std::is_trivially_destructible_v<T>) {
+			for (T* __restrict__ ptr = m_beg; ptr != m_end; ++ptr)
+				ptr->~T();
+		}
+
+		using cat = typename std::iterator_traits<InputIt>::iterator_category;
+
+		if constexpr (std::is_base_of_v<std::forward_iterator_tag, cat>) {
+			const std::size_t count = static_cast<std::size_t>(std::distance(first, last));
+			if (count > capacity())
+				reserve(count);
+
+			T* __restrict__ dst = m_beg;
+			for (auto it = first; it != last; ++it, ++dst)
+				new (dst) T(*it);
+
+			m_end = m_beg + count;
+		}
+		else {
+			m_end = m_beg;
+			for (auto it = first; it != last; ++it) {
+				const T& __restrict__ src = *it;
+				emplace_back(src);
+			}
+		}
+	}
+
+	void assign(std::initializer_list<T> ilist)
+	{
+		assign(ilist.begin(), ilist.end());
+	}
+
 	void reserve(std::size_t new_cap)
 	{
 		if (new_cap <= static_cast<std::size_t>(m_cap - m_beg))
@@ -248,8 +301,8 @@ public:
 		if (new_size > old_size) {
 			T* __restrict__ first = beg + old_size;
 			T* __restrict__ last  = beg + new_size;
-			for (T* p = first; p != last; ++p)
-				new (p) T(value);
+			for (T* ptr = first; ptr != last; ++ptr)
+				new (ptr) T(value);
 		}
 		else {
 			resize_helper(new_size, old_size);
@@ -263,8 +316,8 @@ public:
 		MTP_ASSERT(m_end == m_beg || m_beg != nullptr,
 			mtp::err::vault_clear_null_data);
 		if constexpr (!std::is_trivially_destructible_v<T>) {
-			for (T* p = m_beg; p != m_end; ++p)
-				p->~T();
+			for (T* ptr = m_beg; ptr != m_end; ++ptr)
+				ptr->~T();
 		}
 		m_end = m_beg;
 	}
@@ -272,8 +325,8 @@ public:
 	void reset(std::size_t new_capacity)
 	{
 		if constexpr (!std::is_trivially_destructible_v<T>) {
-			for (T* p = m_beg; p != m_end; ++p)
-				p->~T();
+			for (T* ptr = m_beg; ptr != m_end; ++ptr)
+				ptr->~T();
 		}
 
 		if (m_beg)
@@ -290,8 +343,8 @@ public:
 	void reset(std::size_t new_capacity, Types&&... args)
 	{
 		if constexpr (!std::is_trivially_destructible_v<T>) {
-			for (T* p = m_beg; p != m_end; ++p)
-				p->~T();
+			for (T* ptr = m_beg; ptr != m_end; ++ptr)
+				ptr->~T();
 		}
 
 		if (m_beg)
