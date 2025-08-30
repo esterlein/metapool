@@ -80,18 +80,11 @@ public:
 	slag& operator=(const slag&) = delete;
 
 	slag(slag&& other) noexcept
-		: m_beg       {other.m_beg}
-		, m_end       {other.m_end}
-		, m_cap       {other.m_cap}
-		, m_allocator {other.m_allocator}
-
+		: m_beg{other.m_beg}
+		, m_end{other.m_end}
+		, m_cap{other.m_cap}
+		, m_allocator{other.m_allocator}
 	{
-		MTP_ASSERT(this != &other,
-			mtp::err::slag_self_move_ctor);
-
-		MTP_ASSERT(m_beg != nullptr,
-			mtp::err::slag_move_null_data);
-
 		other.m_beg = nullptr;
 		other.m_end = nullptr;
 		other.m_cap = nullptr;
@@ -100,13 +93,10 @@ public:
 
 	slag& operator=(slag&& other) noexcept
 	{
-		MTP_ASSERT(this != &other,
-			mtp::err::slag_self_move_assign);
+		if (this == &other)
+			return *this;
 
-		MTP_ASSERT(other.m_beg != nullptr,
-			mtp::err::slag_move_null_data);
-
-		if (m_allocator && m_beg && m_beg != other.m_beg) {
+		if (m_beg) {
 			clear();
 			m_allocator->free(reinterpret_cast<std::byte*>(m_beg));
 		}
@@ -335,11 +325,13 @@ public:
 		m_end = beg + new_size;
 	}
 
-	void clear()
+	void clear() noexcept
 	{
-		MTP_ASSERT(m_end == m_beg || m_beg != nullptr,
-			mtp::err::slag_clear_null_data);
-
+		if (!m_beg) {
+			m_end = nullptr;
+			m_cap = nullptr;
+			return;
+		}
 		if constexpr (!std::is_trivially_destructible_v<T>) {
 			for (T* ptr = m_beg; ptr != m_end; ++ptr)
 				ptr->~T();
@@ -389,9 +381,8 @@ public:
 
 	T* data() { return m_beg; }
 	const T* data() const { return m_beg; }
-
-	std::size_t size() const { return static_cast<std::size_t>(m_end - m_beg); }
-	std::size_t capacity() const { return static_cast<std::size_t>(m_cap - m_beg); }
+	std::size_t size() const { return m_beg ? static_cast<std::size_t>(m_end - m_beg) : 0; }
+	std::size_t capacity() const { return m_beg ? static_cast<std::size_t>(m_cap - m_beg) : 0; }
 	bool empty() const { return m_end == m_beg; }
 
 	T* begin() { return m_beg; }
