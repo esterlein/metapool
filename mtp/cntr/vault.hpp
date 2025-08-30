@@ -70,9 +70,7 @@ public:
 
 	~vault()
 	{
-		clear();
-		if (m_allocator && m_beg)
-			m_allocator->free(reinterpret_cast<std::byte*>(m_beg));
+		release_storage();
 	}
 
 	vault(const vault&) = delete;
@@ -95,10 +93,7 @@ public:
 		if (this == &other)
 			return *this;
 
-		if (m_beg) {
-			clear();
-			m_allocator->free(reinterpret_cast<std::byte*>(m_beg));
-		}
+		release_storage();
 
 		m_beg = other.m_beg;
 		m_end = other.m_end;
@@ -303,11 +298,8 @@ public:
 
 	void clear() noexcept
 	{
-		if (!m_beg) {
-			m_end = nullptr;
-			m_cap = nullptr;
+		if (!m_beg || m_end == m_beg)
 			return;
-		}
 		if constexpr (!std::is_trivially_destructible_v<T>) {
 			for (T* ptr = m_beg; ptr != m_end; ++ptr)
 				ptr->~T();
@@ -405,6 +397,18 @@ private:
 			}
 		}
 		m_end = beg + new_size;
+	}
+
+	void release_storage() noexcept
+	{
+		if (!m_beg)
+			return;
+		if constexpr (!std::is_trivially_destructible_v<T>) {
+			for (T* ptr = m_beg; ptr != m_end; ++ptr)
+				ptr->~T();
+		}
+		m_allocator->free(reinterpret_cast<std::byte*>(m_beg));
+		m_beg = m_end = m_cap = nullptr;
 	}
 
 private:
