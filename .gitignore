@@ -1,0 +1,6 @@
+.cache/
+*.csv
+
+.clangd
+compile_commands.json
+
