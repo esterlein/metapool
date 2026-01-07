@@ -30,12 +30,13 @@ namespace mtp {
 
 using default_set = metaset <
 
-	def<capf::mul2, 1024,      32,       32,      512,  2016>,
-	def<capf::mul2,  512,     512,     2048,     8192, 32256>,
-	def<capf::flat,  128,    8192,    32768,   122880>,
-	def<capf::flat,   64,  131072,   131072,   917504>,
-	def<capf::flat,   32, 1048576,  1048576,  8388608>,
-	def<capf::flat,   32,       8, 33554432, 33554432>
+	def<capf::mul2, 512,      32,       32,      512,  2016>,
+	def<capf::mul2, 128,     512,     2048,     8192, 32256>,
+	def<capf::flat,  64,    8192,    32768,   122880>,
+	def<capf::flat,  64,  131072,   131072,   917504>,
+	def<capf::flat,  32,  262144,  1048576,  8388608>,
+	def<capf::flat,  32,       8, 16777216, 16777216>,
+	def<capf::flat,  48,       8, 33554432, 33554432>
 >;
 
 

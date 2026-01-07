@@ -19,9 +19,9 @@ namespace mtp::cfg {
 struct MetapoolConstraints
 {
 	static constexpr uint32_t min_stride           = 8U;
-	static constexpr uint32_t max_stride           = 16'777'216U; // 16 MB
+	static constexpr uint32_t max_stride           = 1'073'741'824U; // 1 GiB
 	static constexpr uint32_t min_stride_step      = 8U;
-	static constexpr uint32_t max_stride_step      = 8388608U; // 8 MB
+	static constexpr uint32_t max_stride_step      = 536'870'912U; // 512 MiB
 	static constexpr uint32_t min_base_block_count = 1U;
 	static constexpr uint32_t min_last_block_count = 1U;
 	static constexpr uint32_t freelist_alignment   = 4096U;
@@ -61,6 +61,9 @@ concept ValidMetapoolConfig =
 			if (static_cast<uint32_t>(pivots[i]) < MetapoolConstraints::min_stride)
 				return false;
 
+			if (static_cast<uint32_t>(pivots[i]) > MetapoolConstraints::max_stride)
+				return false;
+
 			if (pivots[i] % StrideStep != 0)
 				return false;
 		}
@@ -74,8 +77,10 @@ concept ValidMetapoolConfig =
 			}
 		}
 
-		if ((pivots.back() - pivots.front()) % StrideStep != 0)
-			return false;
+		if constexpr (Func == CapacityFunction::flat) {
+			if ((pivots.back() - pivots.front()) % StrideStep != 0)
+				return false;
+		}
 
 		uint32_t count = BaseBlockCount;
 

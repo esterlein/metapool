@@ -24,7 +24,7 @@ namespace mtp::cfg {
 		uint16_t base_proxy_index {0xFFFF};
 	};
 
-	static constexpr size_t max_arena_size  = 8ULL << 30; // 8 GB
+	static constexpr size_t max_arena_size  = 8ULL << 30; // 8 GiB
 	static constexpr size_t arena_alignment = 4096U;
 
 } // mtp::cfg
@@ -130,44 +130,70 @@ namespace mtp::core {
 		}
 
 
-		template <size_t... Is>
-		static constexpr bool validate_stride_ranges(std::index_sequence<Is...>)
+		static consteval bool validate_stride_ranges()
 		{
-			constexpr auto stride_min  = std::array<uint32_t, set_size> {get_min_stride<Is>()...};
-			constexpr auto stride_max  = std::array<uint32_t, set_size> {get_max_stride<Is>()...};
-			constexpr auto stride_step = std::array<uint32_t, set_size> {get_stride_step<Is>()...};
+			constexpr auto stride_min =
+				[]<size_t... index_sorted>(std::index_sequence<index_sorted...>) constexpr {
+					return std::array<uint32_t, set_size> {
+						std::tuple_element_t<sorted_indices[index_sorted], TupleType>::MetapoolTraits::stride_min...
+					};
+				}(std::make_index_sequence<set_size>{});
 
-			for (size_t i = 0; i < set_size; ++i) {
+			constexpr auto stride_max =
+				[]<size_t... index_sorted>(std::index_sequence<index_sorted...>) constexpr {
+					return std::array<uint32_t, set_size> {
+						std::tuple_element_t<sorted_indices[index_sorted], TupleType>::MetapoolTraits::stride_max...
+					};
+				}(std::make_index_sequence<set_size>{});
 
-				if (stride_step[i] == 0U)
+			constexpr auto stride_step =
+				[]<size_t... index_sorted>(std::index_sequence<index_sorted...>) constexpr {
+					return std::array<uint32_t, set_size> {
+						std::tuple_element_t<sorted_indices[index_sorted], TupleType>::MetapoolTraits::stride_step...
+					};
+				}(std::make_index_sequence<set_size>{});
+
+			for (size_t mp_index = 0; mp_index < set_size; ++mp_index) {
+
+				if (stride_step[mp_index] == 0U)
 					return false;
-				if ((stride_step[i] & (stride_step[i] - 1U)) != 0U)
+				if ((stride_step[mp_index] & (stride_step[mp_index] - 1U)) != 0U)
 					return false;
-				if (stride_min[i] > stride_max[i])
+				if (stride_min[mp_index] > stride_max[mp_index])
 					return false;
-				if ((stride_min[i] & (stride_step[i] - 1U)) != 0U)
+				if ((stride_min[mp_index] & (stride_step[mp_index] - 1U)) != 0U)
 					return false;
 
-				const uint32_t delta = stride_max[i] - stride_min[i];
+				const uint32_t delta = stride_max[mp_index] - stride_min[mp_index];
 
-				if ((delta % stride_step[i]) != 0U)
+				if ((delta % stride_step[mp_index]) != 0U)
 					return false;
 			}
 
-			for (size_t i = 0; i < set_size; ++i) {
-				for (uint32_t stride = stride_min[i]; stride <= stride_max[i]; stride += stride_step[i]) {
-					size_t cover = 0;
-					for (size_t j = 0; j < set_size; ++j) {
-						if (stride >= stride_min[j] && stride <= stride_max[j] &&
-							((stride - stride_min[j]) % stride_step[j]) == 0U)
+			for (size_t mp_index = 0; mp_index < set_size; ++mp_index) {
+				for (
+					uint32_t stride = stride_min[mp_index];
+					stride <= stride_max[mp_index];
+					stride += stride_step[mp_index]
+				){
+					size_t cover_count = 0;
+
+					for (size_t range_index = 0; range_index < set_size; ++range_index) {
+						if (stride >= stride_min[range_index] &&
+							stride <= stride_max[range_index] &&
+							((stride - stride_min[range_index]) % stride_step[range_index]) == 0U)
 						{
-							++cover;
-							if (cover > 1) break;
+							++cover_count;
+							if (cover_count > 1)
+								break;
 						}
 					}
-					if (cover != 1) return false;
+
+					if (cover_count != 1)
+						return false;
 				}
 			}
+
 			return true;
 		}
 
@@ -203,7 +229,7 @@ namespace mtp::core {
 		static_assert(
 			[]() constexpr {
 				if constexpr (set_size <= 1) return true;
-				return Metaset::validate_stride_ranges(std::make_index_sequence<set_size>{});
+				return Metaset::validate_stride_ranges();
 			}(),
 			SET_INVALID_SEQUENCE_MSG);
 	};

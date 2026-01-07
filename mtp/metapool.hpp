@@ -120,26 +120,12 @@ public:
 		static constexpr uint32_t stride_step  = Config::stride_step;
 		static constexpr uint32_t stride_count = MetapoolStatic::stride_count;
 
-		static constexpr size_t reserved_bytes = [] {
+		static constexpr size_t reserved_bytes = []() constexpr {
 			size_t sum = 0;
-			uint32_t count = Config::base_block_count;
 
 			for (size_t i = 0; i < stride_count; ++i) {
-				uint32_t stride = stride_min + i * stride_step;
-				sum += static_cast<size_t>(stride) * count;
-
-				if (((stride - stride_min) % stride_step == 0) &&
-					std::find(Config::stride_pivots.begin(), Config::stride_pivots.end(), stride) != Config::stride_pivots.end()) {
-					switch (Config::capacity_function) {
-						case mtp::cfg::CapacityFunction::div8: count = std::max(count / 8, 1U); break;
-						case mtp::cfg::CapacityFunction::div4: count = std::max(count / 4, 1U); break;
-						case mtp::cfg::CapacityFunction::div2: count = std::max(count / 2, 1U); break;
-						case mtp::cfg::CapacityFunction::flat: break;
-						case mtp::cfg::CapacityFunction::mul2: count *= 2; break;
-						case mtp::cfg::CapacityFunction::mul4: count *= 4; break;
-						case mtp::cfg::CapacityFunction::mul8: count *= 8; break;
-					}
-				}
+				sum += static_cast<size_t>(MetapoolStatic::strides[i]) *
+					static_cast<size_t>(MetapoolStatic::block_counts[i]);
 			}
 
 			return sum + stride_count * mtp::cfg::MetapoolConstraints::freelist_alignment;
