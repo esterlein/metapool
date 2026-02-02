@@ -143,12 +143,16 @@ private:
 		vec_std.clear();
 		str_std.clear();
 
-		auto vec_pmr = mtp::cntr::make_pmr_vector<int, mtp::default_set>();
+		auto vec_pmr = std::pmr::vector<int>{
+			mtp::core::MemoryModel::get_pmr_adapter<int, mtp::default_set>()
+		};
 
 		for (int i = 0; i < 1000; ++i)
 			vec_pmr.push_back(i);
 
-		auto str_pmr = mtp::cntr::make_pmr_string<mtp::default_set>();
+		auto str_pmr = std::pmr::string{
+			mtp::core::MemoryModel::get_pmr_adapter<char, mtp::default_set>()
+		};
 
 		for (int i = 0; i < 1000; ++i)
 			str_pmr += 'a';

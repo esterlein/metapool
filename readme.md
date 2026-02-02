@@ -22,12 +22,12 @@ lightweight, cache-friendly pool allocator with compile-time configurable layout
 
 ## :white_square_button: introduction
 
-`metapool` is a lightweight, high-performance memory allocator with compile-time layout configuration and preallocated thread-local arenas, written in C++23 for a game engine.
+`metapool` is a lightweight, high-performance memory allocator with compile-time layout configuration and preallocated arenas, written in C++23 for a game engine. `metapool` is a TLS allocator by default, with shared instances also available for multithreaded contexts.
 
-Unlike general-purpose allocators, it uses a pool-style layout tailored to expected allocation patterns. This repository includes native containers (WIP) and benchmarks against `malloc`, `std::allocator` (`ptmalloc`), and `std::pmr::unsynchronized_pool_resource` backed by `std::pmr::monotonic_buffer_resource` with a thread-local upstream buffer. In these tests, `metapool`’s dynamic array `mtp::vault` reaches **up to 1300x faster** construction and `reserve()` than `std::vector`, and **up to 3.5x faster** than `std::pmr::vector`.
+Unlike general-purpose allocators, it uses a pool-style layout tailored to expected allocation patterns. This repository includes native containers (WIP) and steady-state benchmarks against `malloc`, `std::allocator` (`ptmalloc`), and `std::pmr::unsynchronized_pool_resource`, backed by `std::pmr::monotonic_buffer_resource` with a thread-local buffer and `std::pmr::fail_resource` upstream. In these tests, `metapool`’s dynamic array `mtp::vault` reaches **up to 1300x faster** construction and `reserve()` than `std::vector`, and **up to 3.5x faster** than `std::pmr::vector`.
 
 
-`metapool` implements `std::allocator` and `std::pmr::memory_resource` adapters, making it usable as a backend for standard containers and smart pointers.
+`metapool` implements `std::allocator` and `std::pmr::memory_resource` adapters for both thread-local and shared allocators, making it usable as a backend for standard containers and smart pointers.
 
 
 ## :white_square_button: benchmark
@@ -44,7 +44,7 @@ Test system:
 Test cases:
 
 * std:    `std::allocator` + `std::vector` (heap)
-* pmr:    `pmr::unsynchronized_pool_resource` + `std::pmr::monotonic_buffer_resource` + `pmr::vector` (no heap, throwing upstream)
+* pmr:    `pmr::unsynchronized_pool_resource` + `pmr::monotonic_buffer_resource` + `pmr::vector` (no heap, throwing upstream)
 * mtp:    `metapool` + `mtp::vault` (no heap)
 * malloc: raw `ptmalloc` allocation
 
@@ -59,7 +59,7 @@ Build & run:
 ```bash
 ./build.sh clean
 ./build.sh run micro
-./build.sh run selective
+./build.sh clean run selective
 ```
 
 Results:
@@ -84,17 +84,30 @@ Core allocator API:
 ```cpp
 #include "mtp_memory.hpp"
 
+// obtain TLS allocator (one instance per thread for this set)
+auto metapool_tls = mtp::get_tls_allocator<mtp::default_set>();
+
+// construct shared allocator object (normal instance ownership, shared across threads)
+mtp::shared<mtp::default_set> metapool_shared;
+
 // raw memory allocation
-auto metapool = mtp::get_allocator<mtp::default_set>();
-auto* block = metapool.alloc(size, alignment);
+auto* block = metapool_tls.alloc(size, alignment);
 
 // metapool-native construction path (no container, efficient inlining)
-auto* obj = metapool.construct<YourType>(42);
+auto* obj = metapool_tls.construct<YourType>(42);
 metapool.destruct(obj);
 
-// reset all freelists (objects are lost)
-metapool.reset();
+// reset freelists (objects invalidated)
+metapool_tls.reset();
 ```
+
+Thread-local `metapool` variant is initialized lazily. Shared allocator is initialized in constructor. To force thread-local initialization:
+
+```cpp
+mtp::init_tls<mtp::default_set>();
+```
+
+Aside from TLS initialization, TLS instance access and shared instance construction, TLS and shared APIs are identical.
 
 Metaset and native containers (WIP):
 
@@ -106,14 +119,29 @@ using custom_set = mtp::metaset <
     mtp::def<mtp::capf::mul2, 64, 8, 16, 64, 128>
 >;
 
-// dynamic array mtp::vault<T>
-auto v1 = mtp::make_vault<int, custom_set>();             // no allocation
-auto v2 = mtp::make_vault<int, custom_set>(10);           // reserve space
-auto v3 = mtp::make_vault<YourType, custom_set>(10, 42);  // construct 10 objects
-v3.emplace_back(YourType{});                              // grow and emplace 11th
+// dynamic array mtp::vault<T, Metaset> - TLS allocator
+mtp::vault<int,      custom_set> vlt1;          // thread-local metapool instance constructed lazily
+mtp::vault<int,      custom_set> vlt2 {10};     // reserve space for 10 ints
+mtp::vault<YourType, custom_set> vlt3 {10, 42}; // construct 10 objects with parameter '42'
 
-mtp::vault<int, custom_set> v4;
-v4.reserve(10);
+vlt3.emplace_back(YourType {});                 // grow and emplace 11th
+
+mtp::vault<int, custom_set> vlt4;
+vlt4.reserve(10);
+
+// shared allocator object
+mtp::shared<custom_set> metapool_shared;
+
+// initialize a container with allocator instance and construct 10 objects with parameter '42'
+mtp::vault<YourType, custom_set> vlt5 {metapool_shared, 10, 42};
+```
+
+Containers bind to TLS allocator automatically if shared allocator object is not provided to the constructor as a first parameter. The following code allocates two arenas - one with TLS frontend, and one as a normal object instance (shared):
+
+```cpp
+mtp::vault<int, mtp::default_set> vlt6;
+mtp::shared<mtp::default_set> metapool_shared;
+mtp::vault<int, mtp::default_set> vlt7 {metapool_shared};
 ```
 
 Container set selection (optional - pass via compiler flags or define before including `mtp_memory.hpp`):
@@ -126,15 +154,9 @@ Container set selection (optional - pass via compiler flags or define before inc
 ```
 The `std::allocator` and `std::pmr::memory_resource` adapters are compiled either way, so you can still use `metapool` with standard containers manually.
 
-`metapool` is initialized lazily. To force thread-local initialization:
-
-```cpp
-mtp::init<mtp::default_set>();
-```
-
 ## :white_square_button: architectural overview
 
-Each allocator instance holds a preconfigured *metapool set* - *metaset*. Each metapool manages a range of stride sizes with fast lookup through a proxy array.
+Each allocator instance holds a preconfigured *metapool set* - a *metaset*. Each metapool manages a range of stride sizes with fast lookup through a proxy array.
 
 A metapool contains multiple pools, each managing blocks of a specific stride, and a fast intrusive freelist backs each pool.
 A stride is a size class - the block size (in bytes), always a multiple of the configured stride step.
@@ -209,7 +231,7 @@ Allocation sizes are rounded up to the nearest supported stride. For example, if
 
 ```cpp
 metaset <
-  def<capf::mul2, 128,  8,  16,  64, 128, 192>,   // metapool 1 
+  def<capf::mul2, 128,  8,  16,  64, 128, 192>,   // metapool 1
   def<capf::flat, 256, 16, 256, 512>,             // metapool 2
   def<capf::flat,  64,  8, 576, 576>              // metapool 3
 >;

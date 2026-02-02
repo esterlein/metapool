@@ -22,11 +22,12 @@ class slag
 
 public:
 
-	using AllocatorType = decltype(mtp::core::MemoryModel::create_thread_local_allocator <
+	using RawAllocator = mtp::cfg::alloc_for<Set>;
+
+	using SharedAllocator = mtp::core::MemoryModel::Shared <
 		Set,
 		mtp::cfg::AllocatorTag::std_adapter
-	>());
-	using RawAllocator = std::remove_reference_t<AllocatorType>;
+	>;
 
 	slag()
 		: m_allocator {
@@ -59,6 +60,32 @@ public:
 				mtp::cfg::AllocatorTag::std_adapter
 			>()
 		}
+	{
+		std::byte* block = m_allocator->alloc(sizeof(T) * count, alignof(T));
+		m_beg = reinterpret_cast<T*>(block);
+		m_end = m_beg + count;
+		m_cap = m_beg + count;
+
+		for (size_t i = 0; i < count; ++i)
+			new (m_beg + i) T(std::forward<Types>(args)...);
+	}
+
+	explicit slag(SharedAllocator& shared)
+		: m_allocator {shared.get_ptr()}
+	{}
+
+	slag(SharedAllocator& shared, size_t capacity)
+		: m_allocator {shared.get_ptr()}
+	{
+		std::byte* block = m_allocator->alloc(sizeof(T) * capacity, alignof(T));
+		m_beg = reinterpret_cast<T*>(block);
+		m_end = m_beg;
+		m_cap = m_beg + capacity;
+	}
+
+	template <typename... Types>
+	slag(SharedAllocator& shared, size_t count, Types&&... args)
+		: m_allocator {shared.get_ptr()}
 	{
 		std::byte* block = m_allocator->alloc(sizeof(T) * count, alignof(T));
 		m_beg = reinterpret_cast<T*>(block);

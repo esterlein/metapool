@@ -22,10 +22,21 @@
 #include "mtp/alloc_tracer.hpp"
 #include "mtp/memory_model.hpp"
 
+
+#if defined(MTP_ENABLE_MTP_CONTAINERS)
+
+
 #include "container/container_factory.hpp"
 
 
+#endif
+
+
 namespace mtp {
+
+
+template <typename Set>
+using shared = core::MemoryModel::Shared<Set, cfg::AllocatorTag::std_adapter>;
 
 
 using default_set = metaset <
@@ -41,7 +52,7 @@ using default_set = metaset <
 
 
 template <typename Set>
-static inline void init()
+static inline void init_tls()
 {
 	(void) core::MemoryModel::create_thread_local_allocator <
 		Set,
@@ -58,7 +69,7 @@ inline constexpr as_ptr_t as_ptr {};
 
 
 template <typename Set>
-static inline auto& get_allocator(as_ref_t)
+static inline auto& get_tls_allocator(as_ref_t)
 {
 	return core::MemoryModel::create_thread_local_allocator <
 		Set,
@@ -67,7 +78,7 @@ static inline auto& get_allocator(as_ref_t)
 }
 
 template <typename Set>
-static inline auto* get_allocator(as_ptr_t)
+static inline auto* get_tls_allocator(as_ptr_t)
 {
 	return &core::MemoryModel::create_thread_local_allocator <
 		Set,
@@ -76,9 +87,9 @@ static inline auto* get_allocator(as_ptr_t)
 }
 
 template <typename Set>
-static inline auto& get_allocator()
+static inline auto& get_tls_allocator()
 {
-	return get_allocator<Set>(as_ref);
+	return get_tls_allocator<Set>(as_ref);
 }
 
 
@@ -98,37 +109,6 @@ template <typename T, typename Set>
 using slag = cntr::slag<T, Set>;
 
 
-template <typename T, typename Set>
-inline auto make_vault()
-{
-	return cntr::make_vault<T, Set>();
-}
-
-template <typename T, typename Set>
-inline auto make_vault(size_t capacity)
-{
-	return cntr::make_vault<T, Set>(capacity);
-}
-
-template <typename T, typename Set, typename... Types>
-inline auto make_vault(size_t count, Types&&... args)
-{
-	return cntr::make_vault<T, Set>(count, std::forward<Types>(args)...);
-}
-
-template <typename T, typename Set>
-inline auto make_slag(size_t capacity)
-{
-	return cntr::make_slag<T, Set>(capacity);
-}
-
-template <typename T, typename Set, typename... Types>
-inline auto make_slag(size_t count, Types&&... args)
-{
-	return cntr::make_slag<T, Set>(count, std::forward<Types>(args)...);
-}
-
-
 #endif
 
 
@@ -142,9 +122,21 @@ inline auto make_vector(Types&&... args)
 }
 
 template <typename T, typename Set, typename... Types>
+inline auto make_vector(shared<Set>& shared, Types&&... args)
+{
+	return cntr::make_vector<T, Set>(shared, std::forward<Types>(args)...);
+}
+
+template <typename T, typename Set, typename... Types>
 inline auto make_deque(Types&&... args)
 {
 	return cntr::make_deque<T, Set>(std::forward<Types>(args)...);
+}
+
+template <typename T, typename Set, typename... Types>
+inline auto make_deque(shared<Set>& shared, Types&&... args)
+{
+	return cntr::make_deque<T, Set>(shared, std::forward<Types>(args)...);
 }
 
 template <typename T, typename Set, typename... Types>
@@ -154,9 +146,21 @@ inline auto make_list(Types&&... args)
 }
 
 template <typename T, typename Set, typename... Types>
+inline auto make_list(shared<Set>& shared, Types&&... args)
+{
+	return cntr::make_list<T, Set>(shared, std::forward<Types>(args)...);
+}
+
+template <typename T, typename Set, typename... Types>
 inline auto make_forward_list(Types&&... args)
 {
 	return cntr::make_forward_list<T, Set>(std::forward<Types>(args)...);
+}
+
+template <typename T, typename Set, typename... Types>
+inline auto make_forward_list(shared<Set>& shared, Types&&... args)
+{
+	return cntr::make_forward_list<T, Set>(shared, std::forward<Types>(args)...);
 }
 
 template <typename T, typename Set, typename... Types>
@@ -166,9 +170,21 @@ inline auto make_set(Types&&... args)
 }
 
 template <typename T, typename Set, typename... Types>
+inline auto make_set(shared<Set>& shared, Types&&... args)
+{
+	return cntr::make_set<T, Set>(shared, std::forward<Types>(args)...);
+}
+
+template <typename T, typename Set, typename... Types>
 inline auto make_unordered_set(Types&&... args)
 {
 	return cntr::make_unordered_set<T, Set>(std::forward<Types>(args)...);
+}
+
+template <typename T, typename Set, typename... Types>
+inline auto make_unordered_set(shared<Set>& shared, Types&&... args)
+{
+	return cntr::make_unordered_set<T, Set>(shared, std::forward<Types>(args)...);
 }
 
 template <typename K, typename V, typename Set, typename... Types>
@@ -178,15 +194,33 @@ inline auto make_map(Types&&... args)
 }
 
 template <typename K, typename V, typename Set, typename... Types>
+inline auto make_map(shared<Set>& shared, Types&&... args)
+{
+	return cntr::make_map<K, V, Set>(shared, std::forward<Types>(args)...);
+}
+
+template <typename K, typename V, typename Set, typename... Types>
 inline auto make_unordered_map(Types&&... args)
 {
 	return cntr::make_unordered_map<K, V, Set>(std::forward<Types>(args)...);
+}
+
+template <typename K, typename V, typename Set, typename... Types>
+inline auto make_unordered_map(shared<Set>& shared, Types&&... args)
+{
+	return cntr::make_unordered_map<K, V, Set>(shared, std::forward<Types>(args)...);
 }
 
 template <typename Set, typename... Types>
 inline auto make_string(Types&&... args)
 {
 	return cntr::make_string<Set>(std::forward<Types>(args)...);
+}
+
+template <typename Set, typename... Types>
+inline auto make_string(shared<Set>& shared, Types&&... args)
+{
+	return cntr::make_string<Set>(shared, std::forward<Types>(args)...);
 }
 
 template <typename T, typename Set, typename... Types>
@@ -196,9 +230,21 @@ inline auto make_unique(Types&&... args)
 }
 
 template <typename T, typename Set, typename... Types>
+inline auto make_unique(shared<Set>& shared, Types&&... args)
+{
+	return cntr::make_unique<T, Set>(shared, std::forward<Types>(args)...);
+}
+
+template <typename T, typename Set, typename... Types>
 inline auto make_shared(Types&&... args)
 {
 	return cntr::make_shared<T, Set>(std::forward<Types>(args)...);
+}
+
+template <typename T, typename Set, typename... Types>
+inline auto make_shared(shared<Set>& shared, Types&&... args)
+{
+	return cntr::make_shared<T, Set>(shared, std::forward<Types>(args)...);
 }
 
 

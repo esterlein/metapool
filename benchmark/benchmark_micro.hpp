@@ -251,7 +251,7 @@ private:
 		std::cout << "run mtp emplace (size: " << sizeof(T) << ")..." << std::endl;
 
 		Result result;
-		auto vlt = mtp::make_vault<T, Set>(count);
+		mtp::vault<T, Set> vlt {count};
 
 		flush_cache();
 

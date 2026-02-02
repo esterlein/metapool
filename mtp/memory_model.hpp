@@ -1,7 +1,11 @@
 #pragma once
 
+#include "mtpint.hpp"
+
 #include <span>
 #include <tuple>
+#include <array>
+#include <memory>
 
 #include "allocator.hpp"
 #include "metaset.hpp"
@@ -42,7 +46,9 @@ public:
 
 		thread_local static MetapoolContainer<Set> container {&arena};
 
-		thread_local static auto proxies = setup_proxy_span<Set>(container);
+		thread_local static std::array<std::byte, k_proxy_buffer_bytes<Set>> proxy_buffer {};
+
+		thread_local static auto proxies = setup_proxy_span<Set>(container, proxy_buffer);
 
 		constexpr auto allocator_config = Set::create_allocator_config();
 
@@ -60,20 +66,6 @@ public:
 		}
 	}
 
-	template <typename T, typename Set>
-	static inline auto get_std_adapter()
-	{
-		auto& base = create_thread_local_allocator<Set, mtp::cfg::AllocatorTag::std_adapter>();
-		return typename std::remove_reference_t<decltype(base)>::template rebind_t<T>{base};
-	}
-
-	template <typename T, typename Set>
-	static inline auto get_pmr_adapter()
-	{
-		auto& base = create_thread_local_allocator<Set, mtp::cfg::AllocatorTag::pmr_adapter>();
-		return std::pmr::polymorphic_allocator<T>{static_cast<std::pmr::memory_resource*>(&base)};
-	}
-
 private:
 
 	template <typename Set>
@@ -83,13 +75,13 @@ private:
 
 		explicit MetapoolContainer(MonotonicArena* upstream)
 			: m_metapool_storage
-			{
-				create_storage(
-					upstream,
-					Set::create_allocator_config(),
-					std::make_index_sequence<Set::set_size>{}
-				)
-			}
+		{
+			create_storage(
+				upstream,
+				Set::create_allocator_config(),
+				std::make_index_sequence<Set::set_size>{}
+			)
+		}
 		{}
 
 	private:
@@ -157,23 +149,129 @@ private:
 private:
 
 	template <typename Set>
-	[[nodiscard]] static auto setup_proxy_span(MetapoolContainer<Set>& container)
+	static constexpr size_t k_proxy_bytes =
+		sizeof(FreelistProxy) * Set::create_allocator_config().total_stride_count;
+
+	template <typename Set>
+	static constexpr size_t k_proxy_buffer_bytes =
+		alignof(FreelistProxy) + k_proxy_bytes<Set>;
+
+public:
+
+	template <typename Set, mtp::cfg::AllocatorTag Tag = mtp::cfg::AllocatorTag::std_adapter>
+	class Shared final
 	{
-		constexpr size_t count = Set::create_allocator_config().total_stride_count;
-		constexpr size_t bytes = sizeof(FreelistProxy) * count;
-		constexpr size_t buffer_bytes = alignof(FreelistProxy) + bytes;
+	public:
 
-		thread_local static std::array<std::byte, buffer_bytes> buffer {};
+		Shared()
+			: m_arena     {Set::arena_size, mtp::cfg::arena_alignment}
+			, m_container {&m_arena}
+			, m_proxies   {setup_proxy_span<Set>(m_container, m_proxy_buffer)}
+			, m_allocator {m_proxies}
+		{}
 
-		void* raw_ptr = static_cast<void*>(buffer.data());
-		size_t space = buffer_bytes;
+		Shared(const Shared&) = delete;
+		Shared& operator=(const Shared&) = delete;
 
-		void* aligned = std::align(alignof(FreelistProxy), bytes, raw_ptr, space);
+		Shared(Shared&&) = delete;
+		Shared& operator=(Shared&&) = delete;
+
+		[[nodiscard]] auto& get() noexcept
+		{
+			return m_allocator;
+		}
+
+		[[nodiscard]] auto* get_ptr() noexcept
+		{
+			return &m_allocator;
+		}
+
+	private:
+
+		using allocator_config_t = decltype(Set::create_allocator_config());
+
+		using allocator_t =
+			std::conditional_t <
+				Tag == mtp::cfg::AllocatorTag::native,
+				Allocator<allocator_config_t, Native>,
+				std::conditional_t <
+					Tag == mtp::cfg::AllocatorTag::std_adapter,
+					Allocator<allocator_config_t, StdAdapter, void>,
+					Allocator<allocator_config_t, PmrAdapter>
+				>
+			>;
+
+	private:
+
+		MonotonicArena m_arena;
+
+		MetapoolContainer<Set> m_container;
+
+		std::array<std::byte, k_proxy_buffer_bytes<Set>> m_proxy_buffer {};
+
+		std::span<FreelistProxy> m_proxies;
+
+		allocator_t m_allocator;
+	};
+
+public:
+
+	template <typename T, typename Set>
+	static inline auto get_std_adapter()
+	{
+		auto& base = create_thread_local_allocator<Set, mtp::cfg::AllocatorTag::std_adapter>();
+		return typename std::remove_reference_t<decltype(base)>::template rebind_t<T>{base};
+	}
+
+	template <typename T, typename Set>
+	static inline auto get_std_adapter(
+		mtp::core::MemoryModel::Shared<Set,
+		mtp::cfg::AllocatorTag::std_adapter>& shared
+	)
+	{
+		auto& base = shared.get();
+		return typename std::remove_reference_t<decltype(base)>::template rebind_t<T>{base};
+	}
+
+	template <typename T, typename Set>
+	static inline auto get_pmr_adapter()
+	{
+		auto& base = create_thread_local_allocator<Set, mtp::cfg::AllocatorTag::pmr_adapter>();
+		return std::pmr::polymorphic_allocator<T>{static_cast<std::pmr::memory_resource*>(&base)};
+	}
+
+	template <typename T, typename Set>
+	static inline auto get_pmr_adapter(
+		mtp::core::MemoryModel::Shared<Set,
+		mtp::cfg::AllocatorTag::pmr_adapter>& shared
+	)
+	{
+		auto& base = shared.get();
+		return std::pmr::polymorphic_allocator<T>{
+			static_cast<std::pmr::memory_resource*>(&base)
+		};
+	}
+
+private:
+
+	template <typename Set, typename ProxyBuffer>
+	[[nodiscard]] static auto setup_proxy_span(MetapoolContainer<Set>& container, ProxyBuffer& proxy_buffer)
+	{
+		void* buffer_ptr    = static_cast<void*>(proxy_buffer.data());
+		size_t buffer_bytes = proxy_buffer.size();
+
+		void* aligned = std::align(
+			alignof(FreelistProxy),
+			k_proxy_bytes<Set>,
+			buffer_ptr,
+			buffer_bytes
+		);
+
 		MTP_ASSERT(aligned != nullptr,
 			mtp::err::mem_model_proxy_align_fail);
 
-		auto* ptr = reinterpret_cast<FreelistProxy*>(aligned);
-		return container.make_proxies(ptr);
+		auto* first_proxy_ptr = reinterpret_cast<FreelistProxy*>(aligned);
+		return container.make_proxies(first_proxy_ptr);
 	}
 
 }; // MemoryModel
