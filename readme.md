@@ -118,18 +118,30 @@ Metaset and native containers (WIP):
 using custom_set = mtp::metaset <
     mtp::def<mtp::capf::mul2, 64, 8, 16, 64, 128>
 >;
+```
 
-// dynamic array mtp::vault<T, Metaset> - TLS allocator
-mtp::vault<int,      custom_set> vlt1;          // thread-local metapool instance constructed lazily
-mtp::vault<int,      custom_set> vlt2 {10};     // reserve space for 10 ints
-mtp::vault<YourType, custom_set> vlt3 {10, 42}; // construct 10 objects with parameter '42'
+- dynamic array mtp::vault<T, Metaset> - TLS allocator example
 
-vlt3.emplace_back(YourType {});                 // grow and emplace 11th
+```cpp
+// thread-local metapool instance constructed lazily
+mtp::vault<int, custom_set> vlt1;
+
+// reserve space for 10 ints
+mtp::vault<int, custom_set> vlt2 {10};
+
+// construct 10 objects with parameter '42'
+mtp::vault<YourType, custom_set> vlt3 {10, 42};
+
+// grow and emplace 11th
+vlt3.emplace_back(YourType {});
 
 mtp::vault<int, custom_set> vlt4;
 vlt4.reserve(10);
+```
 
-// shared allocator object
+- shared allocator object example
+
+```cpp
 mtp::shared<custom_set> metapool_shared;
 
 // initialize a container with allocator instance and construct 10 objects with parameter '42'

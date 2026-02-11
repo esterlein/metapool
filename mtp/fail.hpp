@@ -449,6 +449,10 @@ inline constexpr const char* slag_clear_null_data =
 	"[slag::clear] non-zero size with null data";
 
 
+inline constexpr const char* chaselev_reserve_non_empty =
+	"[chaselev::reserve] forbidden if running";
+
+
 #define SLAG_REF_MSG R"(
 
 *******************************************************
@@ -464,6 +468,39 @@ inline constexpr const char* slag_clear_null_data =
 ********************************************************
 
 )"
+
+#define CRIB_REF_MSG R"(
+
+*******************************************************
+* [crib] cannot be instantiated with reference / void *
+*******************************************************
+
+)"
+
+#define CHASELEV_REF_MSG R"(
+
+***********************************************************
+* [chaselev] cannot be instantiated with reference / void *
+***********************************************************
+
+)"
+
+#define CHASELEV_TRIVIAL_COPY_MSG R"(
+
+********************************************
+* [chaselev] requires trivially copyable T *
+********************************************
+
+)"
+
+#define CHASELEV_TRIVIAL_DTOR_MSG R"(
+
+************************************************
+* [chaselev] requires trivially destructable T *
+************************************************
+
+)"
+
 
 #define CORE_TOO_MANY_POOLS_MSG R"(
 

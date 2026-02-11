@@ -21,6 +21,8 @@
 
 	#include "vault.hpp"
 	#include "slag.hpp"
+	#include "crib.hpp"
+	#include "chaselev.hpp"
 
 #endif
 

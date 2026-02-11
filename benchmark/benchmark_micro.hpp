@@ -91,7 +91,7 @@ public:
 
 	inline void teardown() override
 	{
-		auto& allocator = mtp::get_allocator<Set>();
+		auto& allocator = mtp::get_tls_allocator<Set>();
 		allocator.reset();
 	}
 

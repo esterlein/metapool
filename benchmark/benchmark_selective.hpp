@@ -221,7 +221,7 @@ public:
 
 	inline void teardown() override
 	{
-		auto& metapool = mtp::get_allocator<Set>();
+		auto& metapool = mtp::get_tls_allocator<Set>();
 		metapool.reset();
 		std::cout << "\n";
 	}
@@ -456,7 +456,7 @@ private:
 			[](void* p, size_t) { std::free(p); }
 		);
 
-		auto& metapool = mtp::get_allocator<Set>();
+		auto& metapool = mtp::get_tls_allocator<Set>();
 		time[1] = run_raw_loop("metapool", size, count, frames,
 			[&metapool](size_t s) { return metapool.alloc(s, alignment); },
 			[&metapool](void* p, size_t) { metapool.free(static_cast<std::byte*>(p)); }
@@ -594,7 +594,7 @@ private:
 	{
 		std::cout << "run metapool construct/destruct (size: " << sizeof(T) << ")..." << std::endl;
 
-		auto& metapool = mtp::get_allocator<Set>();
+		auto& metapool = mtp::get_tls_allocator<Set>();
 		std::array<T*, max_pointers> ptrs;
 
 		flush_cache();
@@ -807,7 +807,7 @@ private:
 	{
 		std::cout << "run metapool churn simulation (size: " << sizeof(T) << ")..." << std::endl;
 
-		auto& metapool = mtp::get_allocator<Set>();
+		auto& metapool = mtp::get_tls_allocator<Set>();
 		std::array<T*, Count> ptrs {};
 		size_t alive = 0;
 

@@ -77,7 +77,7 @@ private:
 	{
 		std::cout << "testing basic allocation..." << std::flush;
 
-		auto& allocator = mtp::get_allocator<mtp::default_set>();
+		auto& allocator = mtp::get_tls_allocator<mtp::default_set>();
 
 		std::byte* ptr = allocator.alloc(100, alignof(int));
 		assert(ptr != nullptr);
@@ -91,7 +91,7 @@ private:
 	{
 		std::cout << "testing alignment..." << std::flush;
 
-		auto& allocator = mtp::get_allocator<mtp::default_set>();
+		auto& allocator = mtp::get_tls_allocator<mtp::default_set>();
 
 		for (size_t alignment : {1, 2, 4, 8, 16, 32, 64, 128, 256}) {
 			std::byte* ptr = allocator.alloc(64, alignment);
@@ -107,7 +107,7 @@ private:
 	{
 		std::cout << "testing multiple allocations..." << std::flush;
 
-		auto& allocator = mtp::get_allocator<mtp::default_set>();
+		auto& allocator = mtp::get_tls_allocator<mtp::default_set>();
 
 		std::vector<std::byte*> vec;
 		std::array<size_t, 6> sizes {8, 16, 32, 64, 128, 256};

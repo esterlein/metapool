@@ -22,27 +22,27 @@ class slag
 
 public:
 
-	using RawAllocator = mtp::cfg::alloc_for<Set>;
+	using RawAllocator = cfg::alloc_for<Set>;
 
-	using SharedAllocator = mtp::core::MemoryModel::Shared <
+	using SharedAllocator = core::MemoryModel::Shared <
 		Set,
-		mtp::cfg::AllocatorTag::std_adapter
+		cfg::AllocatorTag::std_adapter
 	>;
 
 	slag()
 		: m_allocator {
-			&mtp::core::MemoryModel::create_thread_local_allocator <
+			&core::MemoryModel::create_thread_local_allocator <
 				Set,
-				mtp::cfg::AllocatorTag::std_adapter
+				cfg::AllocatorTag::std_adapter
 			>()
 		}
 	{}
 
 	explicit slag(size_t capacity)
 		: m_allocator {
-			&mtp::core::MemoryModel::create_thread_local_allocator <
+			&core::MemoryModel::create_thread_local_allocator <
 				Set,
-				mtp::cfg::AllocatorTag::std_adapter
+				cfg::AllocatorTag::std_adapter
 			>()
 		}
 	{
@@ -55,9 +55,9 @@ public:
 	template <typename... Types>
 	slag(size_t count, Types&&... args)
 		: m_allocator {
-			&mtp::core::MemoryModel::create_thread_local_allocator <
+			&core::MemoryModel::create_thread_local_allocator <
 				Set,
-				mtp::cfg::AllocatorTag::std_adapter
+				cfg::AllocatorTag::std_adapter
 			>()
 		}
 	{
@@ -105,9 +105,9 @@ public:
 	slag& operator=(const slag&) = delete;
 
 	slag(slag&& other) noexcept
-		: m_beg{other.m_beg}
-		, m_end{other.m_end}
-		, m_cap{other.m_cap}
+		: m_beg {other.m_beg}
+		, m_end {other.m_end}
+		, m_cap {other.m_cap}
 		, m_allocator{other.m_allocator}
 	{
 		other.m_beg = nullptr;
@@ -139,35 +139,35 @@ public:
 	T& operator[](size_t index)
 	{
 		MTP_ASSERT(index < size(),
-			mtp::err::slag_index_oob);
+			err::slag_index_oob);
 		return m_beg[index];
 	}
 
 	const T& operator[](size_t index) const
 	{
 		MTP_ASSERT(index < size(),
-			mtp::err::slag_index_oob);
+			err::slag_index_oob);
 		return m_beg[index];
 	}
 
 	T& back()
 	{
 		MTP_ASSERT(size() > 0,
-			mtp::err::slag_back_empty);
+			err::slag_back_empty);
 		return *(m_end - 1);
 	}
 
 	const T& back() const
 	{
 		MTP_ASSERT(size() > 0,
-			mtp::err::slag_back_empty);
+			err::slag_back_empty);
 		return *(m_end - 1);
 	}
 
 	void pop_back()
 	{
 		MTP_ASSERT(size() > 0,
-			mtp::err::slag_pop_empty);
+			err::slag_pop_empty);
 		--m_end;
 		if constexpr (!std::is_trivially_destructible_v<T>)
 			m_end->~T();
@@ -176,7 +176,7 @@ public:
 	void erase_swap(size_t index)
 	{
 		MTP_ASSERT(index < size(),
-			mtp::err::slag_erase_oob);
+			err::slag_erase_oob);
 
 		T* last = m_end - 1;
 
@@ -552,7 +552,7 @@ private:
 	T* m_end {nullptr};
 	T* m_cap {nullptr};
 
-	RawAllocator* m_allocator [[maybe_unused]] {};
+	RawAllocator* m_allocator {};
 };
 
 } // mtp::cntr

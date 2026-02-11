@@ -108,6 +108,12 @@ using vault = cntr::vault<T, Set>;
 template <typename T, typename Set>
 using slag = cntr::slag<T, Set>;
 
+template <typename T, size_t Size>
+using crib = cntr::crib<T, Size>;
+
+template <typename T, typename Set>
+using chaselev = cntr::chaselev<T, Set>;
+
 
 #endif
 
