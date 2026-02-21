@@ -50,18 +50,18 @@ public:
 
 		thread_local static auto proxies = setup_proxy_span<Set>(container, proxy_buffer);
 
-		constexpr auto allocator_config = Set::create_allocator_config();
+		using allocator_config_t = decltype(Set::create_allocator_config());
 
 		if constexpr (Tag == mtp::cfg::AllocatorTag::native) {
-			thread_local static Allocator<decltype(allocator_config), Native> allocator {proxies};
+			thread_local static Allocator<allocator_config_t, Native> allocator {proxies};
 			return allocator;
 		}
 		else if constexpr (Tag == mtp::cfg::AllocatorTag::std_adapter) {
-			thread_local static Allocator<decltype(allocator_config), StdAdapter, void> allocator {proxies};
+			thread_local static Allocator<allocator_config_t, StdAdapter, void> allocator {proxies};
 			return allocator;
 		}
 		else if constexpr (Tag == mtp::cfg::AllocatorTag::pmr_adapter) {
-			thread_local static Allocator<decltype(allocator_config), PmrAdapter> allocator {proxies};
+			thread_local static Allocator<allocator_config_t, PmrAdapter> allocator {proxies};
 			return allocator;
 		}
 	}

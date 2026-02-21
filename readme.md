@@ -194,7 +194,7 @@ Each pivot is a stride.
 
 Each stride is a multiple of the stride step and is equal to the size of the block.
 
-Each stride step is a power of two, with a minimum of 8 bytes and a maximum of 8 MB.
+Each stride step is a power of two, with a minimum of 8 bytes and a maximum of 1 GiB.
 
 Metapool entry in a metaset:
 
